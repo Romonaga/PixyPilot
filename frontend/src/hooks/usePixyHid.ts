@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  fetchSettings,
   fetchPixyHidStatus,
   setPixyAudio,
   setPixyAutoPrivacy,
@@ -8,6 +9,8 @@ import {
   setPixyTracking
 } from "../lib/apiClient";
 import type { AudioMode, PixyHidStatus, TrackingMode } from "../types/api";
+
+let startupPrivacyCommandAttempted = false;
 
 export type UsePixyHidResult = {
   status: PixyHidStatus | null;
@@ -26,6 +29,10 @@ export type UsePixyHidResult = {
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
 };
 
+export function resetPixyHidStartupSafetyForTests() {
+  startupPrivacyCommandAttempted = false;
+}
+
 export function usePixyHid(): UsePixyHidResult {
   const [status, setStatus] = useState<PixyHidStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +43,8 @@ export function usePixyHid(): UsePixyHidResult {
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [startInPrivacy, setStartInPrivacy] = useState(true);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -53,6 +62,32 @@ export function usePixyHid(): UsePixyHidResult {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadSettings() {
+      try {
+        const settings = await fetchSettings();
+        if (!ignore) {
+          setStartInPrivacy(settings.safety.start_in_privacy);
+        }
+      } catch {
+        if (!ignore) {
+          setStartInPrivacy(true);
+        }
+      } finally {
+        if (!ignore) {
+          setSettingsLoaded(true);
+        }
+      }
+    }
+
+    void loadSettings();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const runCommand = useCallback(
     async (command: string, action: () => Promise<void>) => {
       setPendingCommand(command);
@@ -69,6 +104,51 @@ export function usePixyHid(): UsePixyHidResult {
     []
   );
 
+  const setTrackingMode = useCallback(
+    async (mode: TrackingMode) =>
+      runCommand(`tracking:${mode}`, async () => {
+        await setPixyTracking(mode);
+        setTrackingModeState(mode);
+      }),
+    [runCommand]
+  );
+
+  const setGestureEnabled = useCallback(
+    async (enabled: boolean) =>
+      runCommand(`gesture:${enabled ? "on" : "off"}`, async () => {
+        await setPixyGesture(enabled);
+        setGestureEnabledState(enabled);
+      }),
+    [runCommand]
+  );
+
+  const setAudioMode = useCallback(
+    async (mode: AudioMode) =>
+      runCommand(`audio:${mode}`, async () => {
+        await setPixyAudio(mode);
+        setAudioModeState(mode);
+      }),
+    [runCommand]
+  );
+
+  const setAutoPrivacySeconds = useCallback(
+    async (seconds: number) =>
+      runCommand(`auto-privacy:${seconds}`, async () => {
+        await setPixyAutoPrivacy(seconds);
+        setAutoPrivacySecondsState(seconds);
+      }),
+    [runCommand]
+  );
+
+  useEffect(() => {
+    if (!settingsLoaded || !startInPrivacy || startupPrivacyCommandAttempted || status?.writable !== true) {
+      return;
+    }
+
+    startupPrivacyCommandAttempted = true;
+    void setTrackingMode("privacy");
+  }, [setTrackingMode, settingsLoaded, startInPrivacy, status?.writable]);
+
   return {
     status,
     isLoading,
@@ -80,25 +160,9 @@ export function usePixyHid(): UsePixyHidResult {
     audioMode,
     autoPrivacySeconds,
     refresh,
-    setTrackingMode: async (mode) =>
-      runCommand(`tracking:${mode}`, async () => {
-        await setPixyTracking(mode);
-        setTrackingModeState(mode);
-      }),
-    setGestureEnabled: async (enabled) =>
-      runCommand(`gesture:${enabled ? "on" : "off"}`, async () => {
-        await setPixyGesture(enabled);
-        setGestureEnabledState(enabled);
-      }),
-    setAudioMode: async (mode) =>
-      runCommand(`audio:${mode}`, async () => {
-        await setPixyAudio(mode);
-        setAudioModeState(mode);
-      }),
-    setAutoPrivacySeconds: async (seconds) =>
-      runCommand(`auto-privacy:${seconds}`, async () => {
-        await setPixyAutoPrivacy(seconds);
-        setAutoPrivacySecondsState(seconds);
-      })
+    setTrackingMode,
+    setGestureEnabled,
+    setAudioMode,
+    setAutoPrivacySeconds
   };
 }

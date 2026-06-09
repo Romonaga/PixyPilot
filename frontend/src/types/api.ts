@@ -63,3 +63,9 @@ export type AudioCommandResult = {
   value: boolean;
   card: number;
 };
+
+export type AppSettings = {
+  safety: {
+    start_in_privacy: boolean;
+  };
+};

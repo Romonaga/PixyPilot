@@ -2,6 +2,7 @@ import type {
   AudioCommandResult,
   AudioStatus,
   AudioMode,
+  AppSettings,
   Device,
   PixyHidCommandResult,
   PixyHidStatus,
@@ -30,6 +31,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function fetchDevices(): Promise<Device[]> {
   return requestJson<Device[]>("/api/devices");
+}
+
+export async function fetchSettings(): Promise<AppSettings> {
+  return requestJson<AppSettings>("/api/settings");
 }
 
 export async function fetchControls(deviceName: string): Promise<V4L2Control[]> {

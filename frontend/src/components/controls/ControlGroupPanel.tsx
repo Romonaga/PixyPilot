@@ -1,5 +1,6 @@
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
+import { CompactControlPanel } from "./CompactControlPanel";
 import { ControlRenderer } from "./ControlRenderer";
 import { PtzControlPanel } from "./PtzControlPanel";
 
@@ -13,6 +14,10 @@ export function ControlGroupPanel({ group, controls }: Props) {
 
   if (group.id === "ptz" && group.controls.length > 0) {
     return <PtzControlPanel group={group} controls={controls} />;
+  }
+
+  if (group.id === "image" || group.id === "focus" || group.id === "exposure") {
+    return <CompactControlPanel group={group} controls={controls} />;
   }
 
   if (group.controls.length === 0) {

@@ -469,11 +469,165 @@ h2 {
   overflow-y: auto;
 }
 
+.reference-control-panel {
+  padding: 12px 14px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    rgba(13, 15, 20, 0.92);
+}
+
+.control-panel-image.reference-control-panel {
+  max-height: none;
+  overflow: visible;
+  border-top-color: #d9a72f;
+  box-shadow: inset 0 0 0 1px rgba(217, 167, 47, 0.18);
+}
+
+.control-panel-focus.reference-control-panel {
+  border-top-color: #95e64f;
+  box-shadow: inset 0 0 0 1px rgba(149, 230, 79, 0.16);
+}
+
+.control-panel-exposure.reference-control-panel {
+  border-top-color: #ef963d;
+  box-shadow: inset 0 0 0 1px rgba(239, 150, 61, 0.16);
+}
+
+.reference-control-panel .panel-title-row {
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.control-panel-image.reference-control-panel .panel-title-row {
+  color: #ffd45e;
+}
+
+.control-panel-focus.reference-control-panel .panel-title-row {
+  color: #a9f061;
+}
+
+.control-panel-exposure.reference-control-panel .panel-title-row {
+  color: #ff9d43;
+}
+
+.reference-control-stack {
+  display: grid;
+}
+
+.control-panel-image.reference-control-panel .reference-control-stack {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.reference-control-row {
+  display: grid;
+  grid-template-columns: minmax(122px, 0.58fr) minmax(150px, 1fr) minmax(48px, 70px);
+  align-items: center;
+  gap: 14px;
+  min-height: 34px;
+  padding: 5px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.reference-control-row.has-presets {
+  grid-template-columns: minmax(112px, 0.54fr) minmax(120px, 1fr);
+}
+
+.reference-control-row:first-child {
+  border-top: 0;
+}
+
+.reference-control-row.is-inactive {
+  opacity: 0.55;
+}
+
+.reference-control-label {
+  min-width: 0;
+}
+
+.reference-control-label span {
+  display: block;
+  color: #f4f0df;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.reference-control-label small {
+  display: block;
+  margin-top: 3px;
+  color: #9aa4a7;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.reference-control-input {
+  min-width: 0;
+}
+
+.reference-control-row output {
+  color: #f5efe3;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.control-panel-image.reference-control-panel .range-input {
+  accent-color: #ffd45e;
+}
+
+.control-panel-focus.reference-control-panel .range-input {
+  accent-color: #a9f061;
+}
+
+.control-panel-exposure.reference-control-panel .range-input {
+  accent-color: #ff9d43;
+}
+
+.reference-segmented {
+  display: grid;
+  gap: 6px;
+}
+
+.reference-segmented.two-up,
+.reference-segmented.columns-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reference-segmented.columns-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reference-segmented.columns-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.reference-segmented button {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 4px;
+  color: #ebe8de;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.reference-segmented button.is-selected {
+  color: #ffe08b;
+  border-color: rgba(255, 212, 94, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 212, 94, 0.14), rgba(255, 212, 94, 0.04)),
+    rgba(255, 212, 94, 0.04);
+}
+
 .control-panel-image .control-stack {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.control-panel-image .panel-title-row {
+.control-panel-image:not(.reference-control-panel) .panel-title-row {
   position: sticky;
   top: -14px;
   z-index: 2;

@@ -12,10 +12,22 @@ from pixypilot.domains.pixy_hid.models import (
     TrackingModeRequest,
 )
 from pixypilot.domains.pixy_hid.service import PixyHidService, get_pixy_hid_service
+from pixypilot.domains.settings.models import AppSettings
+from pixypilot.domains.settings.service import SettingsService, get_settings_service
 from pixypilot.domains.v4l2.models import ControlSetRequest, V4L2Control
 from pixypilot.domains.v4l2.service import V4L2Service, get_v4l2_service
 
 router = APIRouter()
+
+
+@router.get("/settings", response_model=AppSettings)
+async def get_settings(
+    service: SettingsService = Depends(get_settings_service),
+) -> AppSettings:
+    try:
+        return await service.get_settings()
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/devices", response_model=list[Device])
