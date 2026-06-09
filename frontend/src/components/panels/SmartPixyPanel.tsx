@@ -82,20 +82,27 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
           <span className="capture-needed">Capture needed</span>
         </div>
 
-        <div className="smart-control smart-toggle-row">
+        <div className="smart-control">
           <div className="smart-label">
             <Shield size={16} />
             <span>Privacy Mode</span>
           </div>
-          <button
-            className={`toggle-switch ${privacyEnabled ? "is-on" : ""}`}
-            disabled={disabled}
-            aria-pressed={privacyEnabled}
-            aria-label="Privacy Mode"
-            onClick={() => void pixyHid.setTrackingMode(privacyEnabled ? "off" : "privacy")}
-          >
-            <span />
-          </button>
+          <div className="segmented privacy-command">
+            <button
+              className={pixyHid.trackingMode === "off" ? "is-selected" : ""}
+              disabled={disabled}
+              onClick={() => void pixyHid.setTrackingMode("off")}
+            >
+              Off
+            </button>
+            <button
+              className={privacyEnabled ? "is-selected" : ""}
+              disabled={disabled}
+              onClick={() => void pixyHid.setTrackingMode("privacy")}
+            >
+              Privacy
+            </button>
+          </div>
         </div>
 
         <div className="smart-control smart-toggle-row">

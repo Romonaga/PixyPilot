@@ -59,7 +59,7 @@ describe("SmartPixyPanel", () => {
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto Framing" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Privacy Mode" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Privacy" })).toBeDisabled();
   });
 
   it("enables HID controls when hidraw is writable", () => {
@@ -81,7 +81,7 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto Framing" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Privacy Mode" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Privacy" })).toBeEnabled();
     expect(screen.getByText("Speaker Tracking")).toBeInTheDocument();
     expect(screen.getByText("Capture needed")).toBeInTheDocument();
   });
@@ -107,12 +107,12 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Privacy Mode" }));
+    await user.click(screen.getByRole("button", { name: "Privacy" }));
 
     expect(setTrackingMode).toHaveBeenCalledWith("privacy");
   });
 
-  it("returns to idle when privacy mode is toggled off", async () => {
+  it("resends privacy when privacy mode is already selected", async () => {
     const user = userEvent.setup();
     const setTrackingMode = vi.fn().mockResolvedValue(undefined);
 
@@ -134,7 +134,34 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Privacy Mode" }));
+    await user.click(screen.getByRole("button", { name: "Privacy" }));
+
+    expect(setTrackingMode).toHaveBeenCalledWith("privacy");
+  });
+
+  it("sends idle when privacy mode is cleared", async () => {
+    const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["privacy"]
+          },
+          trackingMode: "privacy",
+          setTrackingMode
+        })}
+        audio={makeAudio()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Off" }));
 
     expect(setTrackingMode).toHaveBeenCalledWith("off");
   });

@@ -1076,6 +1076,10 @@ h2 {
   background: #ff5cc8;
 }
 
+.privacy-command {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .smart-control-privacy {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
