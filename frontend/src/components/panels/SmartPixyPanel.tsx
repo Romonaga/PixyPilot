@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Radio, Shield, Sparkles, Volume2 } from "lucide-react";
+import { Radio, ScanFace, Shield, Sparkles, Volume2 } from "lucide-react";
 
 import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -9,12 +9,6 @@ type Props = {
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
 };
-
-const trackingModes: { value: TrackingMode; label: string }[] = [
-  { value: "off", label: "Idle" },
-  { value: "tracking", label: "Track" },
-  { value: "privacy", label: "Privacy" }
-];
 
 const audioModes: { value: AudioMode; label: string }[] = [
   { value: "noise_cancel", label: "NC" },
@@ -28,6 +22,7 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
   const disabled = !writable || pixyHid.pendingCommand !== null;
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
+  const autoFramingEnabled = pixyHid.trackingMode === "tracking";
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -62,34 +57,40 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
       {!writable && pixyHid.status?.reason && <div className="mini-warning">{pixyHid.status.reason}</div>}
 
       <div className="smart-control-stack">
-        <div className="smart-control">
+        <div className="smart-control smart-toggle-row">
           <div className="smart-label">
-            <Radio size={16} />
-            <span>Tracking</span>
+            <ScanFace size={16} />
+            <span>Auto Framing</span>
           </div>
-          <div className="segmented">
-            {trackingModes.map((mode) => (
-              <button
-                key={mode.value}
-                className={pixyHid.trackingMode === mode.value ? "is-selected" : ""}
-                disabled={disabled}
-                onClick={() => void pixyHid.setTrackingMode(mode.value)}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
+          <button
+            className={`toggle-switch ${autoFramingEnabled ? "is-on" : ""}`}
+            disabled={disabled}
+            aria-pressed={autoFramingEnabled}
+            aria-label="Auto Framing"
+            onClick={() => void pixyHid.setTrackingMode(autoFramingEnabled ? "off" : "tracking")}
+          >
+            <span />
+          </button>
         </div>
 
-        <div className="smart-control">
+        <div className="smart-control smart-toggle-row">
+          <div className="smart-label">
+            <Radio size={16} />
+            <span>Speaker Tracking</span>
+          </div>
+          <span className="capture-needed">Capture needed</span>
+        </div>
+
+        <div className="smart-control smart-toggle-row">
           <div className="smart-label">
             <Shield size={16} />
-            <span>Gesture</span>
+            <span>Gesture Control</span>
           </div>
           <button
             className={`toggle-switch ${pixyHid.gestureEnabled ? "is-on" : ""}`}
             disabled={disabled}
             aria-pressed={pixyHid.gestureEnabled === true}
+            aria-label="Gesture Control"
             onClick={() => void pixyHid.setGestureEnabled(!(pixyHid.gestureEnabled ?? false))}
           >
             <span />

@@ -17,7 +17,7 @@ export function ControlGroupPanel({ group, controls }: Props) {
 
   if (group.controls.length === 0) {
     return (
-      <section className={`control-panel accent-${group.accent}`}>
+      <section className={`control-panel control-panel-${group.id} accent-${group.accent}`}>
         <div className="panel-title-row">
           <Icon size={18} />
           <h2>{group.title}</h2>
@@ -28,7 +28,7 @@ export function ControlGroupPanel({ group, controls }: Props) {
   }
 
   return (
-    <section className={`control-panel accent-${group.accent}`}>
+    <section className={`control-panel control-panel-${group.id} accent-${group.accent}`}>
       <div className="panel-title-row">
         <Icon size={18} />
         <h2>{group.title}</h2>

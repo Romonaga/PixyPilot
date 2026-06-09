@@ -17,7 +17,13 @@ await page.goto(appUrl, { waitUntil: "networkidle" });
 await page.getByText("PixyPilot").waitFor({ state: "visible" });
 await page.getByRole("button", { name: /Refresh controls/i }).click();
 await page.waitForFunction(() => document.body.innerText.includes("Ready"));
-await page.getByText("PTZ Drive").waitFor({ state: "visible" });
+await page.getByRole("heading", { name: "PTZ Control" }).waitFor({ state: "visible" });
+await page.getByRole("heading", { name: "Image Control" }).waitFor({ state: "visible" });
+await page.getByRole("heading", { name: "Focus Control" }).waitFor({ state: "visible" });
+await page.getByRole("heading", { name: "Exposure Control" }).waitFor({ state: "visible" });
+await page.getByText("Auto Framing").waitFor({ state: "visible" });
+await page.getByText("Speaker Tracking").waitFor({ state: "visible" });
+await page.getByText("Gesture Control").waitFor({ state: "visible" });
 await page.screenshot({ path: "/tmp/pixypilot-desktop.png", fullPage: false });
 
 await page.setViewportSize({ width: 390, height: 900 });
@@ -29,8 +35,13 @@ const result = {
   title: await page.title(),
   url: page.url(),
   hasPixyPilot: bodyText.includes("PixyPilot"),
-  hasPtzDrive: bodyText.includes("PTZ Drive"),
-  hasImageLab: bodyText.includes("Image Lab"),
+  hasPtzControl: bodyText.includes("PTZ Control"),
+  hasImageControl: bodyText.includes("Image Control"),
+  hasFocusControl: bodyText.includes("Focus Control"),
+  hasExposureControl: bodyText.includes("Exposure Control"),
+  hasAutoFraming: bodyText.includes("Auto Framing"),
+  hasSpeakerTracking: bodyText.includes("Speaker Tracking"),
+  hasGestureControl: bodyText.includes("Gesture Control"),
   hasFutureDeck: bodyText.includes("Future Deck"),
   hasReadySignal: bodyText.includes("Ready"),
   rangeCount: await page.locator('input[type="range"]').count(),
@@ -44,8 +55,13 @@ await browser.close();
 
 if (
   !result.hasPixyPilot ||
-  !result.hasPtzDrive ||
-  !result.hasImageLab ||
+  !result.hasPtzControl ||
+  !result.hasImageControl ||
+  !result.hasFocusControl ||
+  !result.hasExposureControl ||
+  !result.hasAutoFraming ||
+  !result.hasSpeakerTracking ||
+  !result.hasGestureControl ||
   !result.hasFutureDeck ||
   !result.hasReadySignal ||
   result.logs.length > 0

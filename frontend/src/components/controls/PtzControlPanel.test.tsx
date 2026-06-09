@@ -81,4 +81,16 @@ describe("PtzControlPanel", () => {
 
     expect(setValue).toHaveBeenCalledWith("zoom_absolute", 55);
   });
+
+  it("saves and recalls a PTZ preset", async () => {
+    const user = userEvent.setup();
+    const setValue = renderPanel();
+
+    await user.click(screen.getByRole("button", { name: "Save PTZ preset" }));
+    await user.click(screen.getByRole("button", { name: "Goto PTZ preset" }));
+
+    expect(setValue).toHaveBeenCalledWith("pan_absolute", 20);
+    expect(setValue).toHaveBeenCalledWith("tilt_absolute", 30);
+    expect(setValue).toHaveBeenCalledWith("zoom_absolute", 50);
+  });
 });

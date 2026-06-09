@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, Crosshair, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUp,
+  ChevronsDown,
+  Crosshair,
+  Home,
+  Save,
+  ZoomIn,
+  ZoomOut
+} from "lucide-react";
 
 import type { ControlGroup } from "../../domains/controls/grouping";
 import { controlValueText } from "../../domains/controls/grouping";
@@ -17,6 +27,12 @@ const PTZ_CONTROL_NAMES = {
   tilt: "tilt_absolute",
   zoom: "zoom_absolute"
 } as const;
+
+type PtzPreset = {
+  pan: number;
+  tilt: number;
+  zoom: number;
+};
 
 function findControl(group: ControlGroup, name: string): V4L2Control | undefined {
   return group.controls.find((control) => control.name === name);
@@ -104,6 +120,8 @@ export function PtzControlPanel({ group, controls }: Props) {
   const zoom = findControl(group, PTZ_CONTROL_NAMES.zoom);
   const primaryControlNames = new Set<string>(Object.values(PTZ_CONTROL_NAMES));
   const auxiliaryControls = group.controls.filter((control) => !primaryControlNames.has(control.name));
+  const [selectedPreset, setSelectedPreset] = useState(0);
+  const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number) => {
     if (!control || control.flags.includes("inactive")) {
@@ -118,6 +136,33 @@ export function PtzControlPanel({ group, controls }: Props) {
       if (!control.flags.includes("inactive")) {
         await controls.setValue(control.name, clamp(0, control));
       }
+    }
+  };
+
+  const savePreset = () => {
+    if (!pan || !tilt || !zoom) {
+      return;
+    }
+    setPresets((current) =>
+      current.map((preset, index) =>
+        index === selectedPreset ? { pan: pan.value, tilt: tilt.value, zoom: zoom.value } : preset
+      )
+    );
+  };
+
+  const gotoPreset = async () => {
+    const preset = presets[selectedPreset];
+    if (!preset || controls.pendingControl !== null) {
+      return;
+    }
+    if (pan && !pan.flags.includes("inactive")) {
+      await controls.setValue(pan.name, clamp(preset.pan, pan));
+    }
+    if (tilt && !tilt.flags.includes("inactive")) {
+      await controls.setValue(tilt.name, clamp(preset.tilt, tilt));
+    }
+    if (zoom && !zoom.flags.includes("inactive")) {
+      await controls.setValue(zoom.name, clamp(preset.zoom, zoom));
     }
   };
 
@@ -221,6 +266,45 @@ export function PtzControlPanel({ group, controls }: Props) {
               <ZoomIn size={17} />
               In
             </button>
+          </div>
+          <div className="ptz-presets">
+            <div className="ptz-presets-label">Presets</div>
+            <div className="ptz-preset-slots">
+              {presets.map((preset, index) => (
+                <button
+                  key={index}
+                  className={selectedPreset === index ? "is-selected" : ""}
+                  onClick={() => setSelectedPreset(index)}
+                  aria-pressed={selectedPreset === index}
+                  aria-label={`Preset ${index + 1}`}
+                  title={preset ? `Preset ${index + 1} saved` : `Preset ${index + 1} empty`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <div className="ptz-preset-actions">
+              <button
+                className="secondary-button"
+                disabled={disabled || !pan || !tilt || !zoom}
+                onClick={savePreset}
+                aria-label="Save PTZ preset"
+                title="Save PTZ preset"
+              >
+                <Save size={16} />
+                Save
+              </button>
+              <button
+                className="secondary-button"
+                disabled={disabled || !presets[selectedPreset]}
+                onClick={() => void gotoPreset()}
+                aria-label="Goto PTZ preset"
+                title="Goto PTZ preset"
+              >
+                <Home size={16} />
+                Goto
+              </button>
+            </div>
           </div>
         </div>
       </div>

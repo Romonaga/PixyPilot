@@ -5,7 +5,6 @@ import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
-import { CapabilitySummary } from "../panels/CapabilitySummary";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
@@ -47,10 +46,9 @@ export function AppShell({ devices, controls, pixyHid, audio }: Props) {
       </header>
 
       <section className="command-grid">
-        <DeviceRail devices={devices} />
+        <DeviceRail devices={devices} controls={controls} pixyHid={pixyHid} />
 
         <div className="main-console">
-          <CapabilitySummary devices={devices} controls={controls} />
           {controls.error && <div className="error-strip">{controls.error}</div>}
           {devices.error && <div className="error-strip">{devices.error}</div>}
           <div className="control-grid">

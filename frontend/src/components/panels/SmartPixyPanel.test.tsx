@@ -58,7 +58,7 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Track" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Auto Framing" })).toBeDisabled();
   });
 
   it("enables HID controls when hidraw is writable", () => {
@@ -79,7 +79,9 @@ describe("SmartPixyPanel", () => {
     );
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Track" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Auto Framing" })).toBeEnabled();
+    expect(screen.getByText("Speaker Tracking")).toBeInTheDocument();
+    expect(screen.getByText("Capture needed")).toBeInTheDocument();
   });
 
   it("commits auto privacy on blur instead of every keystroke", async () => {

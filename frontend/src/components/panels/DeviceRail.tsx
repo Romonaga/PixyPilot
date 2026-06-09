@@ -1,6 +1,8 @@
-import { Camera, Cpu, RotateCw } from "lucide-react";
+import { Aperture, Camera, Cpu, Crosshair, Focus, RotateCw, SlidersHorizontal, Sparkles } from "lucide-react";
 
+import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 
 function deviceNameFromPath(path: string): string {
   return path.split("/").at(-1) ?? path;
@@ -8,9 +10,49 @@ function deviceNameFromPath(path: string): string {
 
 type Props = {
   devices: UseDevicesResult;
+  controls: UseControlsResult;
+  pixyHid: UsePixyHidResult;
 };
 
-export function DeviceRail({ devices }: Props) {
+function hasAnyControl(controls: UseControlsResult, names: string[]): boolean {
+  return controls.controls.some((control) => names.includes(control.name));
+}
+
+export function DeviceRail({ devices, controls, pixyHid }: Props) {
+  const capabilityRows = [
+    {
+      label: "PTZ Control",
+      detail: "Pan, Tilt, Zoom",
+      ready: hasAnyControl(controls, ["pan_absolute", "tilt_absolute", "zoom_absolute"]),
+      icon: Crosshair
+    },
+    {
+      label: "Image Control",
+      detail: "WB, Color, NR",
+      ready: hasAnyControl(controls, ["brightness", "contrast", "saturation", "sharpness"]),
+      icon: SlidersHorizontal
+    },
+    {
+      label: "Focus Control",
+      detail: "Auto, Manual",
+      ready: hasAnyControl(controls, ["focus_absolute", "focus_automatic_continuous"]),
+      icon: Focus
+    },
+    {
+      label: "Exposure Control",
+      detail: "Auto, Manual",
+      ready: hasAnyControl(controls, ["auto_exposure", "exposure_time_absolute"]),
+      icon: Aperture
+    },
+    {
+      label: "Smart Pixy",
+      detail: "Framing, Gesture",
+      ready: pixyHid.status?.writable === true,
+      icon: Sparkles,
+      partial: pixyHid.status?.available === true && pixyHid.status?.writable !== true
+    }
+  ];
+
   return (
     <aside className="device-rail">
       <div className="panel-title-row">
@@ -44,6 +86,27 @@ export function DeviceRail({ devices }: Props) {
       <div className="device-meta">
         <Cpu size={16} />
         <span>{devices.selectedDevice?.driver ?? "Awaiting driver"}</span>
+      </div>
+
+      <div className="rail-divider" />
+
+      <div className="rail-section-title">Capabilities Summary</div>
+      <div className="capability-list">
+        {capabilityRows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <div className="capability-row" key={row.label}>
+              <Icon size={16} />
+              <div>
+                <strong>{row.label}</strong>
+                <small>{row.detail}</small>
+              </div>
+              <em className={row.ready ? "is-ok" : row.partial ? "is-partial" : ""}>
+                {row.ready ? "OK" : row.partial ? "Partial" : "Wait"}
+              </em>
+            </div>
+          );
+        })}
       </div>
     </aside>
   );

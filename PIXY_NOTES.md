@@ -193,6 +193,7 @@ Implemented app status:
   - center/home action
   - pan, tilt, and zoom precision sliders
   - auxiliary PTZ controls, including zoom_continuous when exposed
+  - app-local PTZ presets for save/goto; camera-native preset storage is not confirmed
 - Pixy HID provider is wired as a separate domain:
   - status endpoint detects the hidraw path
   - tracking mode command
@@ -210,6 +211,10 @@ Implemented app status:
   - tracking off/idle command returned ok through the REST API
 - UI now exposes Smart Pixy controls and enables them when hidraw is writable.
 - UVC extension remains read-only in the UI until selectors are correlated with known behavior.
+- Smart Pixy UI now mirrors the official-app vocabulary:
+  - Auto Framing uses the known HID tracking mode on/off path.
+  - Gesture Control uses the known HID gesture path.
+  - Speaker Tracking is visible but marked capture-needed until a separate command is confirmed.
 
 Open investigation:
 - Verify the gist HID commands locally after solving /dev/hidraw14 permissions.
