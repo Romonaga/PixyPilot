@@ -67,7 +67,7 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Auto Framing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Privacy" })).toBeDisabled();
   });
 
@@ -90,10 +90,38 @@ describe("SmartPixyPanel", () => {
     );
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Auto Framing" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeEnabled();
+    expect(screen.getByText("Auto Framing")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Privacy" })).toBeEnabled();
     expect(screen.getByText("Speaker Tracking")).toBeInTheDocument();
-    expect(screen.getByText("Capture needed")).toBeInTheDocument();
+    expect(screen.getAllByText("Capture needed")).toHaveLength(2);
+  });
+
+  it("toggles the proven auto follow tracking command", async () => {
+    const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking"]
+          },
+          setTrackingMode
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Auto Follow" }));
+
+    expect(setTrackingMode).toHaveBeenCalledWith("tracking");
   });
 
   it("enters privacy safety mode when privacy is pressed", async () => {

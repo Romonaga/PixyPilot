@@ -24,7 +24,7 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const disabled = !writable || pixyHid.pendingCommand !== null;
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
-  const autoFramingEnabled = pixyHid.trackingMode === "tracking";
+  const autoFollowEnabled = pixyHid.trackingMode === "tracking";
   const privacyEnabled = pixyHid.trackingMode === "privacy";
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
@@ -63,17 +63,25 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
         <div className="smart-control smart-toggle-row">
           <div className="smart-label">
             <ScanFace size={16} />
-            <span>Auto Framing</span>
+            <span>Auto Follow</span>
           </div>
           <button
-            className={`toggle-switch ${autoFramingEnabled ? "is-on" : ""}`}
+            className={`toggle-switch ${autoFollowEnabled ? "is-on" : ""}`}
             disabled={disabled}
-            aria-pressed={autoFramingEnabled}
-            aria-label="Auto Framing"
-            onClick={() => void pixyHid.setTrackingMode(autoFramingEnabled ? "off" : "tracking")}
+            aria-pressed={autoFollowEnabled}
+            aria-label="Auto Follow"
+            onClick={() => void pixyHid.setTrackingMode(autoFollowEnabled ? "off" : "tracking")}
           >
             <span />
           </button>
+        </div>
+
+        <div className="smart-control smart-toggle-row">
+          <div className="smart-label">
+            <ScanFace size={16} />
+            <span>Auto Framing</span>
+          </div>
+          <span className="capture-needed">Capture needed</span>
         </div>
 
         <div className="smart-control smart-toggle-row">

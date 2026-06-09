@@ -21,6 +21,7 @@ await page.getByRole("heading", { name: "PTZ Control" }).waitFor({ state: "visib
 await page.getByRole("heading", { name: "Image Control" }).waitFor({ state: "visible" });
 await page.getByRole("heading", { name: "Focus Control" }).waitFor({ state: "visible" });
 await page.getByRole("heading", { name: "Exposure Control" }).waitFor({ state: "visible" });
+await page.getByText("Auto Follow").waitFor({ state: "visible" });
 await page.getByText("Auto Framing").waitFor({ state: "visible" });
 await page.getByText("Speaker Tracking").waitFor({ state: "visible" });
 await page.getByText("Gesture Control").waitFor({ state: "visible" });
@@ -39,6 +40,7 @@ const result = {
   hasImageControl: bodyText.includes("Image Control"),
   hasFocusControl: bodyText.includes("Focus Control"),
   hasExposureControl: bodyText.includes("Exposure Control"),
+  hasAutoFollow: bodyText.includes("Auto Follow"),
   hasAutoFraming: bodyText.includes("Auto Framing"),
   hasSpeakerTracking: bodyText.includes("Speaker Tracking"),
   hasGestureControl: bodyText.includes("Gesture Control"),
@@ -59,6 +61,7 @@ if (
   !result.hasImageControl ||
   !result.hasFocusControl ||
   !result.hasExposureControl ||
+  !result.hasAutoFollow ||
   !result.hasAutoFraming ||
   !result.hasSpeakerTracking ||
   !result.hasGestureControl ||
