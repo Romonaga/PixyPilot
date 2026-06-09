@@ -844,6 +844,32 @@ h2 {
   align-items: center;
 }
 
+.mic-mute-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.mic-mute-row div {
+  min-width: 0;
+}
+
+.mic-mute-row strong,
+.mic-mute-row small {
+  display: block;
+}
+
+.mic-mute-row small {
+  color: #91a2a3;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .number-input {
   width: 88px;
   min-height: 36px;

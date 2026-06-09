@@ -1,6 +1,7 @@
 import { RefreshCw, Radar, RadioTower } from "lucide-react";
 
 import { countActiveControls } from "../../domains/controls/grouping";
+import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -15,9 +16,10 @@ type Props = {
   devices: UseDevicesResult;
   controls: UseControlsResult;
   pixyHid: UsePixyHidResult;
+  audio: UseAudioResult;
 };
 
-export function AppShell({ devices, controls, pixyHid }: Props) {
+export function AppShell({ devices, controls, pixyHid, audio }: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -69,7 +71,7 @@ export function AppShell({ devices, controls, pixyHid }: Props) {
               <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
             </div>
           </div>
-          <SmartPixyPanel pixyHid={pixyHid} />
+          <SmartPixyPanel pixyHid={pixyHid} audio={audio} />
           <ExperimentalPanel />
         </aside>
       </section>

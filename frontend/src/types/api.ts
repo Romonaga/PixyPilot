@@ -47,3 +47,19 @@ export type PixyHidCommandResult = {
   value: string | number | boolean;
   path: string;
 };
+
+export type AudioStatus = {
+  available: boolean;
+  card: number | null;
+  name: string | null;
+  muted: boolean | null;
+  volume: number | null;
+  reason: string | null;
+};
+
+export type AudioCommandResult = {
+  ok: boolean;
+  command: string;
+  value: boolean;
+  card: number;
+};

@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import { SmartPixyPanel } from "./SmartPixyPanel";
 
@@ -32,9 +33,28 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
   };
 }
 
+function makeAudio(overrides: Partial<UseAudioResult> = {}): UseAudioResult {
+  return {
+    status: {
+      available: true,
+      card: 3,
+      name: "EMEET PIXY",
+      muted: false,
+      volume: 10,
+      reason: null
+    },
+    isLoading: false,
+    pending: false,
+    error: null,
+    refresh: vi.fn(),
+    setMuted: vi.fn(),
+    ...overrides
+  };
+}
+
 describe("SmartPixyPanel", () => {
   it("shows permission state and disables HID controls when hidraw is not writable", () => {
-    render(<SmartPixyPanel pixyHid={makePixyHid()} />);
+    render(<SmartPixyPanel pixyHid={makePixyHid()} audio={makeAudio()} />);
 
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
@@ -54,6 +74,7 @@ describe("SmartPixyPanel", () => {
             known_controls: ["tracking"]
           }
         })}
+        audio={makeAudio()}
       />
     );
 
@@ -78,6 +99,7 @@ describe("SmartPixyPanel", () => {
           },
           setAutoPrivacySeconds
         })}
+        audio={makeAudio()}
       />
     );
 
@@ -90,5 +112,16 @@ describe("SmartPixyPanel", () => {
     await user.tab();
 
     expect(setAutoPrivacySeconds).toHaveBeenCalledWith(15);
+  });
+
+  it("toggles standard mic mute through the audio hook", async () => {
+    const user = userEvent.setup();
+    const setMuted = vi.fn().mockResolvedValue(undefined);
+
+    render(<SmartPixyPanel pixyHid={makePixyHid()} audio={makeAudio({ setMuted })} />);
+
+    await user.click(screen.getByRole("button", { name: "Mic mute" }));
+
+    expect(setMuted).toHaveBeenCalledWith(true);
   });
 });

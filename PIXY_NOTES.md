@@ -50,6 +50,13 @@ Controls exposed through V4L2:
 - sharpness
 - exposure
 
+Controls exposed through standard USB audio/ALSA:
+- EMEET PIXY appears as an audio capture card.
+- Local card at time of testing: card 3, EMEET PIXY.
+- ALSA controls:
+  - Mic Capture Switch: boolean, read/write, currently used for mute.
+  - Mic Capture Volume: integer 0..10, read/write/read-dB.
+
 Current values:
 - zoom_absolute=110
 - focus_auto=1
@@ -103,6 +110,7 @@ Reverse-engineered HID base:
     SET 09 02 01 00 00 04 00 04 XX
     XX is timeout seconds, 00 disables
     ACK/query-ish follow-up: 09 02 01 01
+    Current inference: this configures how long the camera waits before entering its privacy behavior automatically. A value of 0 disables that automatic transition. This still needs validation against official app behavior.
   - Gesture control:
     SET 09 04 02 00 00 02 00 02 02 XX
     XX values: 00 off, 01 on
@@ -191,6 +199,10 @@ Implemented app status:
   - gesture command
   - audio mode command
   - auto-privacy timeout command
+- Standard USB audio provider is wired as a separate domain:
+  - detects the PIXY ALSA capture card
+  - reads Mic Capture Switch and Mic Capture Volume
+  - toggles microphone mute through Mic Capture Switch
 - Current local HID status:
   - /dev/hidraw14 is detected
   - readable=true after installing deploy/udev/70-pixypilot-hid.rules

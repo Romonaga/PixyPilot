@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
+from pixypilot.domains.audio.models import AudioCommandResult, AudioMuteRequest, AudioStatus
+from pixypilot.domains.audio.service import AudioService, get_audio_service
 from pixypilot.domains.devices.models import Device
 from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
@@ -45,6 +47,24 @@ async def set_control(
         return await service.set_control(device_path, control_name, request.value)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/audio/status", response_model=AudioStatus)
+async def audio_status(
+    service: AudioService = Depends(get_audio_service),
+) -> AudioStatus:
+    return await service.status()
+
+
+@router.patch("/audio/mute", response_model=AudioCommandResult)
+async def set_audio_mute(
+    request: AudioMuteRequest,
+    service: AudioService = Depends(get_audio_service),
+) -> AudioCommandResult:
+    try:
+        return await service.set_mute(request.muted)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/pixy-hid/status", response_model=PixyHidStatus)

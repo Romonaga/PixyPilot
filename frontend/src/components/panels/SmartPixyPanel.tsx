@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Radio, Shield, Sparkles, Volume2 } from "lucide-react";
 
+import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { AudioMode, TrackingMode } from "../../types/api";
 
 type Props = {
   pixyHid: UsePixyHidResult;
+  audio: UseAudioResult;
 };
 
 const trackingModes: { value: TrackingMode; label: string }[] = [
@@ -20,10 +22,12 @@ const audioModes: { value: AudioMode; label: string }[] = [
   { value: "original", label: "Original" }
 ];
 
-export function SmartPixyPanel({ pixyHid }: Props) {
+export function SmartPixyPanel({ pixyHid, audio }: Props) {
   const writable = pixyHid.status?.writable ?? false;
   const available = pixyHid.status?.available ?? false;
   const disabled = !writable || pixyHid.pendingCommand !== null;
+  const micMuted = audio.status?.muted === true;
+  const micAvailable = audio.status?.available === true;
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -97,6 +101,26 @@ export function SmartPixyPanel({ pixyHid }: Props) {
             <Volume2 size={16} />
             <span>Audio</span>
           </div>
+          <div className="mic-mute-row">
+            <div>
+              <strong>Mic mute</strong>
+              <small>
+                {micAvailable
+                  ? `ALSA card ${audio.status?.card}${audio.status?.volume !== null ? `, gain ${audio.status?.volume}` : ""}`
+                  : audio.status?.reason ?? "Scanning USB audio"}
+              </small>
+            </div>
+            <button
+              className={`toggle-switch ${micMuted ? "is-on" : ""}`}
+              disabled={!micAvailable || audio.pending}
+              aria-pressed={micMuted}
+              aria-label="Mic mute"
+              onClick={() => void audio.setMuted(!micMuted)}
+            >
+              <span />
+            </button>
+          </div>
+          {audio.error && <div className="mini-error">{audio.error}</div>}
           <div className="segmented">
             {audioModes.map((mode) => (
               <button

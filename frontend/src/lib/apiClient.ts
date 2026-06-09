@@ -1,4 +1,6 @@
 import type {
+  AudioCommandResult,
+  AudioStatus,
   AudioMode,
   Device,
   PixyHidCommandResult,
@@ -77,5 +79,16 @@ export async function setPixyAutoPrivacy(timeoutSeconds: number): Promise<PixyHi
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/auto-privacy", {
     method: "PATCH",
     body: JSON.stringify({ timeout_seconds: timeoutSeconds })
+  });
+}
+
+export async function fetchAudioStatus(): Promise<AudioStatus> {
+  return requestJson<AudioStatus>("/api/audio/status");
+}
+
+export async function setAudioMute(muted: boolean): Promise<AudioCommandResult> {
+  return requestJson<AudioCommandResult>("/api/audio/mute", {
+    method: "PATCH",
+    body: JSON.stringify({ muted })
   });
 }
