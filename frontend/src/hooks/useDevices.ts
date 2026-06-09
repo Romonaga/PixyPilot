@@ -27,13 +27,14 @@ export function useDevices(): UseDevicesResult {
     setIsLoading(true);
     setError(null);
     try {
-      const nextDevices = await fetchDevices();
+      const enumeratedDevices = await fetchDevices();
+      const nextDevices = enumeratedDevices.filter((device) => device.is_capture);
       setDevices(nextDevices);
       setSelectedDeviceName((current) => {
         if (current && nextDevices.some((device) => deviceNameFromPath(device.path) === current)) {
           return current;
         }
-        const captureDevice = nextDevices.find((device) => device.is_capture) ?? nextDevices[0];
+        const captureDevice = nextDevices[0];
         return captureDevice ? deviceNameFromPath(captureDevice.path) : null;
       });
     } catch (err) {

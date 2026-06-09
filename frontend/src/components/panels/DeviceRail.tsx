@@ -69,7 +69,7 @@ export function DeviceRail({ devices, controls, pixyHid }: Props) {
             <strong>{selectedDevice?.name ?? "No camera selected"}</strong>
             <small>
               {selectedDeviceName ? `/${selectedDeviceName}` : "Awaiting PIXY"}
-              {selectedDevice ? ` - ${selectedDevice.is_capture ? "Capture" : "Metadata"}` : ""}
+              {selectedDevice ? " - Capture" : ""}
             </small>
           </div>
         </div>
@@ -85,7 +85,7 @@ export function DeviceRail({ devices, controls, pixyHid }: Props) {
             const deviceName = deviceNameFromPath(device.path);
             return (
               <option key={device.path} value={deviceName}>
-                {deviceName.toUpperCase()} - {device.is_capture ? "Capture" : "Metadata"}
+                {deviceName.toUpperCase()} - Capture
               </option>
             );
           })}
