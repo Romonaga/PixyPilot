@@ -10,7 +10,7 @@ The first implementation focuses on the confirmed V4L2/UVC control path:
 - validate and set values
 - render a cockpit-style React UI for PTZ, image, focus, and exposure controls
 
-The vendor-specific Pixy HID and raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and will be added as separate providers after local validation.
+The vendor-specific Pixy HID path is now isolated in its own experimental provider. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
 
 ## Backend
 
@@ -36,6 +36,7 @@ The frontend expects the API at `http://127.0.0.1:8000` during development.
 
 ```bash
 cd backend
+source .venv/bin/activate
 pytest
 
 cd frontend

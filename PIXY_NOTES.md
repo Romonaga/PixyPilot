@@ -162,7 +162,7 @@ Project direction:
   - Enumerate V4L2 devices and controls.
   - Return controls as JSON.
   - Validate and set V4L2 control values.
-  - Later expose Pixy HID controls through a separate provider.
+  - Expose Pixy HID controls through a separate provider.
   - Later expose UVC extension selectors as named capabilities only after they are decoded.
 - Frontend responsibilities:
   - App.tsx is orchestration/composition only.
@@ -172,10 +172,32 @@ Project direction:
   - Use smart critical-path tests rather than broad low-value tests.
 - Capability buckets:
   - standard_v4l2: confirmed and enumerable now.
-  - pixy_hid: reverse-engineered, likely usable after hidraw permission fix.
+  - pixy_hid: reverse-engineered and implemented as an experimental provider, likely usable after hidraw permission fix.
   - uvc_extension: present but unnamed; needs sniffing/correlation before normal app exposure.
 - Permission need:
   - Add a udev rule for 328f:00c0 hidraw access, or implement a minimal privileged helper for HID only.
+
+Implemented app status:
+- V4L2 device and control enumeration is live through FastAPI.
+- V4L2 control writes are live for exposed controls.
+- PTZ is now a first-class cockpit panel:
+  - directional pan/tilt pad
+  - center/home action
+  - pan, tilt, and zoom precision sliders
+  - auxiliary PTZ controls, including zoom_continuous when exposed
+- Pixy HID provider is wired as a separate domain:
+  - status endpoint detects the hidraw path
+  - tracking mode command
+  - gesture command
+  - audio mode command
+  - auto-privacy timeout command
+- Current local HID status:
+  - /dev/hidraw14 is detected
+  - readable=false
+  - writable=false
+  - reason: HID device is present but not writable by this user
+- UI now exposes Smart Pixy controls but disables them until hidraw is writable.
+- UVC extension remains read-only in the UI until selectors are correlated with known behavior.
 
 Open investigation:
 - Verify the gist HID commands locally after solving /dev/hidraw14 permissions.

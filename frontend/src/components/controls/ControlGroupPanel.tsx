@@ -1,6 +1,7 @@
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
 import { ControlRenderer } from "./ControlRenderer";
+import { PtzControlPanel } from "./PtzControlPanel";
 
 type Props = {
   group: ControlGroup;
@@ -9,6 +10,10 @@ type Props = {
 
 export function ControlGroupPanel({ group, controls }: Props) {
   const Icon = group.icon;
+
+  if (group.id === "ptz" && group.controls.length > 0) {
+    return <PtzControlPanel group={group} controls={controls} />;
+  }
 
   if (group.controls.length === 0) {
     return (

@@ -28,3 +28,22 @@ export type V4L2Control = {
   flags: string[];
   menu: MenuOption[];
 };
+
+export type PixyHidStatus = {
+  available: boolean;
+  path: string | null;
+  readable: boolean;
+  writable: boolean;
+  reason: string | null;
+  known_controls: string[];
+};
+
+export type TrackingMode = "off" | "tracking" | "privacy";
+export type AudioMode = "noise_cancel" | "live" | "original";
+
+export type PixyHidCommandResult = {
+  ok: boolean;
+  command: string;
+  value: string | number | boolean;
+  path: string;
+};

@@ -3,18 +3,21 @@ import { RefreshCw, Radar, RadioTower } from "lucide-react";
 import { countActiveControls } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import { CapabilitySummary } from "../panels/CapabilitySummary";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
+import { SmartPixyPanel } from "../panels/SmartPixyPanel";
 import { StatusPill } from "../ui/StatusPill";
 
 type Props = {
   devices: UseDevicesResult;
   controls: UseControlsResult;
+  pixyHid: UsePixyHidResult;
 };
 
-export function AppShell({ devices, controls }: Props) {
+export function AppShell({ devices, controls, pixyHid }: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -66,6 +69,7 @@ export function AppShell({ devices, controls }: Props) {
               <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
             </div>
           </div>
+          <SmartPixyPanel pixyHid={pixyHid} />
           <ExperimentalPanel />
         </aside>
       </section>

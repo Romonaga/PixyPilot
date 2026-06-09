@@ -1,4 +1,4 @@
-import { FlaskConical, LockKeyhole, Sparkles } from "lucide-react";
+import { FlaskConical, LockKeyhole } from "lucide-react";
 
 export function ExperimentalPanel() {
   return (
@@ -8,14 +8,6 @@ export function ExperimentalPanel() {
         <h2>Future Deck</h2>
       </div>
       <div className="future-stack">
-        <div className="future-row">
-          <Sparkles size={16} />
-          <div>
-            <strong>Pixy HID</strong>
-            <span>Tracking, gesture, privacy, audio modes</span>
-          </div>
-          <em>Locked</em>
-        </div>
         <div className="future-row">
           <LockKeyhole size={16} />
           <div>

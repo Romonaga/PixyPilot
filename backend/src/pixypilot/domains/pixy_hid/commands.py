@@ -1,0 +1,58 @@
+from collections.abc import Sequence
+
+from pixypilot.domains.pixy_hid.models import AudioMode, TrackingMode
+
+REPORT_SIZE = 32
+
+TRACKING_VALUES: dict[TrackingMode, int] = {
+    "off": 0x00,
+    "tracking": 0x01,
+    "privacy": 0x02,
+}
+
+AUDIO_VALUES: dict[AudioMode, int] = {
+    "noise_cancel": 0x01,
+    "live": 0x02,
+    "original": 0x03,
+}
+
+
+def build_report(payload: Sequence[int]) -> bytes:
+    if len(payload) > REPORT_SIZE:
+        raise ValueError("HID report payload cannot exceed 32 bytes")
+    if any(byte < 0 or byte > 0xFF for byte in payload):
+        raise ValueError("HID report bytes must be in range 0..255")
+    return bytes([*payload, *([0x00] * (REPORT_SIZE - len(payload)))])
+
+
+def tracking_reports(mode: TrackingMode) -> list[bytes]:
+    value = TRACKING_VALUES[mode]
+    return [
+        build_report([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, value]),
+        build_report([0x09, 0x01, 0x01, 0x01]),
+    ]
+
+
+def gesture_reports(enabled: bool) -> list[bytes]:
+    value = 0x01 if enabled else 0x00
+    return [
+        build_report([0x09, 0x04, 0x02, 0x00, 0x00, 0x02, 0x00, 0x02, 0x02, value]),
+        build_report([0x09, 0x04, 0x02, 0x01, 0x00, 0x01, 0x00, 0x01, 0x02]),
+    ]
+
+
+def audio_reports(mode: AudioMode) -> list[bytes]:
+    value = AUDIO_VALUES[mode]
+    return [
+        build_report([0x09, 0x05, 0x00, 0x03, 0x00, 0x01, 0x00, 0x01, value]),
+        build_report([0x09, 0x05, 0x00, 0x04]),
+    ]
+
+
+def auto_privacy_reports(timeout_seconds: int) -> list[bytes]:
+    if timeout_seconds < 0 or timeout_seconds > 0xFF:
+        raise ValueError("auto-privacy timeout must be in range 0..255")
+    return [
+        build_report([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, timeout_seconds]),
+        build_report([0x09, 0x02, 0x01, 0x01]),
+    ]
