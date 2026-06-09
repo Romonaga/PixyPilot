@@ -237,6 +237,60 @@ describe("SmartPixyPanel", () => {
     expect(setAutoPrivacySeconds).toHaveBeenCalledWith(15);
   });
 
+  it("toggles the known gesture command", async () => {
+    const user = userEvent.setup();
+    const setGestureEnabled = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["gesture"]
+          },
+          setGestureEnabled
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Gesture Control" }));
+
+    expect(setGestureEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it("selects known audio DSP modes", async () => {
+    const user = userEvent.setup();
+    const setAudioMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["audio_mode"]
+          },
+          setAudioMode
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Original" }));
+
+    expect(setAudioMode).toHaveBeenCalledWith("original");
+  });
+
   it("toggles standard mic mute through the audio hook", async () => {
     const user = userEvent.setup();
     const setMuted = vi.fn().mockResolvedValue(undefined);
