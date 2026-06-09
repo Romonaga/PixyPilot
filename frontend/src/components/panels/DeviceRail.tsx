@@ -19,6 +19,8 @@ function hasAnyControl(controls: UseControlsResult, names: string[]): boolean {
 }
 
 export function DeviceRail({ devices, controls, pixyHid }: Props) {
+  const selectedDeviceName = devices.selectedDeviceName ?? "";
+  const selectedDevice = devices.selectedDevice;
   const capabilityRows = [
     {
       label: "PTZ Control",
@@ -60,22 +62,34 @@ export function DeviceRail({ devices, controls, pixyHid }: Props) {
         <h2>Device Bay</h2>
       </div>
 
-      <div className="device-list">
-        {devices.devices.map((device) => {
-          const deviceName = deviceNameFromPath(device.path);
-          const selected = deviceName === devices.selectedDeviceName;
-          return (
-            <button
-              className={`device-tile ${selected ? "is-selected" : ""}`}
-              key={device.path}
-              onClick={() => devices.setSelectedDeviceName(deviceName)}
-            >
-              <span>{deviceName}</span>
-              <strong>{device.name}</strong>
-              <small>{device.is_capture ? "Capture" : "Metadata"}</small>
-            </button>
-          );
-        })}
+      <div className="device-picker">
+        <div className="device-picker-readout">
+          <Camera size={24} />
+          <div>
+            <strong>{selectedDevice?.name ?? "No camera selected"}</strong>
+            <small>
+              {selectedDeviceName ? `/${selectedDeviceName}` : "Awaiting PIXY"}
+              {selectedDevice ? ` - ${selectedDevice.is_capture ? "Capture" : "Metadata"}` : ""}
+            </small>
+          </div>
+        </div>
+        <select
+          className="device-select"
+          aria-label="Select video device"
+          value={selectedDeviceName}
+          disabled={devices.devices.length === 0}
+          onChange={(event) => devices.setSelectedDeviceName(event.target.value)}
+        >
+          {devices.devices.length === 0 && <option value="">No devices</option>}
+          {devices.devices.map((device) => {
+            const deviceName = deviceNameFromPath(device.path);
+            return (
+              <option key={device.path} value={deviceName}>
+                {deviceName.toUpperCase()} - {device.is_capture ? "Capture" : "Metadata"}
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       <button className="secondary-button" onClick={() => void devices.refresh()}>
