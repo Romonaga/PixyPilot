@@ -32,6 +32,18 @@ npm run dev
 
 The frontend expects the API at `http://127.0.0.1:8000` during development.
 
+## HID Permissions
+
+PixyPilot needs write access to the PIXY hidraw node before experimental smart controls can work. Install the included udev rule once:
+
+```bash
+sudo install -m 0644 deploy/udev/70-pixypilot-hid.rules /etc/udev/rules.d/70-pixypilot-hid.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=hidraw
+```
+
+If the current `/dev/hidrawN` node does not update immediately, unplug and reconnect the camera. A working node should look like `root plugdev` with `crw-rw----`, and `/api/pixy-hid/status` should report `readable: true` and `writable: true`.
+
 ## Tests
 
 ```bash

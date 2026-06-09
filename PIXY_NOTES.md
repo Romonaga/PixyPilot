@@ -193,10 +193,10 @@ Implemented app status:
   - auto-privacy timeout command
 - Current local HID status:
   - /dev/hidraw14 is detected
-  - readable=false
-  - writable=false
-  - reason: HID device is present but not writable by this user
-- UI now exposes Smart Pixy controls but disables them until hidraw is writable.
+  - readable=true after installing deploy/udev/70-pixypilot-hid.rules
+  - writable=true after installing deploy/udev/70-pixypilot-hid.rules
+  - tracking off/idle command returned ok through the REST API
+- UI now exposes Smart Pixy controls and enables them when hidraw is writable.
 - UVC extension remains read-only in the UI until selectors are correlated with known behavior.
 
 Open investigation:
