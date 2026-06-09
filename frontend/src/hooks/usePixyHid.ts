@@ -60,14 +60,13 @@ export function usePixyHid(): UsePixyHidResult {
       try {
         await action();
         setLastCommand(command);
-        await refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to run Pixy HID command");
       } finally {
         setPendingCommand(null);
       }
     },
-    [refresh]
+    []
   );
 
   return {

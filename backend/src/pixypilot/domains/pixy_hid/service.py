@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from pathlib import Path
 
 from pixypilot.domains.pixy_hid.commands import (
@@ -18,10 +19,15 @@ from pixypilot.domains.pixy_hid.models import (
 PIXY_VENDOR_ID = "0000328F"
 PIXY_PRODUCT_ID = "000000C0"
 KNOWN_CONTROLS = ["tracking", "privacy", "gesture", "auto_privacy", "audio_mode"]
-REPORT_GAP_SECONDS = 0.2
+DEFAULT_REPORT_GAP_SECONDS = 0.025
 
 
 class PixyHidService:
+    def __init__(self, report_gap_seconds: float | None = None) -> None:
+        self.report_gap_seconds = (
+            report_gap_seconds if report_gap_seconds is not None else _configured_report_gap_seconds()
+        )
+
     async def status(self) -> PixyHidStatus:
         hid_path = self.find_hidraw()
         if hid_path is None:
@@ -91,12 +97,17 @@ class PixyHidService:
         return status.path
 
     async def _write_reports(self, path: str, reports: list[bytes]) -> None:
-        for index, report in enumerate(reports):
-            await asyncio.to_thread(self._write_report, path, report)
-            if index < len(reports) - 1:
-                await asyncio.sleep(REPORT_GAP_SECONDS)
+        await asyncio.to_thread(self._write_reports_sync, path, reports)
+
+    def _write_reports_sync(self, path: str, reports: list[bytes]) -> None:
+        with open(path, "wb", buffering=0) as hidraw:
+            for index, report in enumerate(reports):
+                hidraw.write(report)
+                if index < len(reports) - 1 and self.report_gap_seconds > 0:
+                    time.sleep(self.report_gap_seconds)
 
     def _write_report(self, path: str, report: bytes) -> None:
+        # Kept for direct tests and one-off diagnostics.
         with open(path, "wb", buffering=0) as hidraw:
             hidraw.write(report)
 
@@ -112,6 +123,16 @@ class PixyHidService:
         has_id = PIXY_VENDOR_ID in uevent.upper() and PIXY_PRODUCT_ID in uevent.upper()
         has_name = "EMEET" in uevent.upper() and "PIXY" in uevent.upper()
         return has_id or has_name
+
+
+def _configured_report_gap_seconds() -> float:
+    raw_value = os.environ.get("PIXYPILOT_HID_REPORT_GAP_MS")
+    if raw_value is None:
+        return DEFAULT_REPORT_GAP_SECONDS
+    try:
+        return max(0, int(raw_value)) / 1000
+    except ValueError:
+        return DEFAULT_REPORT_GAP_SECONDS
 
 
 def get_pixy_hid_service() -> PixyHidService:

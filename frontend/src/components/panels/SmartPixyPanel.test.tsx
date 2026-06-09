@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -58,5 +59,36 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Track" })).toBeEnabled();
+  });
+
+  it("commits auto privacy on blur instead of every keystroke", async () => {
+    const user = userEvent.setup();
+    const setAutoPrivacySeconds = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["auto_privacy"]
+          },
+          setAutoPrivacySeconds
+        })}
+      />
+    );
+
+    const input = screen.getByRole("spinbutton");
+    await user.clear(input);
+    await user.type(input, "15");
+
+    expect(setAutoPrivacySeconds).not.toHaveBeenCalled();
+
+    await user.tab();
+
+    expect(setAutoPrivacySeconds).toHaveBeenCalledWith(15);
   });
 });

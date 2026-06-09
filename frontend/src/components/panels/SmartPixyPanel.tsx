@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Radio, Shield, Sparkles, Volume2 } from "lucide-react";
 
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -23,6 +24,20 @@ export function SmartPixyPanel({ pixyHid }: Props) {
   const writable = pixyHid.status?.writable ?? false;
   const available = pixyHid.status?.available ?? false;
   const disabled = !writable || pixyHid.pendingCommand !== null;
+  const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
+
+  useEffect(() => {
+    setAutoPrivacyDraft(String(pixyHid.autoPrivacySeconds ?? 0));
+  }, [pixyHid.autoPrivacySeconds]);
+
+  const commitAutoPrivacy = () => {
+    const parsed = Number(autoPrivacyDraft);
+    const clamped = Number.isFinite(parsed) ? Math.min(255, Math.max(0, Math.trunc(parsed))) : 0;
+    setAutoPrivacyDraft(String(clamped));
+    if (pixyHid.autoPrivacySeconds !== clamped) {
+      void pixyHid.setAutoPrivacySeconds(clamped);
+    }
+  };
 
   return (
     <section className="smart-panel">
@@ -108,8 +123,14 @@ export function SmartPixyPanel({ pixyHid }: Props) {
             max={255}
             step={1}
             disabled={disabled}
-            value={pixyHid.autoPrivacySeconds ?? 0}
-            onChange={(event) => void pixyHid.setAutoPrivacySeconds(Number(event.target.value))}
+            value={autoPrivacyDraft}
+            onChange={(event) => setAutoPrivacyDraft(event.target.value)}
+            onBlur={commitAutoPrivacy}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                commitAutoPrivacy();
+              }
+            }}
           />
         </label>
       </div>
