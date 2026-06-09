@@ -23,6 +23,7 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
   const autoFramingEnabled = pixyHid.trackingMode === "tracking";
+  const privacyEnabled = pixyHid.trackingMode === "privacy";
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -84,6 +85,22 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
         <div className="smart-control smart-toggle-row">
           <div className="smart-label">
             <Shield size={16} />
+            <span>Privacy Mode</span>
+          </div>
+          <button
+            className={`toggle-switch ${privacyEnabled ? "is-on" : ""}`}
+            disabled={disabled}
+            aria-pressed={privacyEnabled}
+            aria-label="Privacy Mode"
+            onClick={() => void pixyHid.setTrackingMode(privacyEnabled ? "off" : "privacy")}
+          >
+            <span />
+          </button>
+        </div>
+
+        <div className="smart-control smart-toggle-row">
+          <div className="smart-label">
+            <Shield size={16} />
             <span>Gesture Control</span>
           </div>
           <button
@@ -139,24 +156,27 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
         <label className="smart-control smart-control-privacy">
           <div className="smart-label">
             <Shield size={16} />
-            <span>Auto privacy</span>
+            <span>Auto privacy delay</span>
           </div>
-          <input
-            className="number-input"
-            type="number"
-            min={0}
-            max={255}
-            step={1}
-            disabled={disabled}
-            value={autoPrivacyDraft}
-            onChange={(event) => setAutoPrivacyDraft(event.target.value)}
-            onBlur={commitAutoPrivacy}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                commitAutoPrivacy();
-              }
-            }}
-          />
+          <div className="privacy-delay-input">
+            <input
+              className="number-input"
+              type="number"
+              min={0}
+              max={255}
+              step={1}
+              disabled={disabled}
+              value={autoPrivacyDraft}
+              onChange={(event) => setAutoPrivacyDraft(event.target.value)}
+              onBlur={commitAutoPrivacy}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  commitAutoPrivacy();
+                }
+              }}
+            />
+            <span>sec</span>
+          </div>
         </label>
       </div>
 

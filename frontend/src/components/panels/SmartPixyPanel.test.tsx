@@ -59,6 +59,7 @@ describe("SmartPixyPanel", () => {
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto Framing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Privacy Mode" })).toBeDisabled();
   });
 
   it("enables HID controls when hidraw is writable", () => {
@@ -80,8 +81,62 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto Framing" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Privacy Mode" })).toBeEnabled();
     expect(screen.getByText("Speaker Tracking")).toBeInTheDocument();
     expect(screen.getByText("Capture needed")).toBeInTheDocument();
+  });
+
+  it("sends the privacy tracking mode when privacy mode is toggled on", async () => {
+    const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["privacy"]
+          },
+          setTrackingMode
+        })}
+        audio={makeAudio()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Privacy Mode" }));
+
+    expect(setTrackingMode).toHaveBeenCalledWith("privacy");
+  });
+
+  it("returns to idle when privacy mode is toggled off", async () => {
+    const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["privacy"]
+          },
+          trackingMode: "privacy",
+          setTrackingMode
+        })}
+        audio={makeAudio()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Privacy Mode" }));
+
+    expect(setTrackingMode).toHaveBeenCalledWith("off");
   });
 
   it("commits auto privacy on blur instead of every keystroke", async () => {
