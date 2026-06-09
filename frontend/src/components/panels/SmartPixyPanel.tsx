@@ -3,11 +3,13 @@ import { Radio, ScanFace, Shield, Sparkles, Volume2 } from "lucide-react";
 
 import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import type { AudioMode, TrackingMode } from "../../types/api";
 
 type Props = {
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
+  privacySafety: UsePrivacySafetyResult;
 };
 
 const audioModes: { value: AudioMode; label: string }[] = [
@@ -16,7 +18,7 @@ const audioModes: { value: AudioMode; label: string }[] = [
   { value: "original", label: "Original" }
 ];
 
-export function SmartPixyPanel({ pixyHid, audio }: Props) {
+export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const writable = pixyHid.status?.writable ?? false;
   const available = pixyHid.status?.available ?? false;
   const disabled = !writable || pixyHid.pendingCommand !== null;
@@ -91,14 +93,14 @@ export function SmartPixyPanel({ pixyHid, audio }: Props) {
             <button
               className={pixyHid.trackingMode === "off" ? "is-selected" : ""}
               disabled={disabled}
-              onClick={() => void pixyHid.setTrackingMode("off")}
+              onClick={() => void privacySafety.leavePrivacy()}
             >
               Off
             </button>
             <button
               className={privacyEnabled ? "is-selected" : ""}
               disabled={disabled}
-              onClick={() => void pixyHid.setTrackingMode("privacy")}
+              onClick={() => void privacySafety.enterPrivacy()}
             >
               Privacy
             </button>

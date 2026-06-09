@@ -5,6 +5,7 @@ import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
@@ -16,9 +17,10 @@ type Props = {
   controls: UseControlsResult;
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
+  privacySafety: UsePrivacySafetyResult;
 };
 
-export function AppShell({ devices, controls, pixyHid, audio }: Props) {
+export function AppShell({ devices, controls, pixyHid, audio, privacySafety }: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -69,7 +71,7 @@ export function AppShell({ devices, controls, pixyHid, audio }: Props) {
               <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
             </div>
           </div>
-          <SmartPixyPanel pixyHid={pixyHid} audio={audio} />
+          <SmartPixyPanel pixyHid={pixyHid} audio={audio} privacySafety={privacySafety} />
           <ExperimentalPanel />
         </aside>
       </section>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  fetchSettings,
   fetchPixyHidStatus,
   setPixyAudio,
   setPixyAutoPrivacy,
@@ -9,8 +8,6 @@ import {
   setPixyTracking
 } from "../lib/apiClient";
 import type { AudioMode, PixyHidStatus, TrackingMode } from "../types/api";
-
-let startupPrivacyCommandAttempted = false;
 
 export type UsePixyHidResult = {
   status: PixyHidStatus | null;
@@ -29,10 +26,6 @@ export type UsePixyHidResult = {
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
 };
 
-export function resetPixyHidStartupSafetyForTests() {
-  startupPrivacyCommandAttempted = false;
-}
-
 export function usePixyHid(): UsePixyHidResult {
   const [status, setStatus] = useState<PixyHidStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,8 +36,6 @@ export function usePixyHid(): UsePixyHidResult {
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const [startInPrivacy, setStartInPrivacy] = useState(true);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -61,32 +52,6 @@ export function usePixyHid(): UsePixyHidResult {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadSettings() {
-      try {
-        const settings = await fetchSettings();
-        if (!ignore) {
-          setStartInPrivacy(settings.safety.start_in_privacy);
-        }
-      } catch {
-        if (!ignore) {
-          setStartInPrivacy(true);
-        }
-      } finally {
-        if (!ignore) {
-          setSettingsLoaded(true);
-        }
-      }
-    }
-
-    void loadSettings();
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   const runCommand = useCallback(
     async (command: string, action: () => Promise<void>) => {
@@ -139,15 +104,6 @@ export function usePixyHid(): UsePixyHidResult {
       }),
     [runCommand]
   );
-
-  useEffect(() => {
-    if (!settingsLoaded || !startInPrivacy || startupPrivacyCommandAttempted || status?.writable !== true) {
-      return;
-    }
-
-    startupPrivacyCommandAttempted = true;
-    void setTrackingMode("privacy");
-  }, [setTrackingMode, settingsLoaded, startInPrivacy, status?.writable]);
 
   return {
     status,

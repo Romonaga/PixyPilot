@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import { SmartPixyPanel } from "./SmartPixyPanel";
 
 function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
@@ -52,9 +53,17 @@ function makeAudio(overrides: Partial<UseAudioResult> = {}): UseAudioResult {
   };
 }
 
+function makePrivacySafety(overrides: Partial<UsePrivacySafetyResult> = {}): UsePrivacySafetyResult {
+  return {
+    enterPrivacy: vi.fn().mockResolvedValue(undefined),
+    leavePrivacy: vi.fn().mockResolvedValue(undefined),
+    ...overrides
+  };
+}
+
 describe("SmartPixyPanel", () => {
   it("shows permission state and disables HID controls when hidraw is not writable", () => {
-    render(<SmartPixyPanel pixyHid={makePixyHid()} audio={makeAudio()} />);
+    render(<SmartPixyPanel pixyHid={makePixyHid()} audio={makeAudio()} privacySafety={makePrivacySafety()} />);
 
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
@@ -76,6 +85,7 @@ describe("SmartPixyPanel", () => {
           }
         })}
         audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
       />
     );
 
@@ -86,9 +96,9 @@ describe("SmartPixyPanel", () => {
     expect(screen.getByText("Capture needed")).toBeInTheDocument();
   });
 
-  it("sends the privacy tracking mode when privacy mode is toggled on", async () => {
+  it("enters privacy safety mode when privacy is pressed", async () => {
     const user = userEvent.setup();
-    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+    const enterPrivacy = vi.fn().mockResolvedValue(undefined);
 
     render(
       <SmartPixyPanel
@@ -101,20 +111,20 @@ describe("SmartPixyPanel", () => {
             reason: null,
             known_controls: ["privacy"]
           },
-          setTrackingMode
         })}
         audio={makeAudio()}
+        privacySafety={makePrivacySafety({ enterPrivacy })}
       />
     );
 
     await user.click(screen.getByRole("button", { name: "Privacy" }));
 
-    expect(setTrackingMode).toHaveBeenCalledWith("privacy");
+    expect(enterPrivacy).toHaveBeenCalledTimes(1);
   });
 
   it("resends privacy when privacy mode is already selected", async () => {
     const user = userEvent.setup();
-    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+    const enterPrivacy = vi.fn().mockResolvedValue(undefined);
 
     render(
       <SmartPixyPanel
@@ -128,20 +138,20 @@ describe("SmartPixyPanel", () => {
             known_controls: ["privacy"]
           },
           trackingMode: "privacy",
-          setTrackingMode
         })}
         audio={makeAudio()}
+        privacySafety={makePrivacySafety({ enterPrivacy })}
       />
     );
 
     await user.click(screen.getByRole("button", { name: "Privacy" }));
 
-    expect(setTrackingMode).toHaveBeenCalledWith("privacy");
+    expect(enterPrivacy).toHaveBeenCalledTimes(1);
   });
 
   it("sends idle when privacy mode is cleared", async () => {
     const user = userEvent.setup();
-    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+    const leavePrivacy = vi.fn().mockResolvedValue(undefined);
 
     render(
       <SmartPixyPanel
@@ -155,15 +165,15 @@ describe("SmartPixyPanel", () => {
             known_controls: ["privacy"]
           },
           trackingMode: "privacy",
-          setTrackingMode
         })}
         audio={makeAudio()}
+        privacySafety={makePrivacySafety({ leavePrivacy })}
       />
     );
 
     await user.click(screen.getByRole("button", { name: "Off" }));
 
-    expect(setTrackingMode).toHaveBeenCalledWith("off");
+    expect(leavePrivacy).toHaveBeenCalledTimes(1);
   });
 
   it("commits auto privacy on blur instead of every keystroke", async () => {
@@ -184,6 +194,7 @@ describe("SmartPixyPanel", () => {
           setAutoPrivacySeconds
         })}
         audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
       />
     );
 
@@ -202,7 +213,13 @@ describe("SmartPixyPanel", () => {
     const user = userEvent.setup();
     const setMuted = vi.fn().mockResolvedValue(undefined);
 
-    render(<SmartPixyPanel pixyHid={makePixyHid()} audio={makeAudio({ setMuted })} />);
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid()}
+        audio={makeAudio({ setMuted })}
+        privacySafety={makePrivacySafety()}
+      />
+    );
 
     await user.click(screen.getByRole("button", { name: "Mic mute" }));
 
