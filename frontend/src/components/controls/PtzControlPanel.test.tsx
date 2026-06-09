@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Crosshair } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -60,7 +60,7 @@ describe("PtzControlPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Pan left" }));
 
-    expect(setValue).toHaveBeenCalledWith("pan_absolute", 10);
+    expect(setValue).toHaveBeenCalledWith("pan_absolute", -10);
   });
 
   it("centers pan and tilt controls", async () => {
@@ -73,13 +73,14 @@ describe("PtzControlPanel", () => {
     expect(setValue).toHaveBeenCalledWith("tilt_absolute", 0);
   });
 
-  it("clamps zoom commands to the device range", async () => {
-    const user = userEvent.setup();
+  it("sets zoom from the visible zoom slider", () => {
     const setValue = renderPanel();
 
-    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    const zoomSlider = screen.getAllByRole("slider")[2];
+    fireEvent.change(zoomSlider, { target: { value: "65" } });
+    fireEvent.blur(zoomSlider);
 
-    expect(setValue).toHaveBeenCalledWith("zoom_absolute", 55);
+    expect(setValue).toHaveBeenCalledWith("zoom_absolute", 65);
   });
 
   it("saves and recalls a PTZ preset", async () => {
@@ -92,5 +93,15 @@ describe("PtzControlPanel", () => {
     expect(setValue).toHaveBeenCalledWith("pan_absolute", 20);
     expect(setValue).toHaveBeenCalledWith("tilt_absolute", 30);
     expect(setValue).toHaveBeenCalledWith("zoom_absolute", 50);
+  });
+
+  it("allows speed selection for PTZ jog controls", async () => {
+    const user = userEvent.setup();
+    const setValue = renderPanel();
+
+    await user.click(screen.getByRole("button", { name: "Speed 1" }));
+    await user.click(screen.getByRole("button", { name: "Pan right" }));
+
+    expect(setValue).toHaveBeenCalledWith("pan_absolute", 30);
   });
 });

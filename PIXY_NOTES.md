@@ -194,6 +194,7 @@ Implemented app status:
   - pan, tilt, and zoom precision sliders
   - auxiliary PTZ controls, including zoom_continuous when exposed
   - app-local PTZ presets for save/goto; camera-native preset storage is not confirmed
+  - zoom_continuous is hidden in the UI when it is exposed as min=0 max=0, because that makes it a no-op on this camera
 - Pixy HID provider is wired as a separate domain:
   - status endpoint detects the hidraw path
   - tracking mode command

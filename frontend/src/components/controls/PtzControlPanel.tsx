@@ -6,9 +6,7 @@ import {
   ChevronsDown,
   Crosshair,
   Home,
-  Save,
-  ZoomIn,
-  ZoomOut
+  Save
 } from "lucide-react";
 
 import type { ControlGroup } from "../../domains/controls/grouping";
@@ -34,6 +32,8 @@ type PtzPreset = {
   zoom: number;
 };
 
+const SPEEDS = [1, 2, 3, 4, 5];
+
 function findControl(group: ControlGroup, name: string): V4L2Control | undefined {
   return group.controls.find((control) => control.name === name);
 }
@@ -53,6 +53,10 @@ function stepFor(control: V4L2Control | undefined): number {
 
 function isBlocked(control: V4L2Control | undefined, pendingControl: string | null): boolean {
   return !control || control.flags.includes("inactive") || pendingControl !== null;
+}
+
+function isUsableAuxiliaryControl(control: V4L2Control): boolean {
+  return control.min !== control.max;
 }
 
 type AxisControlProps = {
@@ -88,9 +92,12 @@ function AxisControl({ label, control, disabled, onSetValue }: AxisControlProps)
 
   return (
     <div className={`ptz-axis ${inactive ? "is-inactive" : ""}`}>
-      <div className="ptz-axis-copy">
-        <span>{label}</span>
-        <small>{control.name}</small>
+      <div className="ptz-axis-header">
+        <div className="ptz-axis-copy">
+          <span>{label}</span>
+          <small>{control.name}</small>
+        </div>
+        <strong>{controlValueText(control)}</strong>
       </div>
       <input
         className="range-input ptz-axis-range"
@@ -108,7 +115,11 @@ function AxisControl({ label, control, disabled, onSetValue }: AxisControlProps)
           }
         }}
       />
-      <strong>{controlValueText(control)}</strong>
+      <div className="ptz-axis-scale">
+        <span>{min}</span>
+        <span>{label === "Zoom" ? "" : 0}</span>
+        <span>{max}</span>
+      </div>
     </div>
   );
 }
@@ -119,7 +130,10 @@ export function PtzControlPanel({ group, controls }: Props) {
   const tilt = findControl(group, PTZ_CONTROL_NAMES.tilt);
   const zoom = findControl(group, PTZ_CONTROL_NAMES.zoom);
   const primaryControlNames = new Set<string>(Object.values(PTZ_CONTROL_NAMES));
-  const auxiliaryControls = group.controls.filter((control) => !primaryControlNames.has(control.name));
+  const auxiliaryControls = group.controls.filter(
+    (control) => !primaryControlNames.has(control.name) && isUsableAuxiliaryControl(control)
+  );
+  const [speed, setSpeed] = useState(3);
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
 
@@ -127,7 +141,7 @@ export function PtzControlPanel({ group, controls }: Props) {
     if (!control || control.flags.includes("inactive")) {
       return;
     }
-    await controls.setValue(control.name, clamp(control.value + stepFor(control) * direction, control));
+    await controls.setValue(control.name, clamp(control.value + stepFor(control) * speed * direction, control));
   };
 
   const centerPtz = async () => {
@@ -224,7 +238,7 @@ export function PtzControlPanel({ group, controls }: Props) {
           </button>
         </div>
 
-        <div className="ptz-sidecar">
+        <div className="ptz-axis-bank">
           <div className="ptz-readouts">
             <AxisControl
               label="Pan"
@@ -245,68 +259,76 @@ export function PtzControlPanel({ group, controls }: Props) {
               onSetValue={(value) => controls.setValue(PTZ_CONTROL_NAMES.zoom, value)}
             />
           </div>
-          <div className="ptz-actions">
-            <button
-              className="secondary-button ptz-zoom-button"
-              disabled={isBlocked(zoom, controls.pendingControl)}
-              onClick={() => void moveAxis(zoom, -1)}
-              aria-label="Zoom out"
-              title="Zoom out"
-            >
-              <ZoomOut size={17} />
-              Out
-            </button>
-            <button
-              className="secondary-button ptz-zoom-button"
-              disabled={isBlocked(zoom, controls.pendingControl)}
-              onClick={() => void moveAxis(zoom, 1)}
-              aria-label="Zoom in"
-              title="Zoom in"
-            >
-              <ZoomIn size={17} />
-              In
-            </button>
+        </div>
+
+        <div className="ptz-presets">
+          <div className="ptz-presets-label">Presets</div>
+          <div className="ptz-preset-slots">
+            {presets.map((preset, index) => (
+              <button
+                key={index}
+                className={selectedPreset === index ? "is-selected" : ""}
+                onClick={() => setSelectedPreset(index)}
+                aria-pressed={selectedPreset === index}
+                aria-label={`Preset ${index + 1}`}
+                title={preset ? `Preset ${index + 1} saved` : `Preset ${index + 1} empty`}
+              >
+                {index + 1}
+              </button>
+            ))}
           </div>
-          <div className="ptz-presets">
-            <div className="ptz-presets-label">Presets</div>
-            <div className="ptz-preset-slots">
-              {presets.map((preset, index) => (
-                <button
-                  key={index}
-                  className={selectedPreset === index ? "is-selected" : ""}
-                  onClick={() => setSelectedPreset(index)}
-                  aria-pressed={selectedPreset === index}
-                  aria-label={`Preset ${index + 1}`}
-                  title={preset ? `Preset ${index + 1} saved` : `Preset ${index + 1} empty`}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-            <div className="ptz-preset-actions">
-              <button
-                className="secondary-button"
-                disabled={disabled || !pan || !tilt || !zoom}
-                onClick={savePreset}
-                aria-label="Save PTZ preset"
-                title="Save PTZ preset"
-              >
-                <Save size={16} />
-                Save
-              </button>
-              <button
-                className="secondary-button"
-                disabled={disabled || !presets[selectedPreset]}
-                onClick={() => void gotoPreset()}
-                aria-label="Goto PTZ preset"
-                title="Goto PTZ preset"
-              >
-                <Home size={16} />
-                Goto
-              </button>
-            </div>
+          <div className="ptz-preset-actions">
+            <button
+              className="secondary-button"
+              disabled={disabled || !pan || !tilt || !zoom}
+              onClick={savePreset}
+              aria-label="Save PTZ preset"
+              title="Save PTZ preset"
+            >
+              <Save size={16} />
+              Save
+            </button>
+            <button
+              className="secondary-button"
+              disabled={disabled || !presets[selectedPreset]}
+              onClick={() => void gotoPreset()}
+              aria-label="Goto PTZ preset"
+              title="Goto PTZ preset"
+            >
+              <Home size={16} />
+              Goto
+            </button>
           </div>
         </div>
+      </div>
+
+      <div className="ptz-footer">
+        <div className="ptz-speed">
+          <span>Speed</span>
+          <div className="ptz-speed-buttons">
+            {SPEEDS.map((value) => (
+              <button
+                key={value}
+                className={speed === value ? "is-selected" : ""}
+                onClick={() => setSpeed(value)}
+                aria-pressed={speed === value}
+                aria-label={`Speed ${value}`}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          className="secondary-button ptz-home-button"
+          disabled={disabled || (!pan && !tilt)}
+          onClick={() => void centerPtz()}
+          aria-label="Home PTZ"
+          title="Home PTZ"
+        >
+          <Home size={16} />
+          Home
+        </button>
       </div>
 
       {auxiliaryControls.length > 0 && (
