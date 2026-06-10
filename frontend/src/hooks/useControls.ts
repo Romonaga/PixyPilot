@@ -12,6 +12,7 @@ export type UseControlsResult = {
   pendingControl: string | null;
   refresh: () => Promise<void>;
   setValue: (controlName: string, value: number) => Promise<void>;
+  setValues: (values: { controlName: string; value: number }[]) => Promise<void>;
 };
 
 export function useControls(deviceName: string | null): UseControlsResult {
@@ -66,6 +67,28 @@ export function useControls(deviceName: string | null): UseControlsResult {
     [controls, deviceName]
   );
 
+  const setValues = useCallback(
+    async (values: { controlName: string; value: number }[]) => {
+      if (!deviceName || values.length === 0) {
+        return;
+      }
+      setPendingControl("preset");
+      setError(null);
+      try {
+        for (const item of values) {
+          await setControlValue(deviceName, item.controlName, item.value);
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to apply preset");
+        await refresh();
+      } finally {
+        setPendingControl(null);
+      }
+    },
+    [deviceName, refresh]
+  );
+
   const groups = useMemo(() => groupControls(controls), [controls]);
 
   return {
@@ -75,6 +98,7 @@ export function useControls(deviceName: string | null): UseControlsResult {
     error,
     pendingControl,
     refresh,
-    setValue
+    setValue,
+    setValues
   };
 }

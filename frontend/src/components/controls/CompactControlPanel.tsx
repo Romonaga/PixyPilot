@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/effects";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
@@ -38,12 +39,25 @@ export function CompactControlPanel({ group, controls }: Props) {
         <Icon size={18} />
         <h2>{group.title}</h2>
       </div>
+      {group.id === "image" && (
+        <div className="effect-preset-strip" aria-label="Image effects">
+          {IMAGE_EFFECTS.map((effect) => (
+            <button
+              key={effect.id}
+              disabled={controls.pendingControl !== null}
+              onClick={() => void controls.setValues(effectValuesForControls(effect, group.controls))}
+            >
+              {effect.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="reference-control-stack">
         {orderedControls.map((control) => (
           <CompactControlRow
             key={control.name}
             control={control}
-            disabled={controls.pendingControl === control.name}
+            disabled={controls.pendingControl === control.name || controls.pendingControl === "preset"}
             onSetValue={(value) => controls.setValue(control.name, value)}
           />
         ))}

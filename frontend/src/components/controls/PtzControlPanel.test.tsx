@@ -46,7 +46,8 @@ function renderPanel(setValue = vi.fn().mockResolvedValue(undefined)) {
     error: null,
     pendingControl: null,
     refresh: vi.fn(),
-    setValue
+    setValue,
+    setValues: vi.fn()
   };
 
   render(<PtzControlPanel group={group} controls={controls} />);

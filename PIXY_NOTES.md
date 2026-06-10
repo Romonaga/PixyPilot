@@ -498,6 +498,63 @@ Windows EMEET Studio Audio Mode mapping:
   - The current PixyPilot audio DSP mapping is correct.
   - EMEET Studio exposes three modes: Live, NC, and Original. No separate Normal mode was present in this UI.
 
+Windows EMEET Studio Effects mapping:
+- Capture file analyzed locally:
+  - pcaps/15.pcapng
+- User action order:
+  - Bright
+  - Nostalgia
+  - Blue
+  - Cold
+  - Vivid
+  - Default
+- Current conclusion:
+  - Effects are standard UVC Processing Unit control writes.
+  - No HID or UVC Extension Unit command was observed.
+- Confirmed effect values:
+  - Bright:
+    - brightness 180
+    - contrast 150
+    - sharpness 128
+    - saturation 128
+    - hue 128
+  - Nostalgia:
+    - brightness 128
+    - contrast 128
+    - sharpness 80
+    - saturation 100
+    - hue 128
+    - white_balance_automatic 0
+    - white_balance_temperature 7500
+  - Blue:
+    - brightness 128
+    - contrast 128
+    - sharpness 128
+    - saturation 128
+    - hue 128
+    - white_balance_temperature 4250
+    - Note: EMEET Studio did not resend white_balance_automatic 0 in this transition because Nostalgia had already disabled auto WB.
+  - Cold:
+    - brightness 128
+    - contrast 70
+    - sharpness 255
+    - saturation 170
+    - hue 128
+    - white_balance_automatic 1
+  - Vivid:
+    - brightness 170
+    - contrast 140
+    - sharpness 128
+    - saturation 140
+    - hue 128
+  - Default:
+    - brightness 128
+    - contrast 128
+    - sharpness 128
+    - saturation 128
+    - hue 128
+    - Note: in this capture Default followed Cold, so WB auto was already on and no WB command was sent.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

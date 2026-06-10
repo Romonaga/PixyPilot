@@ -47,6 +47,19 @@ These controls were observed through `/dev/video0` on Ubuntu 24.04.
   - `1`: 50 Hz
   - `2`: 60 Hz
 
+### Effects
+
+Capture `pcaps/15.pcapng` showed that EMEET Studio effects are standard UVC Processing Unit writes, not HID commands.
+
+| Effect | Brightness | Contrast | Sharpness | Saturation | Hue | WB auto | WB temperature |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Bright | `180` | `150` | `128` | `128` | `128` | unchanged | unchanged |
+| Nostalgia | `128` | `128` | `80` | `100` | `128` | `0` | `7500` |
+| Blue | `128` | `128` | `128` | `128` | `128` | already manual in capture | `4250` |
+| Cold | `128` | `70` | `255` | `170` | `128` | `1` | unchanged |
+| Vivid | `170` | `140` | `128` | `140` | `128` | unchanged | unchanged |
+| Default | `128` | `128` | `128` | `128` | `128` | already auto in capture | unchanged |
+
 ### Exposure
 
 - `auto_exposure`: menu
