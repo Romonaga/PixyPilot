@@ -42,6 +42,7 @@ KNOWN_CONTROLS = [
     "ptz_preset_load",
 ]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
+_HIDRAW_PATH_CACHE: str | None = None
 
 
 class PixyHidService:
@@ -75,14 +76,23 @@ class PixyHidService:
         )
 
     def find_hidraw(self) -> str | None:
+        global _HIDRAW_PATH_CACHE
         env_path = os.environ.get("PIXYPILOT_HIDRAW")
         if env_path:
             return env_path if Path(env_path).exists() else None
 
+        if _HIDRAW_PATH_CACHE and Path(_HIDRAW_PATH_CACHE).exists():
+            cached_path = Path(_HIDRAW_PATH_CACHE)
+            if self._is_pixy_uevent(self._read_uevent(cached_path)):
+                return _HIDRAW_PATH_CACHE
+            _HIDRAW_PATH_CACHE = None
+
         for dev in sorted(Path("/dev").glob("hidraw*")):
             uevent = self._read_uevent(dev)
             if self._is_pixy_uevent(uevent):
-                return str(dev)
+                _HIDRAW_PATH_CACHE = str(dev)
+                return _HIDRAW_PATH_CACHE
+        _HIDRAW_PATH_CACHE = None
         return None
 
     async def set_tracking(self, mode: TrackingMode) -> PixyHidCommandResult:

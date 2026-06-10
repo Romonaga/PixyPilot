@@ -234,6 +234,35 @@ describe("PtzControlPanel", () => {
     expect(setValue).not.toHaveBeenCalled();
   });
 
+  it("uses speed-scaled HID PTZ vector jogs when available", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const sendPtzDirection = vi.fn().mockResolvedValue(undefined);
+    const sendPtzVector = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_direction", "ptz_vector"]
+        },
+        sendPtzDirection,
+        sendPtzVector
+      })
+    );
+
+    await user.click(screen.getByRole("button", { name: "Speed 5" }));
+    await user.click(screen.getByRole("button", { name: "Pan right" }));
+
+    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 30, y: 0 }));
+    expect(sendPtzDirection).not.toHaveBeenCalled();
+    expect(setValue).not.toHaveBeenCalled();
+  });
+
   it("uses the captured HID PTZ vector command from the center pad", async () => {
     const setValue = vi.fn().mockResolvedValue(undefined);
     const sendPtzVector = vi.fn().mockResolvedValue(undefined);
