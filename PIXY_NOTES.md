@@ -281,6 +281,37 @@ Windows EMEET Studio launch-idle capture:
   - Studio's startup traffic gives us a menu of status/capability queries to compare against one-action captures.
   - No clear UVC Extension Unit selector writes were observed during idle startup; the missing smart features are still more likely HID or HID plus vendor extension status.
 
+Windows EMEET Studio AF toggle capture:
+- Capture file analyzed locally:
+  pcaps/03_auto_framing_toggle.pcapng
+- User action:
+  - Capture was originally named as Auto Framing, but the user later clarified this was the AF/autofocus control.
+  - AF was on at capture start.
+  - User toggled AF off, then toggled it on.
+- Capture facts:
+  - Taken on Windows 11 with Dumpcap/Wireshark 4.6.6.
+  - USBPcap interface: USBPcap2.
+  - 6354 packets over 50.467271 seconds.
+  - File size: 181 MB.
+  - High-volume payload is already-running video streaming.
+  - No HID interrupt data packets were decoded in this capture.
+  - Only 13 UVC control packets were present, and the toggle signal is very clean.
+- Observed off transition at 39.175597 seconds:
+  - GET_CUR Camera Terminal entity 0x01 selector 0x08 returned 1.
+  - SET_CUR Camera Terminal entity 0x01 selector 0x08 to 0.
+  - Wireshark decodes selector 0x08 as Focus, Auto.
+  - Studio then SET_CUR Focus Absolute selector 0x06 to 512.
+  - Studio read back Focus Absolute 512 and Focus, Auto 0.
+- Observed on transition at 44.631097 seconds:
+  - GET_CUR Focus, Auto selector 0x08 returned 0.
+  - SET_CUR Focus, Auto selector 0x08 to 1.
+  - Studio read back Focus Absolute 512 and Focus, Auto 1.
+- Current conclusion:
+  - This capture maps AF off/on to standard UVC Focus, Auto, not to HID and not to the vendor UVC Extension Unit.
+  - This is not the Smart Pixy Auto Framing command.
+  - Smart Pixy Auto Framing still needs a separate one-action capture.
+  - In PixyPilot terms, this behavior is already covered by the Focus Control auto/manual switch backed by V4L2 focus_automatic_continuous.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

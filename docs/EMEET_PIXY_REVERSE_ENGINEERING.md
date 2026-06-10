@@ -295,6 +295,40 @@ Current conclusion from launch-idle:
 - No clear UVC Extension Unit selector writes were observed during idle startup.
 - The next captures must isolate one user action at a time so these startup queries can be separated from real feature commands.
 
+## AF Toggle Capture
+
+Third capture analyzed:
+
+```text
+pcaps/03_auto_framing_toggle.pcapng
+```
+
+User-reported action:
+
+- The file was originally named as an Auto Framing capture, but the user later clarified this was the AF/autofocus control.
+- AF was on at capture start.
+- AF was toggled off, then toggled back on.
+
+Observed USB behavior:
+
+- No HID interrupt data packets were decoded in this capture.
+- No UVC Extension Unit writes were seen.
+- The only meaningful control changes were standard UVC Camera Terminal writes:
+
+| Time | Request | UVC control | Value |
+| --- | --- | --- | --- |
+| 39.175597s | `SET_CUR` | Camera Terminal entity `0x01`, selector `0x08`, `Focus, Auto` | `0` |
+| 39.180864s | `SET_CUR` | Camera Terminal entity `0x01`, selector `0x06`, `Focus Absolute` | `512` |
+| 44.631097s | `SET_CUR` | Camera Terminal entity `0x01`, selector `0x08`, `Focus, Auto` | `1` |
+
+Current conclusion:
+
+- This capture maps AF off/on to standard UVC `Focus, Auto`, not to HID.
+- Turning the control off also made EMEET Studio write `Focus Absolute = 512`.
+- This is not the Smart Pixy Auto Framing command.
+- Smart Pixy Auto Framing still needs its own one-action capture.
+- PixyPilot already exposes this behavior through Focus Control as `focus_automatic_continuous` plus `focus_absolute`.
+
 ## Known Gaps
 
 These features are not fully decoded yet:
