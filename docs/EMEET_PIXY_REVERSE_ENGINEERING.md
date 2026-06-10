@@ -126,6 +126,17 @@ The PIXY microphone can be controlled through standard ALSA.
 
 PixyPilot mutes the microphone when entering camera privacy mode. It does not automatically unmute when privacy mode is turned off, because that should remain an explicit user choice.
 
+### Monitor / Listen
+
+Capture `pcaps/18.pcapng` showed EMEET Studio's monitor/listen action using normal USB Audio streaming setup:
+
+- The host selected audio interface `3`, alternate setting `1`.
+- The host sent a USB Audio endpoint `SET_CUR` to endpoint `0x83`.
+- Payload `80 bb 00` is little-endian `48000`, setting the endpoint sample frequency to 48 kHz.
+- The host later selected audio interface `3`, alternate setting `0`.
+
+No HID command or UVC control write was observed for the 100 -> 0 -> 100 monitor slider in that capture. Current interpretation: monitor/listen is a local application playback feature, and the slider is likely local monitor playback volume rather than camera-side mic gain.
+
 ## Vendor HID Findings
 
 The PIXY exposes a vendor HID interface through `/dev/hidrawN`. Normal users need a udev rule or another permission strategy before writing to it.

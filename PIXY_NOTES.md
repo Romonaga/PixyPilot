@@ -592,6 +592,29 @@ Windows EMEET Studio Mirror / Flip mapping:
   - Horizontal and vertical flip are independent HID toggles.
   - PixyPilot can expose these as Mirror Off/H/V/HV.
 
+Windows EMEET Studio monitor / mic listen mapping:
+- Capture file analyzed locally:
+  - pcaps/18.pcapng
+- User action reported:
+  - Turned on monitor/mic listen.
+  - Moved a setting from 100 to 0, then back to 100.
+- Observed USB behavior:
+  - At 9.509850s, host sent SET_INTERFACE alternate setting 1 on interface 3.
+  - At 9.514586s, host sent a USB Audio class endpoint SET_CUR:
+    - bmRequestType 0x22, recipient endpoint
+    - bRequest 0x01
+    - wValue 0x0100
+    - wIndex 0x0083
+    - wLength 3
+    - payload 80 bb 00
+  - 0x00bb80 little-endian is 48000, so this sets audio endpoint 0x83 sample frequency to 48000 Hz.
+  - At 12.351009s, host sent SET_INTERFACE alternate setting 0 on interface 3.
+- Current conclusion:
+  - Monitor/mic listen appears to be normal USB Audio streaming setup/teardown, not an EMEET HID smart command.
+  - The 100 -> 0 -> 100 slider did not produce a visible USB control write in this capture.
+  - Current inference: that slider is likely local EMEET Studio monitor/playback volume on the Windows machine, not a persisted camera-side control.
+  - PixyPilot already controls the camera microphone capture path through ALSA mute/volume. A monitor/listen feature would be an application playback feature, not a camera hardware feature.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
