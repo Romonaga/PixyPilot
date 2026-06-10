@@ -99,14 +99,15 @@ export async function setVideoFormat(
 
 export function videoStreamUrl(
   deviceName: string,
-  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">,
+  token = Date.now()
 ): string {
   const params = new URLSearchParams({
     pixel_format: format.pixel_format,
     width: String(format.width),
     height: String(format.height),
     fps: String(format.fps),
-    t: String(Date.now())
+    t: String(token)
   });
   return `${API_BASE}/api/devices/${encodeURIComponent(deviceName)}/stream?${params.toString()}`;
 }

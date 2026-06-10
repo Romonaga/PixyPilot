@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchVideoFormats, setVideoFormat } from "../lib/apiClient";
-import { formatKey, useVideoFormats } from "./useVideoFormats";
+import { defaultPreviewFormat, formatKey, useVideoFormats } from "./useVideoFormats";
 
 vi.mock("../lib/apiClient", () => ({
   fetchVideoFormats: vi.fn(),
@@ -28,6 +28,14 @@ const formats = [
     height: 1080,
     fps: 60,
     label: "MJPG 1920x1080 60fps"
+  },
+  {
+    pixel_format: "MJPG",
+    description: "Motion-JPEG, compressed",
+    width: 1280,
+    height: 720,
+    fps: 30,
+    label: "MJPG 1280x720 30fps"
   }
 ];
 
@@ -45,7 +53,7 @@ describe("useVideoFormats", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.selectedKey).toBe(formatKey(formats[0]));
+    expect(result.current.selectedKey).toBe(formatKey(formats[2]));
 
     await act(async () => {
       await result.current.setSelectedKey(formatKey(formats[1]));
@@ -53,5 +61,9 @@ describe("useVideoFormats", () => {
 
     expect(mockedSetVideoFormat).toHaveBeenCalledWith("video0", formats[1]);
     expect(result.current.selectedKey).toBe(formatKey(formats[1]));
+  });
+
+  it("prefers a stable desktop preview format over the highest resolution", () => {
+    expect(defaultPreviewFormat(formats)).toBe(formats[2]);
   });
 });

@@ -62,6 +62,25 @@ describe("useVideoCapture", () => {
     expect(result.current.streamUrl).toContain("width=1280");
   });
 
+  it("can restart the preview stream without hiding the monitor", async () => {
+    const { result } = renderHook(() => useVideoCapture("video0", format));
+
+    await waitFor(() => expect(result.current.status?.recording).toBe(false));
+
+    act(() => {
+      result.current.togglePreview();
+    });
+    const firstUrl = result.current.streamUrl;
+
+    act(() => {
+      result.current.restartPreview();
+    });
+
+    expect(result.current.streamUrl).not.toBe(firstUrl);
+    expect(result.current.previewEnabled).toBe(true);
+  });
+
+
   it("starts and stops backend recording for the selected device and format", async () => {
     mockedStartVideoRecording.mockResolvedValue({
       recording: true,

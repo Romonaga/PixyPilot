@@ -15,6 +15,7 @@ export type UseVideoCaptureResult = {
   pending: boolean;
   error: string | null;
   togglePreview: () => void;
+  restartPreview: () => void;
   refreshStatus: () => Promise<void>;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
@@ -34,7 +35,7 @@ export function useVideoCapture(
     if (!previewEnabled || !deviceName || !selectedFormat) {
       return null;
     }
-    return videoStreamUrl(deviceName, selectedFormat);
+    return videoStreamUrl(deviceName, selectedFormat, streamToken);
   }, [deviceName, previewEnabled, selectedFormat, streamToken]);
 
   const refreshStatus = useCallback(async () => {
@@ -62,6 +63,10 @@ export function useVideoCapture(
       }
       return !enabled;
     });
+  }, []);
+
+  const restartPreview = useCallback(() => {
+    setStreamToken((current) => current + 1);
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -98,6 +103,7 @@ export function useVideoCapture(
     pending,
     error,
     togglePreview,
+    restartPreview,
     refreshStatus,
     startRecording,
     stopRecording

@@ -35,7 +35,7 @@ function videoFormats(): UseVideoFormatsResult {
   };
 }
 
-function videoCapture(): UseVideoCaptureResult {
+function videoCapture(overrides: Partial<UseVideoCaptureResult> = {}): UseVideoCaptureResult {
   return {
     previewEnabled: true,
     streamUrl: "/api/devices/video0/stream",
@@ -50,8 +50,10 @@ function videoCapture(): UseVideoCaptureResult {
     error: null,
     refreshStatus: vi.fn(),
     togglePreview: vi.fn(),
+    restartPreview: vi.fn(),
     startRecording: vi.fn(),
-    stopRecording: vi.fn()
+    stopRecording: vi.fn(),
+    ...overrides
   };
 }
 
@@ -119,8 +121,27 @@ describe("VideoMonitor", () => {
     fireEvent.pointerUp(frame, { clientX: 640, clientY: 360 });
 
     await waitFor(() =>
-      expect(setFocusMeteringMode).toHaveBeenCalledWith("selected_area", { x: 64, y: 64 })
+    expect(setFocusMeteringMode).toHaveBeenCalledWith("selected_area", { x: 64, y: 64 })
     );
     expect(frame.querySelector(".focus-target-reticle")).not.toBeNull();
+  });
+
+  it("restarts the preview stream after an image load error", async () => {
+    vi.useFakeTimers();
+    const restartPreview = vi.fn();
+    render(
+      <VideoMonitor
+        deviceName="video0"
+        videoFormats={videoFormats()}
+        videoCapture={videoCapture({ restartPreview })}
+        pixyHid={pixyHid()}
+      />
+    );
+
+    fireEvent.error(screen.getByAltText("Live camera stream"));
+    vi.advanceTimersByTime(750);
+
+    expect(restartPreview).toHaveBeenCalledOnce();
+    vi.useRealTimers();
   });
 });

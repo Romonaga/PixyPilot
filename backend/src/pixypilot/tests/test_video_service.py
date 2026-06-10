@@ -28,7 +28,17 @@ def test_video_input_command_maps_v4l2_formats_to_ffmpeg() -> None:
     ]
 
 
-def test_stream_command_outputs_mjpeg_to_stdout() -> None:
+def test_mjpg_stream_command_copies_jpeg_frames_to_stdout() -> None:
+    command = build_stream_command(
+        "/dev/video0",
+        VideoStreamSettings(pixel_format="MJPG", width=1280, height=720, fps=30),
+    )
+
+    assert command[-6:] == ["-an", "-c:v", "copy", "-f", "mjpeg", "pipe:1"]
+    assert "mjpeg" in command
+
+
+def test_uncompressed_stream_command_encodes_mjpeg_to_stdout() -> None:
     command = build_stream_command(
         "/dev/video0",
         VideoStreamSettings(pixel_format="YUYV", width=640, height=480, fps=30),

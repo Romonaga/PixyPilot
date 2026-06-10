@@ -1,5 +1,5 @@
 import { Eye, EyeOff, RadioTower, Square, Video } from "lucide-react";
-import { useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 import { focusPointFromContainClick, type FocusPoint } from "../../domains/video/focusPoint";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -18,6 +18,7 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
   const canUseVideo = Boolean(deviceName && selectedFormat);
   const isRecording = videoCapture.status?.recording === true;
   const [focusTarget, setFocusTarget] = useState<FocusPoint | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
   const canClickFocus =
     Boolean(videoCapture.streamUrl && selectedFormat) &&
     pixyHid.status?.writable === true &&
@@ -44,6 +45,32 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
       x: ((event.clientX - rect.left) / rect.width) * 100,
       y: ((event.clientY - rect.top) / rect.height) * 100
     });
+  };
+
+  useEffect(
+    () => () => {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const handleStreamError = () => {
+    if (!videoCapture.previewEnabled || reconnectTimerRef.current !== null) {
+      return;
+    }
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      videoCapture.restartPreview();
+    }, 750);
+  };
+
+  const handleStreamLoad = () => {
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
   };
 
   return (
@@ -84,7 +111,12 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
       >
         {videoCapture.streamUrl ? (
           <>
-            <img src={videoCapture.streamUrl} alt="Live camera stream" />
+            <img
+              src={videoCapture.streamUrl}
+              alt="Live camera stream"
+              onError={handleStreamError}
+              onLoad={handleStreamLoad}
+            />
             {focusTarget && (
               <span
                 className="focus-target-reticle"

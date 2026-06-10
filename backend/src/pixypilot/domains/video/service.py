@@ -92,6 +92,17 @@ class VideoService:
 
 
 def build_stream_command(device_path: str, settings: VideoStreamSettings) -> list[str]:
+    if settings.pixel_format.upper() == "MJPG":
+        return [
+            *build_input_args(device_path, settings),
+            "-an",
+            "-c:v",
+            "copy",
+            "-f",
+            "mjpeg",
+            "pipe:1",
+        ]
+
     return [
         *build_input_args(device_path, settings),
         "-an",

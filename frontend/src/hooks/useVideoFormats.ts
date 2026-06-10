@@ -18,6 +18,31 @@ export function formatKey(format: Pick<VideoFormatOption, "pixel_format" | "widt
   return `${format.pixel_format}:${format.width}:${format.height}:${format.fps}`;
 }
 
+export function defaultPreviewFormat(formats: VideoFormatOption[]): VideoFormatOption | null {
+  const preferred = [
+    { pixel_format: "MJPG", width: 1280, height: 720, fps: 30 },
+    { pixel_format: "MJPG", width: 1920, height: 1080, fps: 30 },
+    { pixel_format: "MJPG", width: 1280, height: 720, fps: 60 },
+  ];
+  for (const target of preferred) {
+    const match = formats.find(
+      (format) =>
+        format.pixel_format === target.pixel_format &&
+        format.width === target.width &&
+        format.height === target.height &&
+        Math.abs(format.fps - target.fps) < 0.001
+    );
+    if (match) {
+      return match;
+    }
+  }
+  return (
+    formats.find((format) => format.pixel_format === "MJPG" && format.width <= 1920 && format.height <= 1080) ??
+    formats[0] ??
+    null
+  );
+}
+
 export function useVideoFormats(deviceName: string | null): UseVideoFormatsResult {
   const [formats, setFormats] = useState<VideoFormatOption[]>([]);
   const [selectedKey, setSelectedKeyState] = useState("");
@@ -40,12 +65,13 @@ export function useVideoFormats(deviceName: string | null): UseVideoFormatsResul
     setError(null);
     try {
       const loaded = await fetchVideoFormats(deviceName);
+      const defaultFormat = defaultPreviewFormat(loaded);
       setFormats(loaded);
       setSelectedKeyState((current) =>
         current && loaded.some((format) => formatKey(format) === current)
           ? current
-          : loaded[0]
-            ? formatKey(loaded[0])
+          : defaultFormat
+            ? formatKey(defaultFormat)
             : ""
       );
     } catch (err) {
