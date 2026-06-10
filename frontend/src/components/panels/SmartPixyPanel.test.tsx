@@ -134,6 +134,32 @@ describe("SmartPixyPanel", () => {
     expect(setTrackingMode).toHaveBeenCalledWith("tracking");
   });
 
+  it("does not let auto follow clear active privacy mode", async () => {
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "privacy"]
+          },
+          trackingMode: "privacy",
+          setTrackingMode
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeDisabled();
+    expect(setTrackingMode).not.toHaveBeenCalled();
+  });
+
   it("enters privacy safety mode when privacy is pressed", async () => {
     const user = userEvent.setup();
     const enterPrivacy = vi.fn().mockResolvedValue(undefined);

@@ -33,6 +33,7 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const micAvailable = audio.status?.available === true;
   const autoFollowEnabled = pixyHid.trackingMode === "tracking";
   const privacyEnabled = pixyHid.trackingMode === "privacy";
+  const autoFollowDisabled = disabled || privacyEnabled;
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -81,9 +82,10 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
           </div>
           <button
             className={`toggle-switch ${autoFollowEnabled ? "is-on" : ""}`}
-            disabled={disabled}
+            disabled={autoFollowDisabled}
             aria-pressed={autoFollowEnabled}
             aria-label="Auto Follow"
+            title={privacyEnabled ? "Turn privacy off before enabling auto follow" : "Auto Follow"}
             onClick={() => void pixyHid.setTrackingMode(autoFollowEnabled ? "off" : "tracking")}
           >
             <span />
