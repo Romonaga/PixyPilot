@@ -46,5 +46,11 @@ def test_audio_reports_match_reverse_engineered_sequence() -> None:
 def test_auto_privacy_reports_match_reverse_engineered_sequence() -> None:
     set_report, ack_report = auto_privacy_reports(10)
 
-    assert set_report[:9] == bytes([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, 0x0A])
+    assert set_report[:12] == bytes([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, 0x0A, 0x00, 0x00, 0x00])
     assert ack_report[:4] == bytes([0x09, 0x02, 0x01, 0x01])
+
+
+def test_auto_privacy_uses_32_bit_little_endian_seconds() -> None:
+    assert auto_privacy_reports(0)[0][8:12] == bytes([0x00, 0x00, 0x00, 0x00])
+    assert auto_privacy_reports(60)[0][8:12] == bytes([0x3C, 0x00, 0x00, 0x00])
+    assert auto_privacy_reports(900)[0][8:12] == bytes([0x84, 0x03, 0x00, 0x00])

@@ -18,6 +18,13 @@ const audioModes: { value: AudioMode; label: string }[] = [
   { value: "original", label: "Original" }
 ];
 
+const autoPrivacyPresets = [
+  { value: 0, label: "Never" },
+  { value: 10, label: "10s" },
+  { value: 60, label: "1m" },
+  { value: 900, label: "15m" }
+];
+
 export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const writable = pixyHid.status?.writable ?? false;
   const available = pixyHid.status?.available ?? false;
@@ -34,10 +41,17 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
 
   const commitAutoPrivacy = () => {
     const parsed = Number(autoPrivacyDraft);
-    const clamped = Number.isFinite(parsed) ? Math.min(255, Math.max(0, Math.trunc(parsed))) : 0;
+    const clamped = Number.isFinite(parsed) ? Math.min(900, Math.max(0, Math.trunc(parsed))) : 0;
     setAutoPrivacyDraft(String(clamped));
     if (pixyHid.autoPrivacySeconds !== clamped) {
       void pixyHid.setAutoPrivacySeconds(clamped);
+    }
+  };
+
+  const setAutoPrivacyPreset = (seconds: number) => {
+    setAutoPrivacyDraft(String(seconds));
+    if (pixyHid.autoPrivacySeconds !== seconds) {
+      void pixyHid.setAutoPrivacySeconds(seconds);
     }
   };
 
@@ -170,17 +184,29 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
           </div>
         </div>
 
-        <label className="smart-control smart-control-privacy">
+        <div className="smart-control smart-control-privacy">
           <div className="smart-label">
             <Shield size={16} />
             <span>Auto privacy delay</span>
+          </div>
+          <div className="segmented">
+            {autoPrivacyPresets.map((preset) => (
+              <button
+                key={preset.value}
+                className={pixyHid.autoPrivacySeconds === preset.value ? "is-selected" : ""}
+                disabled={disabled}
+                onClick={() => setAutoPrivacyPreset(preset.value)}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
           <div className="privacy-delay-input">
             <input
               className="number-input"
               type="number"
               min={0}
-              max={255}
+              max={900}
               step={1}
               disabled={disabled}
               value={autoPrivacyDraft}
@@ -194,7 +220,7 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
             />
             <span>sec</span>
           </div>
-        </label>
+        </div>
       </div>
 
       {pixyHid.lastCommand && <div className="last-command">Last command: {pixyHid.lastCommand}</div>}

@@ -133,13 +133,13 @@ Privacy mode has been observed to darken the camera image. It appears to be an e
 Set command:
 
 ```text
-09 02 01 00 00 04 00 04 XX
+09 02 01 00 00 04 00 04 XX XX XX XX
 ```
 
 Current interpretation:
 
-- `XX` is a timeout in seconds.
-- `00` disables the automatic transition.
+- `XX XX XX XX` is a 32-bit little-endian timeout in seconds.
+- `00 00 00 00` disables the automatic transition.
 - This configures a delay, but it does not itself immediately enter privacy mode.
 
 Follow-up/query-like command:
@@ -147,6 +147,15 @@ Follow-up/query-like command:
 ```text
 09 02 01 01
 ```
+
+Known values captured from EMEET Studio:
+
+| UI value | Seconds | Payload bytes |
+| --- | ---: | --- |
+| Never | `0` | `00 00 00 00` |
+| 10 seconds | `10` | `0a 00 00 00` |
+| 1 minute | `60` | `3c 00 00 00` |
+| 15 minutes | `900` | `84 03 00 00` |
 
 ### Gesture Control
 

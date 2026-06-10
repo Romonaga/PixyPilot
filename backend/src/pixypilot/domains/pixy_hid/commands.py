@@ -50,9 +50,10 @@ def audio_reports(mode: AudioMode) -> list[bytes]:
 
 
 def auto_privacy_reports(timeout_seconds: int) -> list[bytes]:
-    if timeout_seconds < 0 or timeout_seconds > 0xFF:
-        raise ValueError("auto-privacy timeout must be in range 0..255")
+    if timeout_seconds < 0 or timeout_seconds > 0xFFFFFFFF:
+        raise ValueError("auto-privacy timeout must be in range 0..4294967295")
+    timeout_bytes = list(timeout_seconds.to_bytes(4, byteorder="little"))
     return [
-        build_report([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, timeout_seconds]),
+        build_report([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, *timeout_bytes]),
         build_report([0x09, 0x02, 0x01, 0x01]),
     ]

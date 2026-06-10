@@ -35,4 +35,4 @@ class AudioModeRequest(BaseModel):
 
 
 class AutoPrivacyRequest(BaseModel):
-    timeout_seconds: int = Field(ge=0, le=255)
+    timeout_seconds: int = Field(ge=0, le=0xFFFFFFFF)

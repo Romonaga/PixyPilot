@@ -107,10 +107,10 @@ Reverse-engineered HID base:
     XX values: 00 off/idle, 01 tracking, 02 privacy
     ACK/query-ish follow-up: 09 01 01 01
   - Auto-privacy:
-    SET 09 02 01 00 00 04 00 04 XX
-    XX is timeout seconds, 00 disables
+    SET 09 02 01 00 00 04 00 04 XX XX XX XX
+    XX XX XX XX is a 32-bit little-endian timeout in seconds, 00 00 00 00 disables
     ACK/query-ish follow-up: 09 02 01 01
-    Current inference: this configures how long the camera waits before entering its privacy behavior automatically. A value of 0 disables that automatic transition. This still needs validation against official app behavior.
+    Current inference: this configures how long the camera waits before entering its privacy behavior automatically. A value of 0 disables that automatic transition.
   - Gesture control:
     SET 09 04 02 00 00 02 00 02 02 XX
     XX values: 00 off, 01 on
@@ -396,6 +396,31 @@ Windows EMEET Studio clean Focus/Metering mapping:
   - Focus/Metering is HID group 0x04, not UVC.
   - The three mode values are now safe to expose as named modes.
   - Manual selected-area clicking is now plausible, but should remain experimental until preview-to-device coordinate scaling is validated.
+
+Windows EMEET Studio Auto Privacy / Auto-entry Privacy mapping:
+- Capture file analyzed locally:
+  - pcaps/11-autoprivacy.pcapng
+- User action order:
+  - 10 seconds
+  - 1 minute
+  - 15 minutes
+  - never
+- Confirmed command:
+  - 09 02 01 00 00 04 00 04 XX XX XX XX
+  - The timeout is a 32-bit little-endian seconds value.
+- Confirmed values:
+  - 10 seconds: 0a 00 00 00
+  - 1 minute: 3c 00 00 00
+  - 15 minutes: 84 03 00 00
+  - never: 00 00 00 00
+- Query/status traffic:
+  - Host query: 09 02 01 01
+  - Device response mirrors the configured timeout:
+    09 02 01 01 00 04 00 04 XX XX XX XX
+- Current conclusion:
+  - Auto-entry privacy delay is confirmed as HID group 0x02.
+  - The earlier single-byte interpretation was incomplete; values above 255 seconds require the full 4-byte field.
+  - This configures the automatic privacy timer. Explicit privacy mode still uses group 0x01 value 02.
 
 Project direction:
 - Build a local FastAPI + React web UI.

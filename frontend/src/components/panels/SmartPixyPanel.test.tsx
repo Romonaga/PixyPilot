@@ -237,6 +237,34 @@ describe("SmartPixyPanel", () => {
     expect(setAutoPrivacySeconds).toHaveBeenCalledWith(15);
   });
 
+  it("offers captured auto privacy presets", async () => {
+    const user = userEvent.setup();
+    const setAutoPrivacySeconds = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["auto_privacy"]
+          },
+          setAutoPrivacySeconds
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "15m" }));
+
+    expect(setAutoPrivacySeconds).toHaveBeenCalledWith(900);
+    expect(screen.getByRole("spinbutton")).toHaveValue(900);
+  });
+
   it("toggles the known gesture command", async () => {
     const user = userEvent.setup();
     const setGestureEnabled = vi.fn().mockResolvedValue(undefined);
