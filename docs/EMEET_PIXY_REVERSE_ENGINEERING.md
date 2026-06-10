@@ -410,12 +410,29 @@ Selected-area click behavior:
 09 04 00 02 00 05 00 05 02 0f 00 7f 7f ...
 ```
 
+Known-position selected-area capture:
+
+```text
+pcaps/10-focusareas.pcapng
+```
+
+The user clicked top-left, top-right, bottom-left, bottom-right, then center. The observed selected-area payload bytes after the mode value were:
+
+| Click | Payload bytes |
+| --- | --- |
+| top-left | `00 00 7f 7f` |
+| top-right | `7f 00 7f 7f` |
+| bottom-left | `00 7f 7f 7f` |
+| bottom-right | `7f 7f 7f 7f` |
+| center | `38 38 7f 7f` |
+
 Current interpretation of selected-area payload:
 
-- Bytes after the mode value appear to carry a selected point or region.
-- One observed click produced `0f 00 7f 7f`.
-- Coordinate scaling and origin are not decoded yet.
-- The three named modes are safe to expose, but arbitrary selected-area clicking should remain experimental until more known-position clicks are captured.
+- The first two bytes after the mode value appear to be X/Y coordinates.
+- The coordinate range appears to be `0x00..0x7f`, with origin at the top-left.
+- The final two bytes were `7f 7f` for all known-position clicks and may represent region size, bounds, or sentinel values.
+- The center click produced `38 38`, so preview scaling/margins still need validation before implementing arbitrary click-to-focus.
+- The three named modes are safe to expose. Selected-area clicking should be treated as experimental until the preview-to-device coordinate transform is validated.
 
 ## Known Gaps
 

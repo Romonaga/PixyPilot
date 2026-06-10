@@ -361,6 +361,7 @@ Windows EMEET Studio clean Focus/Metering mapping:
   - pcaps/07_metering_selected_area.pcapng
   - pcaps/08_metering_center_area.pcapng
   - pcaps/09_metering_human_face.pcapng
+  - pcaps/10-focusareas.pcapng
 - User action:
   - Capture 7: selected "focus on selected areas" and clicked an area in the preview.
   - Capture 8: selected "focus on central areas".
@@ -382,11 +383,19 @@ Windows EMEET Studio clean Focus/Metering mapping:
     09 04 00 01 00 05 00 05 02 0f 00 7f 7f ...
   - Device status response mirrored:
     09 04 00 02 00 05 00 05 02 0f 00 7f 7f ...
-  - Current inference: bytes after the mode value carry a selected-area point or region payload. The observed click produced 0f 00 7f 7f, but coordinate scaling/origin is not decoded yet.
+  - Capture 10 user action order:
+    top-left, top-right, bottom-left, bottom-right, center.
+  - Capture 10 selected-area payloads:
+    - top-left: 00 00 7f 7f
+    - top-right: 7f 00 7f 7f
+    - bottom-left: 00 7f 7f 7f
+    - bottom-right: 7f 7f 7f 7f
+    - center: 38 38 7f 7f
+  - Current inference: the first two bytes after the mode value are selected-area X/Y coordinates in a 0x00..0x7f range, origin top-left. The last two bytes were 7f 7f for all known-position clicks and may be region size, bounds, or sentinel values. The center click produced 38 38 rather than an exact midpoint, so preview scaling/margins still need validation before we implement arbitrary click-to-focus.
 - Current conclusion:
   - Focus/Metering is HID group 0x04, not UVC.
   - The three mode values are now safe to expose as named modes.
-  - Manual selected-area clicking should remain experimental until the coordinate payload is decoded with several clicks at known preview positions.
+  - Manual selected-area clicking is now plausible, but should remain experimental until preview-to-device coordinate scaling is validated.
 
 Project direction:
 - Build a local FastAPI + React web UI.
