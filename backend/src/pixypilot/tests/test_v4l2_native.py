@@ -3,13 +3,27 @@ import struct
 import pytest
 
 from pixypilot.domains.v4l2.native import (
+    VIDIOC_S_FMT,
+    VIDIOC_QUERYCTRL,
+    VIDIOC_QUERYMENU,
     V4L2_BUF_TYPE_VIDEO_CAPTURE,
     V4L2_FORMAT_SIZE,
+    V4L2_QUERYCTRL_SIZE,
+    V4L2_QUERYMENU_SIZE,
     V4L2_STREAMPARM_SIZE,
     build_format_buffer,
     build_streamparm_buffer,
     fourcc,
 )
+
+
+def test_query_control_ioctl_numbers_match_linux_header_sizes() -> None:
+    assert V4L2_QUERYCTRL_SIZE == 68
+    assert V4L2_QUERYMENU_SIZE == 44
+    assert VIDIOC_QUERYCTRL == 0xC0445624
+    assert VIDIOC_QUERYMENU == 0xC02C5625
+    assert V4L2_FORMAT_SIZE == 208
+    assert VIDIOC_S_FMT == 0xC0D05605
 
 
 def test_fourcc_encodes_v4l2_pixel_format() -> None:

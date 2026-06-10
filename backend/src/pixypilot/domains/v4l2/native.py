@@ -33,18 +33,18 @@ VIDIOC_ENUM_FMT = 0xC0405602
 VIDIOC_G_CTRL = 0xC008561B
 VIDIOC_S_CTRL = 0xC008561C
 VIDIOC_QUERYCTRL = 0xC0445624
-VIDIOC_QUERYMENU = 0xC0305625
+VIDIOC_QUERYMENU = 0xC02C5625
 VIDIOC_ENUM_FRAMESIZES = 0xC02C564A
 VIDIOC_ENUM_FRAMEINTERVALS = 0xC034564B
-VIDIOC_S_FMT = 0xC0CC5605
+VIDIOC_S_FMT = 0xC0D05605
 VIDIOC_S_PARM = 0xC0CC5616
 V4L2_CAPABILITY_SIZE = 104
 V4L2_FMTDESC_SIZE = 64
 V4L2_QUERYCTRL_SIZE = 68
-V4L2_QUERYMENU_SIZE = 48
+V4L2_QUERYMENU_SIZE = 44
 V4L2_FRMSIZEENUM_SIZE = 44
 V4L2_FRMIVALENUM_SIZE = 52
-V4L2_FORMAT_SIZE = 204
+V4L2_FORMAT_SIZE = 208
 V4L2_PIX_FORMAT_SIZE = 48
 V4L2_STREAMPARM_SIZE = 204
 V4L2_CAPTUREPARM_SIZE = 40
@@ -282,8 +282,8 @@ def _list_formats_sync(device_path: str) -> list[VideoFormatOption]:
                     break
                 raise
 
-            description = _decode_c_string(fmt_buffer[8:40])
-            pixel_format = struct.unpack_from("=I", fmt_buffer, 40)[0]
+            description = _decode_c_string(fmt_buffer[12:44])
+            pixel_format = struct.unpack_from("=I", fmt_buffer, 44)[0]
             pixel_format_text = fourcc_text(pixel_format)
             for width, height in _frame_sizes(fd, pixel_format):
                 for fps in _frame_rates(fd, pixel_format, width, height):
