@@ -584,6 +584,8 @@ Current interpretation of selected-area payload:
 - The three named modes are safe to expose. Selected-area clicking should be treated as experimental until the preview-to-device coordinate transform is validated.
 - The earlier mockup labels `AF Trigger` and `AF Lock` should not be treated as separate missing official-app commands unless EMEET Studio exposes literal actions with those names. The captured official behavior corresponding to "focus on person" and "focus on position" is this Focus/Metering HID mode family.
 
+PixyPilot implements the three captured Focus/Metering modes as Focus target buttons in the Focus Control panel. The selected-area button currently uses the captured center-ish coordinate payload until a live preview click target is added.
+
 ## Directional PTZ HID Jog
 
 Capture `pcaps/21.pcapng` tested the official app PTZ arrow pad. The user reported pressing left three times, right three times, up three times, then down three times. The capture contains 9 visible host jog reports rather than all 12 reported clicks, but the axis/sign mapping is clear.

@@ -50,6 +50,7 @@ export type PixyHidStatus = {
 export type TrackingMode = "off" | "tracking" | "privacy";
 export type AudioMode = "noise_cancel" | "live" | "original";
 export type MirrorMode = "off" | "h" | "v" | "hv";
+export type FocusMeteringMode = "center" | "human_face" | "selected_area";
 export type PtzDirection = "left" | "right" | "up" | "down";
 export type PtzVector = {
   x: number;

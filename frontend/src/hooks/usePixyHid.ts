@@ -6,6 +6,7 @@ import {
   setPixyAutoPrivacy,
   setPixyAutoRotate,
   setPixyGesture,
+  setPixyFocusMetering,
   setPixyMirror,
   loadPixyPtzPreset,
   sendPixyPtzDirection,
@@ -15,6 +16,7 @@ import {
 } from "../lib/apiClient";
 import type {
   AudioMode,
+  FocusMeteringMode,
   MirrorMode,
   PixyHidStatus,
   PtzDirection,
@@ -33,6 +35,7 @@ export type UsePixyHidResult = {
   gestureEnabled: boolean | null;
   autoRotateEnabled: boolean | null;
   mirrorMode: MirrorMode | null;
+  focusMeteringMode: FocusMeteringMode | null;
   audioMode: AudioMode | null;
   autoPrivacySeconds: number | null;
   refresh: () => Promise<void>;
@@ -40,6 +43,7 @@ export type UsePixyHidResult = {
   setGestureEnabled: (enabled: boolean) => Promise<void>;
   setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
   setMirrorMode: (mode: MirrorMode) => Promise<void>;
+  setFocusMeteringMode: (mode: FocusMeteringMode) => Promise<void>;
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
   sendPtzDirection: (direction: PtzDirection) => Promise<void>;
@@ -58,6 +62,7 @@ export function usePixyHid(): UsePixyHidResult {
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
   const [autoRotateEnabled, setAutoRotateEnabledState] = useState<boolean | null>(null);
   const [mirrorMode, setMirrorModeState] = useState<MirrorMode | null>(null);
+  const [focusMeteringMode, setFocusMeteringModeState] = useState<FocusMeteringMode | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
 
@@ -129,6 +134,15 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const setFocusMeteringMode = useCallback(
+    async (mode: FocusMeteringMode) =>
+      runCommand(`focus-metering:${mode}`, async () => {
+        await setPixyFocusMetering(mode);
+        setFocusMeteringModeState(mode);
+      }),
+    [runCommand]
+  );
+
   const setAudioMode = useCallback(
     async (mode: AudioMode) =>
       runCommand(`audio:${mode}`, async () => {
@@ -189,6 +203,7 @@ export function usePixyHid(): UsePixyHidResult {
     gestureEnabled,
     autoRotateEnabled,
     mirrorMode,
+    focusMeteringMode,
     audioMode,
     autoPrivacySeconds,
     refresh,
@@ -196,6 +211,7 @@ export function usePixyHid(): UsePixyHidResult {
     setGestureEnabled,
     setAutoRotateEnabled,
     setMirrorMode,
+    setFocusMeteringMode,
     setAudioMode,
     setAutoPrivacySeconds,
     sendPtzDirection,

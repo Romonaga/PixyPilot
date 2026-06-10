@@ -587,6 +587,21 @@ h2 {
   text-transform: uppercase;
 }
 
+.focus-metering-tools {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.focus-metering-tools > span {
+  color: #f4f0df;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .control-panel-image.reference-control-panel .reference-control-stack {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 18px;

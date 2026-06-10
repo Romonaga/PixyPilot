@@ -7,6 +7,7 @@ import {
   setPixyAutoPrivacy,
   setPixyAutoRotate,
   setPixyGesture,
+  setPixyFocusMetering,
   setPixyMirror,
   loadPixyPtzPreset,
   savePixyPtzPreset,
@@ -22,6 +23,7 @@ vi.mock("../lib/apiClient", () => ({
   setPixyAutoPrivacy: vi.fn(),
   setPixyAutoRotate: vi.fn(),
   setPixyGesture: vi.fn(),
+  setPixyFocusMetering: vi.fn(),
   setPixyMirror: vi.fn(),
   loadPixyPtzPreset: vi.fn(),
   savePixyPtzPreset: vi.fn(),
@@ -35,6 +37,7 @@ const mockedSetPixyAudio = vi.mocked(setPixyAudio);
 const mockedSetPixyAutoPrivacy = vi.mocked(setPixyAutoPrivacy);
 const mockedSetPixyAutoRotate = vi.mocked(setPixyAutoRotate);
 const mockedSetPixyGesture = vi.mocked(setPixyGesture);
+const mockedSetPixyFocusMetering = vi.mocked(setPixyFocusMetering);
 const mockedSetPixyMirror = vi.mocked(setPixyMirror);
 const mockedLoadPixyPtzPreset = vi.mocked(loadPixyPtzPreset);
 const mockedSavePixyPtzPreset = vi.mocked(savePixyPtzPreset);
@@ -49,6 +52,7 @@ describe("usePixyHid", () => {
     mockedSetPixyAutoPrivacy.mockReset();
     mockedSetPixyAutoRotate.mockReset();
     mockedSetPixyGesture.mockReset();
+    mockedSetPixyFocusMetering.mockReset();
     mockedSetPixyMirror.mockReset();
     mockedLoadPixyPtzPreset.mockReset();
     mockedSavePixyPtzPreset.mockReset();
@@ -157,6 +161,34 @@ describe("usePixyHid", () => {
 
     expect(mockedSetPixyMirror).toHaveBeenCalledWith("hv");
     expect(result.current.mirrorMode).toBe("hv");
+  });
+
+  it("sends captured focus metering commands when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["focus_metering"]
+    });
+    mockedSetPixyFocusMetering.mockResolvedValue({
+      ok: true,
+      command: "focus_metering",
+      value: "human_face",
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setFocusMeteringMode("human_face");
+    });
+
+    expect(mockedSetPixyFocusMetering).toHaveBeenCalledWith("human_face");
+    expect(result.current.focusMeteringMode).toBe("human_face");
   });
 
   it("sends captured HID PTZ direction commands when requested", async () => {

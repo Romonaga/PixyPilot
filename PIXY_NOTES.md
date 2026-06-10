@@ -399,6 +399,7 @@ Windows EMEET Studio clean Focus/Metering mapping:
   - The three mode values are now safe to expose as named modes.
   - Manual selected-area clicking is now plausible, but should remain experimental until preview-to-device coordinate scaling is validated.
   - The mockup labels "AF Trigger" and "AF Lock" appear to correspond to these official Focus/Metering behaviors unless EMEET Studio exposes separate literal controls later.
+  - PixyPilot implements these three modes as Focus target buttons in the Focus Control panel.
 
 Windows EMEET Studio Auto Privacy / Auto-entry Privacy mapping:
 - Capture file analyzed locally:
@@ -830,6 +831,7 @@ Project direction:
 Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
 - V4L2 control writes are live for exposed controls.
+- Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.
 - PTZ is now a first-class cockpit panel:
   - directional pan/tilt pad
   - center/home action

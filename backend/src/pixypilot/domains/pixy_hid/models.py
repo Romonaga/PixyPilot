@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 TrackingMode = Literal["off", "tracking", "privacy"]
 AudioMode = Literal["noise_cancel", "live", "original"]
 PtzDirection = Literal["left", "right", "up", "down"]
+FocusMeteringMode = Literal["center", "human_face", "selected_area"]
 
 
 class PixyHidStatus(BaseModel):
@@ -56,3 +57,9 @@ class PtzVectorRequest(BaseModel):
 
 class PtzPresetSlotRequest(BaseModel):
     slot: int = Field(ge=1, le=3)
+
+
+class FocusMeteringRequest(BaseModel):
+    mode: FocusMeteringMode
+    x: int | None = Field(default=None, ge=0, le=0x7F)
+    y: int | None = Field(default=None, ge=0, le=0x7F)

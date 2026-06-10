@@ -1,7 +1,7 @@
 import struct
 from collections.abc import Sequence
 
-from pixypilot.domains.pixy_hid.models import AudioMode, PtzDirection, TrackingMode
+from pixypilot.domains.pixy_hid.models import AudioMode, FocusMeteringMode, PtzDirection, TrackingMode
 
 REPORT_SIZE = 32
 
@@ -25,6 +25,11 @@ PTZ_DIRECTION_VALUES: dict[PtzDirection, tuple[int, float]] = {
     "right": (0x01, -1.0),
     "up": (0x02, 1.0),
     "down": (0x02, -1.0),
+}
+FOCUS_METERING_VALUES: dict[FocusMeteringMode, int] = {
+    "center": 0x00,
+    "human_face": 0x01,
+    "selected_area": 0x02,
 }
 
 
@@ -68,6 +73,18 @@ def mirror_reports(horizontal: bool, vertical: bool) -> list[bytes]:
     return [
         *feature_toggle_reports(MIRROR_VERTICAL_FEATURE, vertical),
         *feature_toggle_reports(MIRROR_HORIZONTAL_FEATURE, horizontal),
+    ]
+
+
+def focus_metering_reports(mode: FocusMeteringMode, x: int | None = None, y: int | None = None) -> list[bytes]:
+    value = FOCUS_METERING_VALUES[mode]
+    x_value = _focus_coordinate(x, 0x38 if mode == "selected_area" else 0x00)
+    y_value = _focus_coordinate(y, 0x38 if mode == "selected_area" else 0x00)
+    payload = [value, x_value, y_value, 0x7F, 0x7F]
+    return [
+        build_report([0x09, 0x04, 0x00, 0x01, 0x00, 0x05, 0x00, 0x05, *payload]),
+        build_report([0x09, 0x04, 0x00, 0x03, 0x00, 0x05, 0x00, 0x05, *payload]),
+        build_report([0x09, 0x04, 0x00, 0x02]),
     ]
 
 
@@ -119,3 +136,10 @@ def ptz_preset_load_reports(slot: int) -> list[bytes]:
     return [
         build_report([0x09, 0x03, 0x01, 0x18, 0x00, 0x01, 0x00, 0x01, slot]),
     ]
+
+
+def _focus_coordinate(value: int | None, default: int) -> int:
+    resolved = default if value is None else value
+    if resolved < 0 or resolved > 0x7F:
+        raise ValueError("focus metering coordinates must be in range 0..127")
+    return resolved

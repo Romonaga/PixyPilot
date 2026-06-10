@@ -6,6 +6,7 @@ from pixypilot.domains.devices.models import Device
 from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
     AutoPrivacyRequest,
+    FocusMeteringRequest,
     GestureRequest,
     MirrorRequest,
     PixyHidCommandResult,
@@ -172,6 +173,19 @@ async def set_pixy_mirror(
 ) -> PixyHidCommandResult:
     try:
         return await service.set_mirror(request.horizontal, request.vertical)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/focus-metering", response_model=PixyHidCommandResult)
+async def set_pixy_focus_metering(
+    request: FocusMeteringRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.set_focus_metering(request.mode, request.x, request.y)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:

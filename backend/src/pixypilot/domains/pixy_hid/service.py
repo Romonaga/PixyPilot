@@ -7,6 +7,7 @@ from pixypilot.domains.pixy_hid.commands import (
     audio_reports,
     auto_privacy_reports,
     auto_rotate_reports,
+    focus_metering_reports,
     gesture_reports,
     mirror_reports,
     ptz_direction_reports,
@@ -17,6 +18,7 @@ from pixypilot.domains.pixy_hid.commands import (
 )
 from pixypilot.domains.pixy_hid.models import (
     AudioMode,
+    FocusMeteringMode,
     PixyHidCommandResult,
     PixyHidStatus,
     PtzDirection,
@@ -31,6 +33,7 @@ KNOWN_CONTROLS = [
     "gesture",
     "auto_rotate",
     "mirror",
+    "focus_metering",
     "auto_privacy",
     "audio_mode",
     "ptz_direction",
@@ -102,6 +105,16 @@ class PixyHidService:
         await self._write_reports(path, mirror_reports(horizontal, vertical))
         value = _mirror_value(horizontal, vertical)
         return PixyHidCommandResult(ok=True, command="mirror", value=value, path=path)
+
+    async def set_focus_metering(
+        self,
+        mode: FocusMeteringMode,
+        x: int | None = None,
+        y: int | None = None,
+    ) -> PixyHidCommandResult:
+        path = await self._require_writable_path()
+        await self._write_reports(path, focus_metering_reports(mode, x, y))
+        return PixyHidCommandResult(ok=True, command="focus_metering", value=mode, path=path)
 
     async def set_audio_mode(self, mode: AudioMode) -> PixyHidCommandResult:
         path = await self._require_writable_path()

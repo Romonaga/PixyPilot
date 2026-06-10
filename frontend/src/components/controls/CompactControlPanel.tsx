@@ -5,7 +5,7 @@ import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
-import type { MirrorMode, V4L2Control } from "../../types/api";
+import type { FocusMeteringMode, MirrorMode, V4L2Control } from "../../types/api";
 
 type Props = {
   group: ControlGroup;
@@ -38,10 +38,20 @@ const MIRROR_OPTIONS: { value: MirrorMode; label: string }[] = [
   { value: "hv", label: "HV" }
 ];
 
+const FOCUS_METERING_OPTIONS: { value: FocusMeteringMode; label: string }[] = [
+  { value: "center", label: "Center" },
+  { value: "human_face", label: "Person" },
+  { value: "selected_area", label: "Position" }
+];
+
 export function CompactControlPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
   const orderedControls = orderControls(group.controls, GROUP_ORDER[group.id] ?? []);
   const mirrorDisabled = pixyHid.status?.writable !== true || pixyHid.pendingCommand !== null;
+  const focusMeteringDisabled =
+    pixyHid.status?.writable !== true ||
+    pixyHid.pendingCommand !== null ||
+    !pixyHid.status?.known_controls.includes("focus_metering");
 
   return (
     <section className={`control-panel reference-control-panel control-panel-${group.id} accent-${group.accent}`}>
@@ -76,6 +86,23 @@ export function CompactControlPanel({ group, controls, pixyHid }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      {group.id === "focus" && (
+        <div className="focus-metering-tools">
+          <span>Focus target</span>
+          <div className="reference-segmented columns-3">
+            {FOCUS_METERING_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                className={pixyHid.focusMeteringMode === option.value ? "is-selected" : ""}
+                disabled={focusMeteringDisabled}
+                onClick={() => void pixyHid.setFocusMeteringMode(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import type {
   AudioMode,
   AppSettings,
   Device,
+  FocusMeteringMode,
   MirrorMode,
   PixyHidCommandResult,
   PixyHidStatus,
@@ -106,6 +107,13 @@ export async function setPixyMirror(mode: MirrorMode): Promise<PixyHidCommandRes
       horizontal: mode === "h" || mode === "hv",
       vertical: mode === "v" || mode === "hv"
     })
+  });
+}
+
+export async function setPixyFocusMetering(mode: FocusMeteringMode): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/focus-metering", {
+    method: "PATCH",
+    body: JSON.stringify({ mode })
   });
 }
 
