@@ -379,7 +379,7 @@ The status query remains:
 
 ### Focus/Metering Section
 
-The Focus/Metering controls appear to use group `0x04` HID commands. The exact label-to-value mapping still needs one more clean capture or a confirmed action order, but the mode-like values observed so far are `00`, `01`, and `02`.
+The Focus/Metering controls use group `0x04` HID commands.
 
 Observed command pattern:
 
@@ -389,11 +389,33 @@ Observed command pattern:
 09 04 00 02 ...
 ```
 
-Current interpretation:
+Confirmed mode values:
 
-- `XX` is likely the Focus/Metering mode value.
-- Values `00`, `01`, and `02` likely correspond to the three visible Focus/Metering options.
-- Do not wire these into a normal UI until the mapping to selected-area, center-area, and human-face modes is confirmed.
+| Value | Focus/Metering mode |
+| --- | --- |
+| `00` | focus on central areas |
+| `01` | human face |
+| `02` | focus on selected areas |
+
+The status response for the mode query uses the same mode value:
+
+```text
+09 04 00 02 00 05 00 05 XX ...
+```
+
+Selected-area click behavior:
+
+```text
+09 04 00 01 00 05 00 05 02 0f 00 7f 7f ...
+09 04 00 02 00 05 00 05 02 0f 00 7f 7f ...
+```
+
+Current interpretation of selected-area payload:
+
+- Bytes after the mode value appear to carry a selected point or region.
+- One observed click produced `0f 00 7f 7f`.
+- Coordinate scaling and origin are not decoded yet.
+- The three named modes are safe to expose, but arbitrary selected-area clicking should remain experimental until more known-position clicks are captured.
 
 ## Known Gaps
 
