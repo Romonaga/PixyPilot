@@ -615,20 +615,29 @@ Windows EMEET Studio monitor / mic listen mapping:
   - Current inference: that slider is likely local EMEET Studio monitor/playback volume on the Windows machine, not a persisted camera-side control.
   - PixyPilot already controls the camera microphone capture path through ALSA mute/volume. A monitor/listen feature would be an application playback feature, not a camera hardware feature.
 
-Windows EMEET Studio follow-mode capture attempt:
+Windows EMEET Studio follow-mode / recording-start capture:
 - Capture file analyzed locally:
   - pcaps/19.pcapng
 - User action reported:
-  - Turned follow mode on, then off, from a recording-related UI location.
+  - After setting follow mode, started recording from a recording-related UI location.
 - Capture facts:
-  - Only 38 packets over 7.832984 seconds.
-  - PIXY device 2.3.0 / USB ID 328f:00c0 appears only during descriptor/configuration enumeration.
-  - No PIXY HID reports, UVC control writes, UVC extension writes, or USB Audio control writes were present after enumeration.
-  - The only action-like packets were HCI vendor commands on device 2.2.0 / USB ID 8087:0029, which is the Intel Bluetooth adapter, not the PIXY.
+  - Re-captured file has 4544 packets over 25.647697 seconds and includes PIXY traffic.
+  - PIXY device is 2.3.0 / USB ID 328f:00c0.
+  - Recording startup negotiated MJPG 1280x720 at 30 fps:
+    - UVC format index 1, frame index 5, interval 333333.
+    - SET_INTERFACE starts video streaming shortly after the final commit.
+  - A PIXY HID input/status packet appears during startup:
+    - 09 01 01 01 00 01 00 01 00 ...
+    - Group 01 status value 01 means tracking/follow active.
+  - No host-to-device HID SET packet for follow was present in this capture.
+  - The capture also shows normal USB Audio recording setup:
+    - endpoint 0x83 sample frequency payload 80 bb 00, which is 48000 Hz.
 - Current conclusion:
-  - Capture 19 does not map a PIXY camera feature.
-  - Either the wrong USB activity was captured, the UI action did not reach the camera, or this recording-area "follow mode" is an application-side feature.
-  - Re-capture is needed if this is expected to affect the PIXY.
+  - Recording-area follow appears to use the same tracking mode already decoded from group 01 value 01.
+  - PixyPilot already implements that command as Auto Follow / Standard Tracking:
+    - SET 09 01 01 00 00 01 00 01 01
+  - This capture confirms the state during record startup, but does not add a new command.
+  - To capture the actual UI toggle again, start capture before turning follow on/off and stop before doing unrelated recording actions.
 
 Project direction:
 - Build a local FastAPI + React web UI.

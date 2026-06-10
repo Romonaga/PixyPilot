@@ -580,14 +580,14 @@ These features are not fully decoded yet:
 
 - Auto Framing as a distinct feature from Auto Follow
 - Speaker Tracking
-- Recording-area follow mode, if distinct from standard tracking
+- Recording-area follow toggle write, if it ever proves distinct from standard tracking
 - Official-app presets
 - Native AF trigger and AF lock behavior
 - Native UVC relative zoom behavior
 - Names and payloads for UVC extension selectors `1..10`
 - Whether some smart features use HID, UVC extension selectors, or both
 
-Capture `pcaps/19.pcapng` was a follow-mode capture attempt, but it did not include PIXY control traffic after enumeration. The only action-like packets were Intel Bluetooth HCI vendor commands on USB ID `8087:0029`, not PIXY commands.
+Capture `pcaps/19.pcapng` was re-captured after setting follow mode and then starting recording. It includes PIXY traffic and shows recording startup at MJPG 1280x720 30 fps plus one group `01` HID status packet with value `01`, meaning tracking/follow was active. It did not include a host-to-device follow SET command, so it currently confirms that recording-area follow uses the already-known tracking state unless a later isolated toggle capture proves otherwise.
 
 ## Capture Plan
 
