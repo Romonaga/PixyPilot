@@ -247,6 +247,20 @@ Query-like command:
 09 05 00 04
 ```
 
+Capture `pcaps/14 audio mode.pcapng` confirmed the official EMEET Studio UI labels:
+
+| EMEET Studio label | Value |
+| --- | --- |
+| NC | `01` |
+| Live | `02` |
+| Original | `03` |
+
+The status response mirrors the configured mode:
+
+```text
+09 05 00 04 00 01 00 01 XX
+```
+
 ## UVC Extension Unit
 
 The PIXY exposes a UVC Extension Unit:

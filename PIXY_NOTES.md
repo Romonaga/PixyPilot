@@ -477,6 +477,27 @@ Windows EMEET Studio video format mapping:
   - No vendor HID or UVC Extension Unit command is needed for format switching.
   - Linux should expose this through normal V4L2 format/frame interval handling.
 
+Windows EMEET Studio Audio Mode mapping:
+- Capture file analyzed locally:
+  - pcaps/14 audio mode.pcapng
+- User action order:
+  - Live
+  - NC
+  - Original
+- Confirmed command:
+  - 09 05 00 03 00 01 00 01 XX
+- Confirmed values:
+  - NC: 01
+  - Live: 02
+  - Original: 03
+- Query/status traffic:
+  - Host query: 09 05 00 04
+  - Device response mirrors the configured mode:
+    09 05 00 04 00 01 00 01 XX
+- Current conclusion:
+  - The current PixyPilot audio DSP mapping is correct.
+  - EMEET Studio exposes three modes: Live, NC, and Original. No separate Normal mode was present in this UI.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
