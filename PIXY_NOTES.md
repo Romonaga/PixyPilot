@@ -555,6 +555,21 @@ Windows EMEET Studio Effects mapping:
     - hue 128
     - Note: in this capture Default followed Cold, so WB auto was already on and no WB command was sent.
 
+Windows EMEET Studio Anti Flicker mapping:
+- Capture file analyzed locally:
+  - pcaps/16.pcapng
+- User action order:
+  - 50Hz
+  - 60Hz
+- Confirmed path:
+  - Standard UVC Processing Unit selector 0x05, Power Line Frequency.
+- Confirmed values:
+  - 50Hz: 01
+  - 60Hz: 02
+- Current conclusion:
+  - This is already exposed in Linux as V4L2 control power_line_frequency.
+  - No HID or UVC Extension Unit command is needed.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

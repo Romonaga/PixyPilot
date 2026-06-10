@@ -47,6 +47,13 @@ These controls were observed through `/dev/video0` on Ubuntu 24.04.
   - `1`: 50 Hz
   - `2`: 60 Hz
 
+Capture `pcaps/16.pcapng` confirmed EMEET Studio's Anti Flicker UI maps directly to `power_line_frequency`:
+
+| EMEET Studio label | UVC selector | Value |
+| --- | --- | ---: |
+| Anti Flicker 50Hz | Processing Unit selector `0x05` | `1` |
+| Anti Flicker 60Hz | Processing Unit selector `0x05` | `2` |
+
 ### Effects
 
 Capture `pcaps/15.pcapng` showed that EMEET Studio effects are standard UVC Processing Unit writes, not HID commands.
