@@ -164,6 +164,58 @@ Raw UVC extension selector probe:
   - Selectors 6 and 9 are 1024-byte buffers and may be bulk configuration/status payloads, firmware data, calibration data, or command mailboxes.
   - Do not write arbitrary values to these selectors until they are correlated with official app behavior or safely tested with reversible values.
 
+Windows USBPcap baseline:
+- Capture file analyzed locally:
+  pcaps/01_device_plugin_baseline.pcapng
+- Capture facts:
+  - Taken on Windows 11 with Dumpcap/Wireshark 4.6.6.
+  - USBPcap interface: USBPcap2.
+  - 365 packets over 8.420025 seconds.
+  - Device address used by the PIXY during capture: bus 2, address 3.
+  - Descriptor traffic, UVC class-control traffic, and one HID report descriptor response were present.
+- Device descriptor/structure findings:
+  - UVC Extension Unit ID 2 is present.
+  - Extension GUID: 46394292-0cd0-4ae3-8783-3133f9eaaa3b.
+  - Extension bNumControls: 10.
+  - Extension bmControls includes selectors 1 through 10.
+  - The HID report descriptor confirms report ID 0x09 with 31-byte input and output payloads, matching the 32-byte report shape used by the current HID provider.
+- Standard UVC camera controls queried by Windows:
+  - Exposure Time Absolute: selector 0x04, GET and SET supported, min 1, max 5000, step 1, default 300.
+  - Iris Absolute: selector 0x09, GET and SET supported, min 0, max 128, step 1, default 128. Linux currently does not expose this as a normal V4L2 control.
+  - Focus Absolute: selector 0x06, GET and SET supported, min 0, max 1023, step 1, default 192.
+  - Focus Relative: selector 0x07, GET and SET supported. This is likely the native AF trigger-style path to investigate.
+  - Zoom Absolute: selector 0x0b, GET and SET supported, min 100, max 150, step 1, default 100.
+  - Zoom Relative: selector 0x0c, GET and SET supported. This may be more useful than Linux zoom_continuous, which currently exposes as a no-op.
+  - PanTilt Absolute: selector 0x0d, GET and SET supported, raw 8-byte signed values. This corresponds to pan_absolute and tilt_absolute.
+- Standard UVC processing controls queried by Windows:
+  - Backlight Compensation: selector 0x01, min 1, max 2, step 1, default 1.
+  - Brightness: selector 0x02, min 0, max 255, step 1, default 128.
+  - Contrast: selector 0x03, min 0, max 255, step 1, default 128.
+  - Gain: selector 0x04, min 0, max 100, step 1, default 0.
+  - Power Line Frequency: selector 0x05, min 1, max 2, step 1, default 2.
+  - Hue: selector 0x06, min 0, max 255, step 1, default 128.
+  - Saturation: selector 0x07, min 0, max 255, step 1, default 128.
+  - Sharpness: selector 0x08, min 0, max 255, step 1, default 128.
+  - Gamma: selector 0x09, min 0, max 255, step 1, default 128.
+  - White Balance Temperature: selector 0x0a, min 2300, max 7500, step 1, default 5000.
+- Baseline writes seen from Windows:
+  - Windows issued SET_CUR twice for Processing Unit selector 0x05, value 2. This sets Power Line Frequency to 60 Hz.
+- What the baseline does not tell us:
+  - It does not name the 10 vendor Extension Unit selectors.
+  - It does not exercise Auto Framing, Speaker Tracking, AI modes, or vendor presets.
+  - It does not include official EMEET Studio user actions, so it is a map of advertised capability, not a behavior map.
+- Next action captures needed:
+  - Launch EMEET Studio with no setting changes.
+  - Toggle Auto Framing off/on.
+  - Toggle Auto Follow off/on.
+  - Toggle Speaker Tracking off/on.
+  - Toggle Privacy off/on.
+  - Toggle Gesture Control off/on.
+  - Change each audio mode once.
+  - Trigger any AF button or focus lock feature the official app exposes.
+  - Change one image-control preset/value at a time.
+  - Change one video format/resolution/FPS option at a time.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
