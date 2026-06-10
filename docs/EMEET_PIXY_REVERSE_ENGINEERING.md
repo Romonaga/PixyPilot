@@ -582,6 +582,7 @@ Current interpretation of selected-area payload:
 - The final two bytes were `7f 7f` for all known-position clicks and may represent region size, bounds, or sentinel values.
 - The center click produced `38 38`, so preview scaling/margins still need validation before implementing arbitrary click-to-focus.
 - The three named modes are safe to expose. Selected-area clicking should be treated as experimental until the preview-to-device coordinate transform is validated.
+- The earlier mockup labels `AF Trigger` and `AF Lock` should not be treated as separate missing official-app commands unless EMEET Studio exposes literal actions with those names. The captured official behavior corresponding to "focus on person" and "focus on position" is this Focus/Metering HID mode family.
 
 ## Directional PTZ HID Jog
 
@@ -715,7 +716,6 @@ These features are not fully decoded yet:
 - Speaker Tracking
 - Recording-area follow toggle write, if it ever proves distinct from standard tracking
 - Official-app preset delete/default behavior
-- Native AF trigger and AF lock behavior
 - Native UVC relative zoom behavior, if the official app exposes a separate continuous zoom gesture
 - Names and payloads for UVC extension selectors `1..10`
 - Whether some smart features use HID, UVC extension selectors, or both
@@ -743,7 +743,7 @@ Recommended sequence:
 5. Toggle Privacy off/on.
 6. Toggle Gesture Control off/on.
 7. Change each audio DSP mode once.
-8. Trigger AF or focus-lock actions if exposed by the official app.
+8. Capture any literal AF trigger or focus-lock action only if the official app exposes one separately from Focus/Metering.
 9. Change one image-control preset or value at a time.
 10. Change one video format, resolution, or FPS option at a time.
 

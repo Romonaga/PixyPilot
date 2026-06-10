@@ -185,7 +185,7 @@ Windows USBPcap baseline:
   - Exposure Time Absolute: selector 0x04, GET and SET supported, min 1, max 5000, step 1, default 300.
   - Iris Absolute: selector 0x09, GET and SET supported, min 0, max 128, step 1, default 128. Linux currently does not expose this as a normal V4L2 control.
   - Focus Absolute: selector 0x06, GET and SET supported, min 0, max 1023, step 1, default 192.
-  - Focus Relative: selector 0x07, GET and SET supported. This is likely the native AF trigger-style path to investigate.
+  - Focus Relative: selector 0x07, GET and SET supported. No captured official action has used this yet.
   - Zoom Absolute: selector 0x0b, GET and SET supported, min 100, max 150, step 1, default 100.
   - Zoom Relative: selector 0x0c, GET and SET supported. This may be more useful than Linux zoom_continuous, which currently exposes as a no-op.
   - PanTilt Absolute: selector 0x0d, GET and SET supported, raw 8-byte signed values. This corresponds to pan_absolute and tilt_absolute.
@@ -214,7 +214,7 @@ Windows USBPcap baseline:
   - Toggle Privacy off/on.
   - Toggle Gesture Control off/on.
   - Change each audio mode once.
-  - Trigger any AF button or focus lock feature the official app exposes.
+  - Capture any literal AF trigger or focus-lock action only if the official app exposes one separately from Focus/Metering.
   - Change one image-control preset/value at a time.
   - Change one video format/resolution/FPS option at a time.
 
@@ -398,6 +398,7 @@ Windows EMEET Studio clean Focus/Metering mapping:
   - Focus/Metering is HID group 0x04, not UVC.
   - The three mode values are now safe to expose as named modes.
   - Manual selected-area clicking is now plausible, but should remain experimental until preview-to-device coordinate scaling is validated.
+  - The mockup labels "AF Trigger" and "AF Lock" appear to correspond to these official Focus/Metering behaviors unless EMEET Studio exposes separate literal controls later.
 
 Windows EMEET Studio Auto Privacy / Auto-entry Privacy mapping:
 - Capture file analyzed locally:
