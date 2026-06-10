@@ -12,6 +12,8 @@ The first implementation focuses on the confirmed V4L2/UVC control path:
 
 The vendor-specific Pixy HID path is now isolated in its own experimental provider. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
 
+Reverse-engineering findings for other Linux users are collected in [docs/EMEET_PIXY_REVERSE_ENGINEERING.md](docs/EMEET_PIXY_REVERSE_ENGINEERING.md).
+
 ## Backend
 
 ```bash
