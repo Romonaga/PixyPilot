@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { boolOptionLabels, controlDisplayLabel, inactiveReason } from "../../domains/controls/display";
 import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/effects";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
@@ -23,12 +24,11 @@ const GROUP_ORDER: Partial<Record<ControlGroup["id"], string[]>> = {
     "sharpness",
     "hue",
     "gamma",
-    "gain",
     "power_line_frequency",
     "backlight_compensation"
   ],
   focus: ["focus_automatic_continuous", "focus_absolute"],
-  exposure: ["auto_exposure", "exposure_time_absolute"]
+  exposure: ["auto_exposure", "exposure_time_absolute", "gain"]
 };
 
 const MIRROR_OPTIONS: { value: MirrorMode; label: string }[] = [
@@ -146,8 +146,8 @@ function CompactControlRow({ control, disabled, onSetValue }: RowProps) {
   return (
     <div className={`reference-control-row ${hasPresets ? "has-presets" : ""} ${isInactive ? "is-inactive" : ""}`}>
       <div className="reference-control-label">
-        <span>{control.label}</span>
-        {isInactive && <small>Auto mode active</small>}
+        <span>{controlDisplayLabel(control)}</span>
+        {isInactive && <small>{inactiveReason(control)}</small>}
       </div>
       <div className="reference-control-input">
         <CompactInput control={control} disabled={unavailable} onSetValue={onSetValue} />
@@ -161,7 +161,7 @@ function CompactInput({ control, disabled, onSetValue }: RowProps) {
   if (control.kind === "bool") {
     return (
       <div className="reference-segmented two-up">
-        {boolOptions(control).map((option) => (
+        {boolOptionLabels(control).map((option) => (
           <button
             key={option.value}
             className={control.value === option.value ? "is-selected" : ""}
@@ -237,19 +237,6 @@ function CompactRangeInput({ control, disabled, onSetValue }: RowProps) {
       }}
     />
   );
-}
-
-function boolOptions(control: V4L2Control) {
-  if (control.name.includes("automatic") || control.name.includes("auto")) {
-    return [
-      { value: 1, label: "Auto" },
-      { value: 0, label: "Manual" }
-    ];
-  }
-  return [
-    { value: 0, label: "Off" },
-    { value: 1, label: "On" }
-  ];
 }
 
 function shortPresetLabel(label: string) {

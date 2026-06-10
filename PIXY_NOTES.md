@@ -571,6 +571,41 @@ Windows EMEET Studio Anti Flicker mapping:
   - This is already exposed in Linux as V4L2 control power_line_frequency.
   - No HID or UVC Extension Unit command is needed.
 
+Windows EMEET Studio Custom image mapping:
+- Capture file analyzed locally:
+  - pcaps/27.pcapng
+- User action order:
+  - Custom
+  - Brightness 0 -> 255
+  - Contrast 0 -> 255
+  - EV -13 -> -1
+  - ISO 0 -> 100
+  - Sharpness 0 -> 255
+  - Saturation 0 -> 255
+  - Tone 0 -> 255
+  - AWB lock toggled
+  - WB 2300 -> 7500
+- Current conclusion:
+  - The Custom image controls are standard UVC controls.
+  - No HID or UVC Extension Unit command was observed for these controls.
+- Confirmed mapping:
+  - Brightness: Processing Unit selector 0x02 -> V4L2 `brightness`, 0..255.
+  - Contrast: Processing Unit selector 0x03 -> V4L2 `contrast`, 0..255.
+  - EV: Camera Terminal auto exposure selector 0x02 plus exposure time selector 0x04 -> V4L2 `auto_exposure` and `exposure_time_absolute`.
+    - Studio set manual exposure and moved exposure_time_absolute between 5000 and 1.
+    - The Studio EV labels are UI labels; the USB value is standard UVC exposure time.
+  - ISO: Processing Unit selector 0x04 -> V4L2 `gain`, 0..100.
+  - Sharpness: Processing Unit selector 0x08 -> V4L2 `sharpness`, 0..255.
+  - Saturation: Processing Unit selector 0x07 -> V4L2 `saturation`, 0..255.
+  - Tone: Processing Unit selector 0x06 -> V4L2 `hue`, 0..255.
+  - AWB lock: Processing Unit selector 0x0b -> V4L2 `white_balance_automatic`.
+    - 0 = locked/manual.
+    - 1 = auto.
+  - WB: Processing Unit selector 0x0a -> V4L2 `white_balance_temperature`, 2300..7500.
+- PixyPilot UI mapping:
+  - Keep raw V4L2 names internally.
+  - Show `gain` as ISO, `hue` as Tone, `white_balance_automatic` as AWB, and `white_balance_temperature` as WB.
+
 Windows EMEET Studio Mirror / Flip mapping:
 - Capture file analyzed locally:
   - pcaps/17.pcapng

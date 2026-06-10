@@ -67,6 +67,22 @@ Capture `pcaps/15.pcapng` showed that EMEET Studio effects are standard UVC Proc
 | Vivid | `170` | `140` | `128` | `140` | `128` | unchanged | unchanged |
 | Default | `128` | `128` | `128` | `128` | `128` | already auto in capture | unchanged |
 
+### Custom Image Controls
+
+Capture `pcaps/27.pcapng` showed that EMEET Studio's Custom image panel is also standard UVC, not HID and not the vendor extension unit.
+
+| EMEET Studio label | UVC entity/selector | Linux V4L2 control | Observed range/value |
+| --- | --- | --- | --- |
+| Brightness | Processing Unit `0x03`, selector `0x02` | `brightness` | `0..255` |
+| Contrast | Processing Unit `0x03`, selector `0x03` | `contrast` | `0..255` |
+| EV | Camera Terminal `0x01`, selectors `0x02` and `0x04` | `auto_exposure`, `exposure_time_absolute` | Studio moved exposure between `5000` and `1` after switching manual exposure on |
+| ISO | Processing Unit `0x03`, selector `0x04` | `gain` | `0..100` |
+| Sharpness | Processing Unit `0x03`, selector `0x08` | `sharpness` | `0..255` |
+| Saturation | Processing Unit `0x03`, selector `0x07` | `saturation` | `0..255` |
+| Tone | Processing Unit `0x03`, selector `0x06` | `hue` | `0..255` |
+| AWB lock | Processing Unit `0x03`, selector `0x0b` | `white_balance_automatic` | `0` for locked/manual, `1` for auto |
+| WB | Processing Unit `0x03`, selector `0x0a` | `white_balance_temperature` | `2300..7500` |
+
 ### Exposure
 
 - `auto_exposure`: menu

@@ -27,12 +27,13 @@ describe("groupControls", () => {
       control("pan_absolute"),
       control("brightness"),
       control("focus_absolute"),
-      control("auto_exposure")
+      control("auto_exposure"),
+      control("gain")
     ]);
 
     expect(groups.find((group) => group.id === "ptz")?.controls).toHaveLength(1);
     expect(groups.find((group) => group.id === "image")?.controls).toHaveLength(1);
     expect(groups.find((group) => group.id === "focus")?.controls).toHaveLength(1);
-    expect(groups.find((group) => group.id === "exposure")?.controls).toHaveLength(1);
+    expect(groups.find((group) => group.id === "exposure")?.controls).toHaveLength(2);
   });
 });

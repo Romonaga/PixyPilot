@@ -40,7 +40,7 @@ const GROUP_BY_CONTROL: Record<string, ControlGroupId> = {
   saturation: "image",
   hue: "image",
   gamma: "image",
-  gain: "image",
+  gain: "exposure",
   sharpness: "image",
   white_balance_automatic: "image",
   white_balance_temperature: "image",

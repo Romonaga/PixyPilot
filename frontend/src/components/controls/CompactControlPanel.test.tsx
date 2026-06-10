@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Focus } from "lucide-react";
+import { Aperture, Focus, SlidersHorizontal } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ControlGroup } from "../../domains/controls/grouping";
@@ -101,5 +101,68 @@ describe("CompactControlPanel", () => {
     await user.click(screen.getByRole("button", { name: "Person" }));
 
     expect(setFocusMeteringMode).toHaveBeenCalledWith("human_face");
+  });
+
+  it("uses captured vendor labels for custom image controls", () => {
+    const group: ControlGroup = {
+      id: "image",
+      title: "Image Control",
+      accent: "lime",
+      icon: SlidersHorizontal,
+      controls: [
+        control({ name: "hue", label: "Hue", kind: "int", value: 128, min: 0, max: 255, step: 1 }),
+        control({ name: "white_balance_automatic", label: "White Balance, Automatic", kind: "bool", value: 0 }),
+        control({
+          name: "white_balance_temperature",
+          label: "White Balance Temperature",
+          kind: "int",
+          value: 2300,
+          min: 2300,
+          max: 7500,
+          step: 1
+        })
+      ]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue: vi.fn(),
+      setValues: vi.fn()
+    };
+
+    render(<CompactControlPanel group={group} controls={controls} pixyHid={pixyHid()} />);
+
+    expect(screen.getByText("Tone")).toBeInTheDocument();
+    expect(screen.getByText("AWB")).toBeInTheDocument();
+    expect(screen.getByText("WB")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lock" })).toBeInTheDocument();
+  });
+
+  it("labels gain as ISO in exposure control", () => {
+    const group: ControlGroup = {
+      id: "exposure",
+      title: "Exposure Control",
+      accent: "amber",
+      icon: Aperture,
+      controls: [control({ name: "gain", label: "Gain", kind: "int", value: 1, min: 0, max: 100, step: 1 })]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue: vi.fn(),
+      setValues: vi.fn()
+    };
+
+    render(<CompactControlPanel group={group} controls={controls} pixyHid={pixyHid()} />);
+
+    expect(screen.getByText("ISO")).toBeInTheDocument();
   });
 });
