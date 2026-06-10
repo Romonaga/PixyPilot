@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Crosshair } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -107,13 +107,24 @@ describe("PtzControlPanel", () => {
   });
 
   it("centers pan and tilt controls", async () => {
-    const user = userEvent.setup();
     const setValue = renderPanel();
+    const centerButton = screen.getByRole("button", { name: "Center PTZ" });
+    vi.spyOn(centerButton, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      top: 0,
+      left: 0,
+      right: 100,
+      bottom: 100,
+      toJSON: () => ({})
+    });
 
-    await user.click(screen.getByRole("button", { name: "Center PTZ" }));
+    fireEvent.pointerUp(centerButton, { clientX: 50, clientY: 50 });
 
     expect(setValue).toHaveBeenCalledWith("pan_absolute", 0);
-    expect(setValue).toHaveBeenCalledWith("tilt_absolute", 0);
+    await waitFor(() => expect(setValue).toHaveBeenCalledWith("tilt_absolute", 0));
   });
 
   it("sets zoom from the visible zoom slider", () => {
@@ -221,5 +232,44 @@ describe("PtzControlPanel", () => {
 
     expect(sendPtzDirection).toHaveBeenCalledWith("left");
     expect(setValue).not.toHaveBeenCalled();
+  });
+
+  it("uses the captured HID PTZ vector command from the center pad", async () => {
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const sendPtzVector = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_vector"]
+        },
+        sendPtzVector
+      })
+    );
+    const centerButton = screen.getByRole("button", { name: "Center PTZ" });
+    vi.spyOn(centerButton, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      top: 0,
+      left: 0,
+      right: 100,
+      bottom: 100,
+      toJSON: () => ({})
+    });
+
+    fireEvent.pointerDown(centerButton, { clientX: 50, clientY: 50 });
+    fireEvent.pointerMove(centerButton, { clientX: 100, clientY: 50, buttons: 1 });
+    fireEvent.pointerUp(centerButton, { clientX: 100, clientY: 50 });
+
+    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 30, y: 0 }));
+    expect(setValue).not.toHaveBeenCalled();
+    expect(centerButton.querySelector(".ptz-vector-puck")).not.toBeNull();
   });
 });

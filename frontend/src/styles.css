@@ -1048,6 +1048,29 @@ h2 {
   transform: translate(-50%, -50%);
   border-radius: 50%;
   color: #1ff4d2;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.ptz-center svg {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ptz-vector-puck {
+  position: absolute;
+  z-index: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #090b0f;
+  border-radius: 999px;
+  background: #52e5ff;
+  box-shadow:
+    0 0 0 1px rgba(82, 229, 255, 0.7),
+    0 0 18px rgba(82, 229, 255, 0.72);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .ptz-axis-bank {

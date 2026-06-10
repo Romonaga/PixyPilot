@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type PointerEvent } from "react";
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -11,9 +11,10 @@ import {
 
 import type { ControlGroup } from "../../domains/controls/grouping";
 import { controlValueText } from "../../domains/controls/grouping";
+import { isCenteredVector, ptzVectorFromPadPoint, vectorPadPosition } from "../../domains/ptz/vectorPad";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
-import type { PtzDirection, PtzPresetSlot, V4L2Control } from "../../types/api";
+import type { PtzDirection, PtzPresetSlot, PtzVector, V4L2Control } from "../../types/api";
 import { ControlRenderer } from "./ControlRenderer";
 
 type Props = {
@@ -138,13 +139,17 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const [speed, setSpeed] = useState(3);
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
+  const [activeVector, setActiveVector] = useState<PtzVector | null>(null);
   const hidPtzReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
+  const hidPtzVectorReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_vector");
   const hidPresetSaveReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_preset_save");
   const hidPresetLoadReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_preset_load");
   const hidPtzPending = pixyHid.pendingCommand?.startsWith("ptz:") ?? false;
+  const hidPtzVectorPending = pixyHid.pendingCommand?.startsWith("ptz-vector:") ?? false;
   const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-") ?? false;
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
@@ -165,6 +170,35 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
         await controls.setValue(control.name, clamp(0, control));
       }
     }
+  };
+
+  const vectorFromPointer = (event: PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return ptzVectorFromPadPoint(
+      { width: rect.width, height: rect.height },
+      { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    );
+  };
+
+  const updateVectorPreview = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!hidPtzVectorReady || hidPtzVectorPending) {
+      return;
+    }
+    setActiveVector(vectorFromPointer(event));
+  };
+
+  const commitVectorPad = async (event: PointerEvent<HTMLButtonElement>) => {
+    if (!hidPtzVectorReady || hidPtzVectorPending) {
+      await centerPtz();
+      return;
+    }
+    const vector = vectorFromPointer(event);
+    setActiveVector(vector);
+    if (isCenteredVector(vector)) {
+      await centerPtz();
+      return;
+    }
+    await pixyHid.sendPtzVector(vector);
   };
 
   const savePreset = async () => {
@@ -210,6 +244,8 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const disabled = controls.pendingControl !== null;
   const directionBlocked = (control: V4L2Control | undefined) =>
     hidPtzReady ? disabled || hidPtzPending : isBlocked(control, controls.pendingControl);
+  const vectorPadDisabled = disabled || hidPtzVectorPending || (!hidPtzVectorReady && !pan && !tilt);
+  const activeVectorPosition = activeVector ? vectorPadPosition(activeVector) : null;
 
   return (
     <section className={`control-panel ptz-panel accent-${group.accent}`}>
@@ -258,12 +294,26 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
           </button>
           <button
             className="ptz-center"
-            disabled={disabled || (!pan && !tilt)}
-            onClick={() => void centerPtz()}
-            title="Center PTZ"
+            disabled={vectorPadDisabled}
+            onPointerDown={(event) => updateVectorPreview(event)}
+            onPointerMove={(event) => {
+              if (event.buttons === 1) {
+                updateVectorPreview(event);
+              }
+            }}
+            onPointerLeave={() => setActiveVector(null)}
+            onPointerUp={(event) => void commitVectorPad(event)}
+            title={hidPtzVectorReady ? "Point PTZ" : "Center PTZ"}
             aria-label="Center PTZ"
           >
             <Crosshair size={24} />
+            {activeVectorPosition && (
+              <span
+                className="ptz-vector-puck"
+                style={{ left: `${activeVectorPosition.x}%`, top: `${activeVectorPosition.y}%` }}
+                aria-hidden="true"
+              />
+            )}
           </button>
         </div>
 
