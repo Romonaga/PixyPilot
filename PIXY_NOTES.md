@@ -639,6 +639,24 @@ Windows EMEET Studio follow-mode / recording-start capture:
   - This capture confirms the state during record startup, but does not add a new command.
   - To capture the actual UI toggle again, start capture before turning follow on/off and stop before doing unrelated recording actions.
 
+Windows EMEET Studio manual rotate-left / rotate-right / restore capture:
+- Capture file analyzed locally:
+  - pcaps/20.pcapng
+- User action reported:
+  - Rotated 90 degrees left, rotated 90 degrees right, then restored.
+- Capture facts:
+  - 2317 packets over 18.100865 seconds.
+  - PIXY device 2.3.0 / USB ID 328f:00c0 is present.
+  - PIXY control endpoint 2.3.0 only appears during initial descriptor/configuration enumeration.
+  - No PIXY HID endpoint 2.3.4 traffic is present.
+  - No PIXY UVC control writes, UVC extension writes, HID reports, or USB Audio control writes are present after enumeration.
+  - The sustained PIXY traffic is video streaming on endpoint 2.3.2.
+- Current conclusion:
+  - Manual 90-degree left/right/restore in EMEET Studio appears to be an application-side preview/output transform, not a persisted camera-side USB command.
+  - This does not map to the previously decoded Auto Rotate when upside down HID setting.
+  - PixyPilot should not expose this as a hardware camera control unless a later isolated capture shows actual PIXY control traffic.
+  - If desired, PixyPilot can provide a local preview rotation control in the web UI, but that would transform only the app preview, not the camera hardware state.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

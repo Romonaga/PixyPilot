@@ -589,6 +589,8 @@ These features are not fully decoded yet:
 
 Capture `pcaps/19.pcapng` was re-captured after setting follow mode and then starting recording. It includes PIXY traffic and shows recording startup at MJPG 1280x720 30 fps plus one group `01` HID status packet with value `01`, meaning tracking/follow was active. It did not include a host-to-device follow SET command, so it currently confirms that recording-area follow uses the already-known tracking state unless a later isolated toggle capture proves otherwise.
 
+Capture `pcaps/20.pcapng` tested manual 90-degree rotate-left, 90-degree rotate-right, then restore. The PIXY control endpoint appears only during initial enumeration, there is no HID endpoint traffic, and no UVC/UVC-extension control writes occur after enumeration. The only sustained PIXY traffic is video streaming. Current conclusion: manual rotation in EMEET Studio is likely an application-side preview/output transform, not a camera-side USB command. This is separate from the decoded Auto Rotate when upside down HID toggle.
+
 ## Capture Plan
 
 To decode missing behavior, capture one official-app action at a time. Start USBPcap/Wireshark, perform exactly one change, wait a few seconds, stop the capture, and save a clearly named file.
