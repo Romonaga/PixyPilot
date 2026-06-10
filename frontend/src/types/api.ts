@@ -56,6 +56,7 @@ export type PtzVector = {
   y: number;
   z?: number;
 };
+export type PtzPresetSlot = 1 | 2 | 3;
 
 export type PixyHidCommandResult = {
   ok: boolean;

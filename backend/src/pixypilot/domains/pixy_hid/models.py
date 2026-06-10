@@ -52,3 +52,7 @@ class PtzVectorRequest(BaseModel):
     x: float = Field(ge=-30.0, le=30.0)
     y: float = Field(ge=-30.0, le=30.0)
     z: float = Field(default=0.0, ge=-30.0, le=30.0)
+
+
+class PtzPresetSlotRequest(BaseModel):
+    slot: int = Field(ge=1, le=3)

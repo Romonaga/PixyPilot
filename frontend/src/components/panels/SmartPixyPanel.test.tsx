@@ -36,6 +36,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
     sendPtzVector: vi.fn(),
+    savePtzPreset: vi.fn(),
     ...overrides
   };
 }

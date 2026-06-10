@@ -10,6 +10,7 @@ from pixypilot.domains.pixy_hid.commands import (
     gesture_reports,
     mirror_reports,
     ptz_direction_reports,
+    ptz_preset_save_reports,
     ptz_vector_reports,
     tracking_reports,
 )
@@ -33,6 +34,7 @@ KNOWN_CONTROLS = [
     "audio_mode",
     "ptz_direction",
     "ptz_vector",
+    "ptz_preset_save",
 ]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
 
@@ -123,6 +125,11 @@ class PixyHidService:
         path = await self._require_writable_path()
         await self._write_reports(path, ptz_vector_reports(x, y, z))
         return PixyHidCommandResult(ok=True, command="ptz_vector", value=f"{x},{y},{z}", path=path)
+
+    async def save_ptz_preset(self, slot: int) -> PixyHidCommandResult:
+        path = await self._require_writable_path()
+        await self._write_reports(path, ptz_preset_save_reports(slot))
+        return PixyHidCommandResult(ok=True, command="ptz_preset_save", value=slot, path=path)
 
     async def _require_writable_path(self) -> str:
         status = await self.status()

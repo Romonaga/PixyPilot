@@ -11,6 +11,7 @@ from pixypilot.domains.pixy_hid.models import (
     PixyHidCommandResult,
     PixyHidStatus,
     PtzDirectionRequest,
+    PtzPresetSlotRequest,
     PtzVectorRequest,
     TrackingModeRequest,
 )
@@ -223,6 +224,19 @@ async def send_pixy_ptz_vector(
 ) -> PixyHidCommandResult:
     try:
         return await service.send_ptz_vector(request.x, request.y, request.z)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-preset/save", response_model=PixyHidCommandResult)
+async def save_pixy_ptz_preset(
+    request: PtzPresetSlotRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.save_ptz_preset(request.slot)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:

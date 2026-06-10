@@ -641,6 +641,40 @@ Observed device responses looked like status/ack packets:
 09 63 01 20 00 01 00 01 20 ...
 ```
 
+## PTZ Preset Save
+
+Capture `pcaps/24.pcapng` tested saving PTZ presets to official app slots 1, 2, and 3. Preset save uses HID interrupt reports, not V4L2 and not the UVC extension unit.
+
+Saving a slot uses this host report:
+
+```text
+09 03 01 15 00 02 00 02 SS 01 ...
+```
+
+Where `SS` is the 1-based slot number.
+
+The official app then queries that slot:
+
+```text
+09 03 01 16 00 01 00 01 SS ...
+```
+
+Observed device acknowledgement for the save report:
+
+```text
+09 03 01 15 00 01 00 01 20 ...
+```
+
+Observed query responses:
+
+| Slot | Response payload after prefix | Decoded state |
+| ---: | --- | --- |
+| 1 | `01 01 0c 0e 16 c2 7b e7 38 c2 00 00 00 00` | slot `1`, saved, X `-37.514`, Y `-46.226`, Z `0.0` |
+| 2 | `02 01 7e 26 16 c2 1e cb 38 c2 00 00 00 00` | slot `2`, saved, X `-37.538`, Y `-46.198`, Z `0.0` |
+| 3 | `03 01 8f 2f 16 c2 70 ae 38 c2 00 00 00 00` | slot `3`, saved, X `-37.546`, Y `-46.170`, Z `0.0` |
+
+Current interpretation: the response body is `slot`, `saved/enabled`, then three little-endian float32 values. The first two floats appear to represent the stored PTZ position. The third float stayed `0.0` in this capture.
+
 ## Known Gaps
 
 These features are not fully decoded yet:
@@ -648,7 +682,7 @@ These features are not fully decoded yet:
 - Auto Framing as a distinct feature from Auto Follow
 - Speaker Tracking
 - Recording-area follow toggle write, if it ever proves distinct from standard tracking
-- Official-app presets
+- Official-app preset goto/delete behavior
 - Native AF trigger and AF lock behavior
 - Native UVC relative zoom behavior, if the official app exposes a separate continuous zoom gesture
 - Names and payloads for UVC extension selectors `1..10`
@@ -659,6 +693,8 @@ Capture `pcaps/19.pcapng` was re-captured after setting follow mode and then sta
 Capture `pcaps/20.pcapng` tested manual 90-degree rotate-left, 90-degree rotate-right, then restore. The PIXY control endpoint appears only during initial enumeration, there is no HID endpoint traffic, and no UVC/UVC-extension control writes occur after enumeration. The only sustained PIXY traffic is video streaming. Current conclusion: manual rotation in EMEET Studio is likely an application-side preview/output transform, not a camera-side USB command. This is separate from the decoded Auto Rotate when upside down HID toggle.
 
 Capture `pcaps/23.pcapng` tested zoom far to near and back to far. The only control writes after streaming began were standard UVC `SET_CUR` writes to Camera Terminal entity `0x01`, selector `0x0b` (`Zoom Absolute`): value `150` for near and value `100` for far. No HID reports were present.
+
+Capture `pcaps/24.pcapng` tested saving official app PTZ presets to slots 1, 2, and 3. It confirmed HID group `03`, command `15` saves a 1-based slot and command `16` queries that slot's saved state. PixyPilot implements native preset save from this capture. Native preset goto still needs a separate isolated capture.
 
 ## Capture Plan
 

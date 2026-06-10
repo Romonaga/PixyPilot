@@ -13,7 +13,7 @@ import type { ControlGroup } from "../../domains/controls/grouping";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
-import type { PtzDirection, V4L2Control } from "../../types/api";
+import type { PtzDirection, PtzPresetSlot, V4L2Control } from "../../types/api";
 import { ControlRenderer } from "./ControlRenderer";
 
 type Props = {
@@ -140,7 +140,10 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
   const hidPtzReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
+  const hidPresetSaveReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_preset_save");
   const hidPtzPending = pixyHid.pendingCommand?.startsWith("ptz:") ?? false;
+  const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-save:") ?? false;
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
     if (hidPtzReady) {
@@ -162,9 +165,12 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
     }
   };
 
-  const savePreset = () => {
+  const savePreset = async () => {
     if (!pan || !tilt || !zoom) {
       return;
+    }
+    if (hidPresetSaveReady) {
+      await pixyHid.savePtzPreset((selectedPreset + 1) as PtzPresetSlot);
     }
     setPresets((current) =>
       current.map((preset, index) =>
@@ -291,8 +297,8 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
           <div className="ptz-preset-actions">
             <button
               className="secondary-button"
-              disabled={disabled || !pan || !tilt || !zoom}
-              onClick={savePreset}
+              disabled={disabled || hidPresetPending || !pan || !tilt || !zoom}
+              onClick={() => void savePreset()}
               aria-label="Save PTZ preset"
               title="Save PTZ preset"
             >

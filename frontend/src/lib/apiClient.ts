@@ -8,6 +8,7 @@ import type {
   PixyHidCommandResult,
   PixyHidStatus,
   PtzDirection,
+  PtzPresetSlot,
   PtzVector,
   TrackingMode,
   V4L2Control,
@@ -133,6 +134,13 @@ export async function sendPixyPtzVector(vector: PtzVector): Promise<PixyHidComma
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-vector", {
     method: "PATCH",
     body: JSON.stringify({ z: 0, ...vector })
+  });
+}
+
+export async function savePixyPtzPreset(slot: PtzPresetSlot): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-preset/save", {
+    method: "PATCH",
+    body: JSON.stringify({ slot })
   });
 }
 

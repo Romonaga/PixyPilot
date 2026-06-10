@@ -750,6 +750,38 @@ Capture 23 - Zoom far/near:
   - No vendor HID command or UVC extension selector is needed.
   - `zoom_continuous` is still not useful on Linux for this camera because it is exposed as min 0, max 0.
 
+Capture 24 - PTZ preset save:
+- File:
+  - pcaps/24.pcapng
+- User action:
+  - Save official app PTZ presets to slots 1, 2, and 3.
+- Capture summary:
+  - 1878 packets over 14.680722 seconds.
+  - HID reports were present.
+  - No useful PIXY UVC control writes occurred after enumeration.
+- Host save reports:
+  - Slot 1: 09 03 01 15 00 02 00 02 01 01
+  - Slot 2: 09 03 01 15 00 02 00 02 02 01
+  - Slot 3: 09 03 01 15 00 02 00 02 03 01
+- Host query reports after each save:
+  - Slot 1: 09 03 01 16 00 01 00 01 01
+  - Slot 2: 09 03 01 16 00 01 00 01 02
+  - Slot 3: 09 03 01 16 00 01 00 01 03
+- Device save acknowledgement:
+  - 09 03 01 15 00 01 00 01 20
+- Device query responses:
+  - Slot 1: 09 03 01 16 00 0e 00 0e 01 01 0c 0e 16 c2 7b e7 38 c2 00 00 00 00
+    - decoded payload: slot 1, saved, floats -37.514, -46.226, 0.0
+  - Slot 2: 09 03 01 16 00 0e 00 0e 02 01 7e 26 16 c2 1e cb 38 c2 00 00 00 00
+    - decoded payload: slot 2, saved, floats -37.538, -46.198, 0.0
+  - Slot 3: 09 03 01 16 00 0e 00 0e 03 01 8f 2f 16 c2 70 ae 38 c2 00 00 00 00
+    - decoded payload: slot 3, saved, floats -37.546, -46.170, 0.0
+- Conclusion:
+  - Native PTZ preset save is HID group 03 command 15.
+  - Query/readback is HID group 03 command 16.
+  - The response shape appears to be slot, saved/enabled byte, then three float32 values.
+  - Native PTZ preset goto still needs its own capture before implementation.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
@@ -779,7 +811,8 @@ Implemented app status:
   - center/home action
   - pan, tilt, and zoom precision sliders
   - auxiliary PTZ controls, including zoom_continuous when exposed
-  - app-local PTZ presets for save/goto; camera-native preset storage is not confirmed
+  - native HID PTZ preset save when hidraw is writable
+  - app-local PTZ preset goto until native preset goto is captured
   - zoom_continuous is hidden in the UI when it is exposed as min=0 max=0, because that makes it a no-op on this camera
 - Pixy HID provider is wired as a separate domain:
   - status endpoint detects the hidraw path

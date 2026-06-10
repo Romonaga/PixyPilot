@@ -102,3 +102,12 @@ def ptz_vector_reports(x: float, y: float, z: float = 0.0) -> list[bytes]:
     return [
         build_report([0x09, 0x63, 0x01, 0x20, 0x00, 0x0C, 0x00, 0x0C, *vector_bytes]),
     ]
+
+
+def ptz_preset_save_reports(slot: int) -> list[bytes]:
+    if slot < 1 or slot > 3:
+        raise ValueError("PTZ preset slot must be in range 1..3")
+    return [
+        build_report([0x09, 0x03, 0x01, 0x15, 0x00, 0x02, 0x00, 0x02, slot, 0x01]),
+        build_report([0x09, 0x03, 0x01, 0x16, 0x00, 0x01, 0x00, 0x01, slot]),
+    ]
