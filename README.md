@@ -26,6 +26,7 @@ The current implementation focuses on confirmed Linux control paths:
 - switch video formats through native V4L2 ioctls
 - preview the selected camera stream
 - record the selected stream to local disk
+- detect Linux video/HID hotplug events and refresh the UI when the camera is connected or removed
 - render a cockpit-style React UI for PTZ, image, focus, and exposure controls
 
 The vendor-specific Pixy HID path is isolated in its own provider and now covers the decoded smart controls, directional/vector PTZ movement, mirror/rotate, focus metering, and native PTZ preset save/load. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
@@ -43,22 +44,47 @@ That work was the only public Linux-focused EMEET PIXY control reference we foun
 ## Run The App
 
 ```bash
-cd frontend
-npm install
-npm run build
+./tools/run-pixypilot.sh
+```
 
-cd ../backend
+Open `http://127.0.0.1:8000`.
+
+This is the normal user mode: one command and one local address. The first run creates `backend/.venv`, installs backend dependencies, installs frontend packages, and builds the UI. FastAPI then serves both the API and the React app from the same port.
+
+## Configuration
+
+Regular users should edit `config/pixypilot.yaml`.
+
+```bash
+server:
+  host: 127.0.0.1
+  port: 8000
+
+storage:
+  presets: config/presets.yaml
+  recordings: recordings
+
+safety:
+  start_in_privacy: true
+```
+
+The app also shows the active config file, storage paths, and local URL in the Runtime Config panel. Host and port changes require restarting PixyPilot. More details are in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+## Developer Mode
+
+Developer mode is only for frontend hot reload while working on PixyPilot itself. Normal users do not need this.
+
+Terminal 1:
+
+```bash
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pixypilot-api
 ```
 
-Open `http://127.0.0.1:8000`. In this mode FastAPI serves both the API and the built React UI from one local port.
-
-Set the bind address and port with `PIXYPILOT_HOST` and `PIXYPILOT_PORT`.
-
-## Frontend Development
+Terminal 2:
 
 ```bash
 cd frontend
@@ -66,45 +92,15 @@ npm install
 npm run dev
 ```
 
-The Vite dev server is only needed for frontend development and hot reload. Set the frontend bind address and port with `PIXYPILOT_FRONTEND_HOST` and `PIXYPILOT_FRONTEND_PORT`. Set the backend proxy target with `PIXYPILOT_API_URL`.
+Open `http://127.0.0.1:5173` for the Vite hot-reload UI. It proxies API requests to `http://127.0.0.1:8000`.
 
 Standard V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux V4L2 ioctls. MJPG live preview also uses native V4L2 mmap capture.
-
-## Runtime Configuration
-
-Common development defaults:
-
-```bash
-export PIXYPILOT_HOST=127.0.0.1
-export PIXYPILOT_PORT=8000
-export PIXYPILOT_FRONTEND_HOST=127.0.0.1
-export PIXYPILOT_FRONTEND_PORT=5173
-export PIXYPILOT_API_URL=http://127.0.0.1:8000
-export PIXYPILOT_FRONTEND_DIST=frontend/dist
-```
-
-To expose the app on your LAN:
-
-```bash
-export PIXYPILOT_HOST=0.0.0.0
-export PIXYPILOT_PORT=8000
-export PIXYPILOT_FRONTEND_HOST=0.0.0.0
-export PIXYPILOT_FRONTEND_PORT=5173
-export PIXYPILOT_API_URL=http://YOUR_LAN_IP:8000
-export PIXYPILOT_CORS_ORIGINS=http://YOUR_LAN_IP:5173
-```
-
-The root `.env.example` and `frontend/.env.example` files show the available server settings.
 
 ## Control Presets
 
 Image, focus, and exposure panels can save named local presets. Presets are stored in `config/presets.yaml`, which is ignored by git because those values are user/workspace specific.
 
-Override the preset file with:
-
-```bash
-export PIXYPILOT_PRESETS_PATH=/path/to/presets.yaml
-```
+Set a different preset file in `config/pixypilot.yaml` under `storage.presets`.
 
 ## Video Preview And Recording
 
@@ -116,11 +112,7 @@ PixyPilot streams live monitor frames through the backend as MJPEG.
 
 The `recordings/` directory is ignored by git because camera recordings are large and private.
 
-Override the recording directory with:
-
-```bash
-export PIXYPILOT_RECORDINGS_DIR=/path/to/recordings
-```
+Set a different recording directory in `config/pixypilot.yaml` under `storage.recordings`.
 
 ## HID Permissions
 

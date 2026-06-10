@@ -1,10 +1,10 @@
 import asyncio
-import os
 import subprocess
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pixypilot.config import recordings_dir
 from pixypilot.domains.video.native_mjpeg import NativeMjpegCapture
 from pixypilot.domains.video.models import VideoRecordingStatus, VideoStreamSettings
 
@@ -114,7 +114,10 @@ class VideoService:
         )
 
     async def _native_mjpeg_stream(self, device_path: str, settings: VideoStreamSettings) -> AsyncIterator[bytes]:
-        capture = await self._start_native_stream(device_path, settings)
+        try:
+            capture = await self._start_native_stream(device_path, settings)
+        except FileNotFoundError:
+            return
         try:
             while True:
                 try:
@@ -284,8 +287,7 @@ async def _stop_process(process: asyncio.subprocess.Process) -> None:
 
 
 def _recordings_dir() -> Path:
-    configured = os.environ.get("PIXYPILOT_RECORDINGS_DIR")
-    return Path(configured) if configured else Path.cwd() / "recordings"
+    return recordings_dir()
 
 
 _video_service = VideoService()

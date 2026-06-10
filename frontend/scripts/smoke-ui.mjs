@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const appUrl = process.env.PIXYPILOT_URL ?? "http://127.0.0.1:5173/";
+const appUrl = process.argv[2] ?? "http://127.0.0.1:5173/";
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

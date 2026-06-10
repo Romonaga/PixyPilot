@@ -894,7 +894,7 @@ Implemented app status:
 - Live preview is available through an MJPEG stream endpoint.
   - MJPG preview uses native V4L2 mmap capture and has been validated across the full advertised MJPG format matrix.
   - YUYV/raw preview still falls back to ffmpeg so the backend can encode browser-viewable MJPEG frames.
-- Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.
+- Recording is available through an ffmpeg-backed backend process and writes to the `storage.recordings` path in `config/pixypilot.yaml`.
 - Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.
 - PTZ is now a first-class cockpit panel:
   - directional pan/tilt pad

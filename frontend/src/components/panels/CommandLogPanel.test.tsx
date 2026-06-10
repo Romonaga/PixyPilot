@@ -110,6 +110,7 @@ function pixyHid(): UsePixyHidResult {
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
+    refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
@@ -144,6 +145,8 @@ function audio(): UseAudioResult {
 
 function privacySafety(): UsePrivacySafetyResult {
   return {
+    settings: null,
+    settingsLoaded: true,
     startupPrivacyEnabled: true,
     startupPrivacyState: "sent",
     enterPrivacy: vi.fn(),

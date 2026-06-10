@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchSettings } from "../lib/apiClient";
+import type { AppSettings } from "../types/api";
 import type { UseAudioResult } from "./useAudio";
 import type { UsePixyHidResult } from "./usePixyHid";
 import { resetPrivacySafetyForTests, usePrivacySafety } from "./usePrivacySafety";
@@ -11,6 +12,25 @@ vi.mock("../lib/apiClient", () => ({
 }));
 
 const mockedFetchSettings = vi.mocked(fetchSettings);
+
+function makeSettings(startInPrivacy: boolean): AppSettings {
+  return {
+    safety: { start_in_privacy: startInPrivacy },
+    server: { host: "127.0.0.1", port: 8000, reload: false, url: "http://127.0.0.1:8000" },
+    frontend: {
+      dist_path: "/FastDrive/EmmetPixy/frontend/dist",
+      dev_server_host: "127.0.0.1",
+      dev_server_port: 5173,
+      single_port: true
+    },
+    storage: {
+      presets_path: "/FastDrive/EmmetPixy/config/presets.yaml",
+      recordings_dir: "/FastDrive/EmmetPixy/recordings"
+    },
+    hid: { path: null, report_gap_ms: 25 },
+    config: { path: "/FastDrive/EmmetPixy/config/pixypilot.yaml" }
+  };
+}
 
 function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
   return {
@@ -35,6 +55,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
+    refreshStatus: vi.fn(),
     setTrackingMode: vi.fn().mockResolvedValue(undefined),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
@@ -76,7 +97,7 @@ describe("usePrivacySafety", () => {
   });
 
   it("sends camera privacy and mic mute when entering privacy", async () => {
-    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: false } });
+    mockedFetchSettings.mockResolvedValue(makeSettings(false));
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 
@@ -91,7 +112,7 @@ describe("usePrivacySafety", () => {
   });
 
   it("starts in privacy and mutes the mic when the safety setting is enabled", async () => {
-    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: true } });
+    mockedFetchSettings.mockResolvedValue(makeSettings(true));
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 
@@ -104,7 +125,7 @@ describe("usePrivacySafety", () => {
   });
 
   it("reports startup privacy as sending until the command finishes", async () => {
-    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: true } });
+    mockedFetchSettings.mockResolvedValue(makeSettings(true));
     let finishPrivacy!: () => void;
     const setTrackingMode = vi.fn(
       () =>
@@ -128,7 +149,7 @@ describe("usePrivacySafety", () => {
   });
 
   it("does not start in privacy when the safety setting is disabled", async () => {
-    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: false } });
+    mockedFetchSettings.mockResolvedValue(makeSettings(false));
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 
@@ -143,7 +164,7 @@ describe("usePrivacySafety", () => {
   });
 
   it("leaves privacy without unmuting the mic", async () => {
-    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: false } });
+    mockedFetchSettings.mockResolvedValue(makeSettings(false));
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 

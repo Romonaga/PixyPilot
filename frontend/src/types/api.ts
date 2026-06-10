@@ -124,4 +124,27 @@ export type AppSettings = {
   safety: {
     start_in_privacy: boolean;
   };
+  server: {
+    host: string;
+    port: number;
+    reload: boolean;
+    url: string;
+  };
+  frontend: {
+    dist_path: string;
+    dev_server_host: string;
+    dev_server_port: number;
+    single_port: boolean;
+  };
+  storage: {
+    presets_path: string;
+    recordings_dir: string;
+  };
+  hid: {
+    path: string | null;
+    report_gap_ms: number;
+  };
+  config: {
+    path: string;
+  };
 };

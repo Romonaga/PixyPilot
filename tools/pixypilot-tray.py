@@ -5,16 +5,16 @@ Install optional dependencies with:
   python3 -m pip install pystray pillow
 
 Run with:
-  PIXYPILOT_API=http://127.0.0.1:8000 tools/pixypilot-tray.py
+  tools/pixypilot-tray.py
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 try:
@@ -25,14 +25,38 @@ except ImportError as exc:
         "PixyPilot tray requires optional packages: python3 -m pip install pystray pillow"
     ) from exc
 
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
-API_BASE = os.environ.get("PIXYPILOT_API", "http://127.0.0.1:8000").rstrip("/")
+
+API_BASE = ""
+
+
+def api_base() -> str:
+    global API_BASE
+    if not API_BASE:
+        API_BASE = _configured_api_base()
+    return API_BASE
+
+
+def _configured_api_base() -> str:
+    config_path = Path(__file__).resolve().parents[1] / "config" / "pixypilot.yaml"
+    if yaml is None or not config_path.exists():
+        return "http://127.0.0.1:8000"
+
+    raw_config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    server = raw_config.get("server", {}) if isinstance(raw_config, dict) else {}
+    host = str(server.get("host") or "127.0.0.1")
+    port = int(server.get("port") or 8000)
+    return f"http://{host}:{port}"
 
 
 def request_json(method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
-        f"{API_BASE}{path}",
+        f"{api_base()}{path}",
         data=data,
         method=method,
         headers={"content-type": "application/json"},

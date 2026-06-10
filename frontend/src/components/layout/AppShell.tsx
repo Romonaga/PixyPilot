@@ -13,6 +13,7 @@ import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { CommandLogPanel } from "../panels/CommandLogPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
+import { RuntimeConfigPanel } from "../panels/RuntimeConfigPanel";
 import { SmartPixyPanel } from "../panels/SmartPixyPanel";
 import { VideoMonitor } from "../panels/VideoMonitor";
 import { StatusPill } from "../ui/StatusPill";
@@ -110,6 +111,7 @@ export function AppShell({
             privacySafety={privacySafety}
           />
           <SmartPixyPanel pixyHid={pixyHid} audio={audio} privacySafety={privacySafety} />
+          <RuntimeConfigPanel privacySafety={privacySafety} />
           <ExperimentalPanel />
         </aside>
       </section>

@@ -30,6 +30,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
+    refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
@@ -66,6 +67,8 @@ function makeAudio(overrides: Partial<UseAudioResult> = {}): UseAudioResult {
 
 function makePrivacySafety(overrides: Partial<UsePrivacySafetyResult> = {}): UsePrivacySafetyResult {
   return {
+    settings: null,
+    settingsLoaded: true,
     startupPrivacyEnabled: true,
     startupPrivacyState: "sent",
     enterPrivacy: vi.fn().mockResolvedValue(undefined),

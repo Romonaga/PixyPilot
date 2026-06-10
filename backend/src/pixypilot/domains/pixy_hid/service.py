@@ -3,6 +3,7 @@ import os
 import time
 from pathlib import Path
 
+from pixypilot.config import hid_path_override, hid_report_gap_seconds
 from pixypilot.domains.pixy_hid.commands import (
     audio_reports,
     auto_privacy_reports,
@@ -46,9 +47,10 @@ _HIDRAW_PATH_CACHE: str | None = None
 
 
 class PixyHidService:
-    def __init__(self, report_gap_seconds: float | None = None) -> None:
+    def __init__(self, report_gap_seconds: float | None = None, config_path: Path | None = None) -> None:
+        self.config_path = config_path
         self.report_gap_seconds = (
-            report_gap_seconds if report_gap_seconds is not None else _configured_report_gap_seconds()
+            report_gap_seconds if report_gap_seconds is not None else _configured_report_gap_seconds(config_path)
         )
 
     async def status(self) -> PixyHidStatus:
@@ -77,9 +79,9 @@ class PixyHidService:
 
     def find_hidraw(self) -> str | None:
         global _HIDRAW_PATH_CACHE
-        env_path = os.environ.get("PIXYPILOT_HIDRAW")
-        if env_path:
-            return env_path if Path(env_path).exists() else None
+        configured_path = hid_path_override(self.config_path)
+        if configured_path is not None:
+            return str(configured_path) if configured_path.exists() else None
 
         if _HIDRAW_PATH_CACHE and Path(_HIDRAW_PATH_CACHE).exists():
             cached_path = Path(_HIDRAW_PATH_CACHE)
@@ -198,14 +200,8 @@ class PixyHidService:
         return has_id or has_name
 
 
-def _configured_report_gap_seconds() -> float:
-    raw_value = os.environ.get("PIXYPILOT_HID_REPORT_GAP_MS")
-    if raw_value is None:
-        return DEFAULT_REPORT_GAP_SECONDS
-    try:
-        return max(0, int(raw_value)) / 1000
-    except ValueError:
-        return DEFAULT_REPORT_GAP_SECONDS
+def _configured_report_gap_seconds(config_path: Path | None = None) -> float:
+    return hid_report_gap_seconds(config_path)
 
 
 def _mirror_value(horizontal: bool, vertical: bool) -> str:

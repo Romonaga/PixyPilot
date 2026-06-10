@@ -1,5 +1,4 @@
 import asyncio
-import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -7,6 +6,7 @@ from uuid import uuid4
 
 import yaml
 
+from pixypilot.config import presets_path
 from pixypilot.domains.control_presets.models import (
     ControlPreset,
     ControlPresetCreateRequest,
@@ -17,10 +17,7 @@ from pixypilot.domains.control_presets.models import (
 
 
 def default_presets_path() -> Path:
-    configured = os.environ.get("PIXYPILOT_PRESETS_PATH")
-    if configured:
-        return Path(configured)
-    return Path(__file__).resolve().parents[5] / "config" / "presets.yaml"
+    return presets_path()
 
 
 class ControlPresetService:

@@ -11,6 +11,7 @@ from pixypilot.domains.control_presets.models import (
 )
 from pixypilot.domains.control_presets.service import ControlPresetService, get_control_preset_service
 from pixypilot.domains.devices.models import Device
+from pixypilot.domains.hotplug.service import HotplugService, get_hotplug_service
 from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
     AutoPrivacyRequest,
@@ -43,6 +44,28 @@ from pixypilot.domains.video.models import (
 from pixypilot.domains.video.service import VideoService, get_video_service
 
 router = APIRouter()
+
+
+@router.get("/hotplug/events")
+async def hotplug_events(
+    service: HotplugService = Depends(get_hotplug_service),
+    video_service: VideoService = Depends(get_video_service),
+) -> StreamingResponse:
+    async def event_stream():
+        async for event in service.events():
+            if event.device_type == "video" and event.action == "remove" and event.device_node:
+                await video_service.stop_streams(event.device_node)
+            yield f"event: hotplug\ndata: {event.model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-store",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/settings", response_model=AppSettings)

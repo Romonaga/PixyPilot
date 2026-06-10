@@ -12,6 +12,7 @@ dependencies = [
   "uvicorn[standard]>=0.30.0",
   "pydantic>=2.8.0",
   "PyYAML>=6.0.2",
+  "pyudev>=0.24.0",
 ]
 
 [project.scripts]

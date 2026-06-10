@@ -41,4 +41,5 @@ describe("useDevices", () => {
     expect(result.current.devices[0].path).toBe("/dev/video0");
     expect(result.current.selectedDeviceName).toBe("video0");
   });
+
 });

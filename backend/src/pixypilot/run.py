@@ -1,8 +1,6 @@
-import os
-
 import uvicorn
 
-from pixypilot.config import backend_host, backend_port
+from pixypilot.config import backend_host, backend_port, reload_enabled
 
 
 def main() -> None:
@@ -10,7 +8,7 @@ def main() -> None:
         "pixypilot.main:app",
         host=backend_host(),
         port=backend_port(),
-        reload=os.environ.get("PIXYPILOT_RELOAD", "").lower() in {"1", "true", "yes"},
+        reload=reload_enabled(),
     )
 
 

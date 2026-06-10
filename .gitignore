@@ -15,7 +15,6 @@ frontend/vite.config.d.ts
 .DS_Store
 .env
 .env.*
-!.env.example
 
 # Local USB captures can include host/device metadata. Keep them local by default.
 pcaps/

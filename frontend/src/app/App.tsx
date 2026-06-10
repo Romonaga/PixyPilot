@@ -1,8 +1,11 @@
+import { useCallback } from "react";
+
 import { AppShell } from "../components/layout/AppShell";
 import { useAudio } from "../hooks/useAudio";
 import { useControlPresets } from "../hooks/useControlPresets";
 import { useControls } from "../hooks/useControls";
 import { useDevices } from "../hooks/useDevices";
+import { useHotplugEvents } from "../hooks/useHotplugEvents";
 import { usePixyHid } from "../hooks/usePixyHid";
 import { usePrivacySafety } from "../hooks/usePrivacySafety";
 import { useVideoCapture } from "../hooks/useVideoCapture";
@@ -17,6 +20,17 @@ export function App() {
   const audio = useAudio();
   const privacySafety = usePrivacySafety(pixyHid, audio);
   const controlPresets = useControlPresets();
+  const handleVideoHotplug = useCallback(() => {
+    void devices.refresh({ showLoading: false });
+  }, [devices.refresh]);
+  const handleHidHotplug = useCallback(() => {
+    void pixyHid.refreshStatus({ showLoading: false });
+  }, [pixyHid.refreshStatus]);
+
+  useHotplugEvents({
+    onVideo: handleVideoHotplug,
+    onHid: handleHidHotplug
+  });
 
   return (
     <AppShell

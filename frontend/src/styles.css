@@ -188,6 +188,7 @@ h2 {
 .signal-panel,
 .smart-panel,
 .command-log-panel,
+.runtime-panel,
 .experimental-panel {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 8px;
@@ -1406,6 +1407,7 @@ h2 {
 .signal-panel,
 .smart-panel,
 .command-log-panel,
+.runtime-panel,
 .experimental-panel {
   padding: 14px;
 }
@@ -1466,6 +1468,72 @@ h2 {
   font-style: normal;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.runtime-panel {
+  background:
+    linear-gradient(180deg, rgba(82, 229, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    rgba(12, 16, 22, 0.88);
+}
+
+.runtime-mode {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  align-content: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid rgba(82, 229, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.runtime-mode strong {
+  color: #52e5ff;
+  font-size: 14px;
+}
+
+.runtime-mode span {
+  color: #91a2a3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.runtime-list {
+  display: grid;
+  gap: 8px;
+}
+
+.runtime-row {
+  display: grid;
+  grid-template-columns: 16px 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: #b8c7c8;
+  font-size: 12px;
+}
+
+.runtime-row svg {
+  color: #52e5ff;
+}
+
+.runtime-row span {
+  color: #91a2a3;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.runtime-row code {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 5px;
+  color: #eef5f4;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 4px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .smart-panel {

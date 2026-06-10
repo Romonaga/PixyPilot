@@ -80,6 +80,7 @@ function pixyHid(setFocusMeteringMode = vi.fn().mockResolvedValue(undefined)): U
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
+    refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),

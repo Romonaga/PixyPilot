@@ -1,2 +1,24 @@
 safety:
   start_in_privacy: true
+
+server:
+  host: 127.0.0.1
+  port: 8000
+  reload: false
+
+frontend:
+  dist: frontend/dist
+  dev_server:
+    host: 127.0.0.1
+    port: 5173
+
+cors:
+  origins: []
+
+storage:
+  presets: config/presets.yaml
+  recordings: recordings
+
+hid:
+  path:
+  report_gap_ms: 25

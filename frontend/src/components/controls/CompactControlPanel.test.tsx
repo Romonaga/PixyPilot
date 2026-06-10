@@ -52,6 +52,7 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
+    refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),

@@ -3,10 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import type { UseAudioResult } from "./useAudio";
 import type { UsePixyHidResult } from "./usePixyHid";
 import { fetchSettings } from "../lib/apiClient";
+import type { AppSettings } from "../types/api";
 
 let startupPrivacyCommandAttempted = false;
 
 export type UsePrivacySafetyResult = {
+  settings: AppSettings | null;
+  settingsLoaded: boolean;
   startupPrivacyEnabled: boolean;
   startupPrivacyState: "loading" | "disabled" | "waiting-for-hid" | "sending" | "sent" | "failed";
   enterPrivacy: () => Promise<void>;
@@ -22,6 +25,7 @@ export function usePrivacySafety(
   audio: UseAudioResult
 ): UsePrivacySafetyResult {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const [startInPrivacy, setStartInPrivacy] = useState(true);
   const [startupPrivacyState, setStartupPrivacyState] =
     useState<UsePrivacySafetyResult["startupPrivacyState"]>("loading");
@@ -33,6 +37,7 @@ export function usePrivacySafety(
       try {
         const settings = await fetchSettings();
         if (!ignore) {
+          setSettings(settings);
           setStartInPrivacy(settings.safety.start_in_privacy);
         }
       } catch {
@@ -88,6 +93,8 @@ export function usePrivacySafety(
   }, [enterPrivacy, pixyHid.status?.writable, settingsLoaded, startInPrivacy]);
 
   return {
+    settings,
+    settingsLoaded,
     startupPrivacyEnabled: startInPrivacy,
     startupPrivacyState,
     enterPrivacy,

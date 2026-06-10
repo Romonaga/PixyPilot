@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchDevices } from "../lib/apiClient";
 import type { Device } from "../types/api";
@@ -10,7 +10,7 @@ export type UseDevicesResult = {
   isLoading: boolean;
   error: string | null;
   setSelectedDeviceName: (deviceName: string) => void;
-  refresh: () => Promise<void>;
+  refresh: (options?: { showLoading?: boolean }) => Promise<void>;
 };
 
 function deviceNameFromPath(path: string): string {
@@ -22,9 +22,16 @@ export function useDevices(): UseDevicesResult {
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const refreshInFlight = useRef(false);
 
-  async function refresh() {
-    setIsLoading(true);
+  const refresh = useCallback(async (options: { showLoading?: boolean } = {}) => {
+    if (refreshInFlight.current) {
+      return;
+    }
+    refreshInFlight.current = true;
+    if (options.showLoading !== false) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const enumeratedDevices = await fetchDevices();
@@ -40,13 +47,14 @@ export function useDevices(): UseDevicesResult {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load devices");
     } finally {
+      refreshInFlight.current = false;
       setIsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void refresh();
-  }, []);
+  }, [refresh]);
 
   const selectedDevice = useMemo(
     () =>

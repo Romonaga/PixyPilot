@@ -41,6 +41,7 @@ export type UsePixyHidResult = {
   audioMode: AudioMode | null;
   autoPrivacySeconds: number | null;
   refresh: () => Promise<void>;
+  refreshStatus: (options?: { showLoading?: boolean }) => Promise<void>;
   setTrackingMode: (mode: TrackingMode) => Promise<void>;
   setGestureEnabled: (enabled: boolean) => Promise<void>;
   setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
@@ -80,10 +81,14 @@ export function usePixyHid(): UsePixyHidResult {
     setAutoPrivacySecondsState(null);
   }, []);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
+  const refreshStatusInternal = useCallback(async (options: { clearState?: boolean; showLoading?: boolean } = {}) => {
+    if (options.showLoading !== false) {
+      setIsLoading(true);
+    }
     setError(null);
-    clearAssertedState();
+    if (options.clearState) {
+      clearAssertedState();
+    }
     try {
       setStatus(await fetchPixyHidStatus());
     } catch (err) {
@@ -93,9 +98,17 @@ export function usePixyHid(): UsePixyHidResult {
     }
   }, [clearAssertedState]);
 
+  const refreshStatus = useCallback(async (options: { showLoading?: boolean } = {}) => {
+    await refreshStatusInternal({ clearState: false, showLoading: options.showLoading });
+  }, [refreshStatusInternal]);
+
+  const refresh = useCallback(async () => {
+    await refreshStatusInternal({ clearState: true, showLoading: true });
+  }, [refreshStatusInternal]);
+
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refreshStatus({ showLoading: true });
+  }, [refreshStatus]);
 
   const runCommand = useCallback(
     async (command: string, action: () => Promise<void>) => {
@@ -224,6 +237,7 @@ export function usePixyHid(): UsePixyHidResult {
     audioMode,
     autoPrivacySeconds,
     refresh,
+    refreshStatus,
     setTrackingMode,
     setGestureEnabled,
     setAutoRotateEnabled,

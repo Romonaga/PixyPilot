@@ -17,8 +17,10 @@ Linux tray support may also require the desktop environment's AppIndicator/GTK t
 Start the PixyPilot backend first, then run:
 
 ```bash
-PIXYPILOT_API=http://127.0.0.1:8000 tools/pixypilot-tray.py
+tools/pixypilot-tray.py
 ```
+
+The tray helper reads the backend host and port from `config/pixypilot.yaml`.
 
 ## Current Tray Actions
 
