@@ -18,3 +18,8 @@ class VideoRecordingStatus(BaseModel):
     path: str | None = None
     started_at: str | None = None
     reason: str | None = None
+
+
+class VideoStreamStopResult(BaseModel):
+    ok: bool
+    device_name: str | None = None

@@ -66,6 +66,8 @@ function makeAudio(overrides: Partial<UseAudioResult> = {}): UseAudioResult {
 
 function makePrivacySafety(overrides: Partial<UsePrivacySafetyResult> = {}): UsePrivacySafetyResult {
   return {
+    startupPrivacyEnabled: true,
+    startupPrivacyState: "sent",
     enterPrivacy: vi.fn().mockResolvedValue(undefined),
     leavePrivacy: vi.fn().mockResolvedValue(undefined),
     ...overrides
@@ -78,7 +80,8 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID permission needed")).toBeInTheDocument();
     expect(screen.getByText("HID device is present but not writable by this user")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Standard" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tracking" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Privacy" })).toBeDisabled();
   });
 
@@ -101,13 +104,38 @@ describe("SmartPixyPanel", () => {
     );
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Standard" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Tracking" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Privacy" })).toBeEnabled();
     expect(screen.queryByText("Speaker Tracking")).not.toBeInTheDocument();
     expect(screen.queryByText("Capture needed")).not.toBeInTheDocument();
+    expect(screen.getByText("Startup privacy sent; mic mute requested")).toBeInTheDocument();
   });
 
-  it("toggles the proven auto follow tracking command", async () => {
+  it("does not claim privacy is active when the refreshed HID state is unknown", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "privacy"]
+          },
+          trackingMode: null
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    expect(screen.getByText("Camera state is unknown after refresh. Select Privacy to send privacy mode now.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Privacy" })).not.toHaveClass("is-selected");
+  });
+
+  it("selects the proven tracking control mode", async () => {
     const user = userEvent.setup();
     const setTrackingMode = vi.fn().mockResolvedValue(undefined);
 
@@ -129,12 +157,12 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Auto Follow" }));
+    await user.click(screen.getByRole("button", { name: "Tracking" }));
 
     expect(setTrackingMode).toHaveBeenCalledWith("tracking");
   });
 
-  it("does not let auto follow clear active privacy mode", async () => {
+  it("shows privacy as the selected control mode after PixyPilot sends it", () => {
     const setTrackingMode = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -156,7 +184,7 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Auto Follow" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Privacy" })).toHaveClass("is-selected");
     expect(setTrackingMode).not.toHaveBeenCalled();
   });
 
@@ -213,7 +241,7 @@ describe("SmartPixyPanel", () => {
     expect(enterPrivacy).toHaveBeenCalledTimes(1);
   });
 
-  it("sends idle when privacy mode is cleared", async () => {
+  it("sends standard mode when privacy mode is cleared", async () => {
     const user = userEvent.setup();
     const leavePrivacy = vi.fn().mockResolvedValue(undefined);
 
@@ -235,7 +263,7 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Off" }));
+    await user.click(screen.getByRole("button", { name: "Standard" }));
 
     expect(leavePrivacy).toHaveBeenCalledTimes(1);
   });
@@ -299,6 +327,30 @@ describe("SmartPixyPanel", () => {
 
     expect(setAutoPrivacySeconds).toHaveBeenCalledWith(900);
     expect(screen.getByRole("spinbutton")).toHaveValue(900);
+  });
+
+  it("marks auto privacy as experimental until the trigger condition is confirmed", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["privacy", "auto_privacy"]
+          },
+          trackingMode: "off"
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    expect(
+      screen.getByText("Timer is captured only: EMEET Studio writes this value, but tests did not trigger privacy.")
+    ).toBeInTheDocument();
   });
 
   it("toggles the known gesture command", async () => {

@@ -10,6 +10,7 @@ import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import type { UseVideoCaptureResult } from "../../hooks/useVideoCapture";
 import type { UseVideoFormatsResult } from "../../hooks/useVideoFormats";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
+import { CommandLogPanel } from "../panels/CommandLogPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
 import { SmartPixyPanel } from "../panels/SmartPixyPanel";
@@ -100,6 +101,14 @@ export function AppShell({
               <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
             </div>
           </div>
+          <CommandLogPanel
+            controls={controls}
+            videoFormats={videoFormats}
+            videoCapture={videoCapture}
+            pixyHid={pixyHid}
+            audio={audio}
+            privacySafety={privacySafety}
+          />
           <SmartPixyPanel pixyHid={pixyHid} audio={audio} privacySafety={privacySafety} />
           <ExperimentalPanel />
         </aside>

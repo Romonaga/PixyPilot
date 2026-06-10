@@ -95,10 +95,36 @@ describe("usePrivacySafety", () => {
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 
-    renderHook(() => usePrivacySafety(pixyHid, audio));
+    const { result } = renderHook(() => usePrivacySafety(pixyHid, audio));
 
     await waitFor(() => expect(pixyHid.setTrackingMode).toHaveBeenCalledWith("privacy"));
     await waitFor(() => expect(audio.setMuted).toHaveBeenCalledWith(true));
+    expect(result.current.startupPrivacyEnabled).toBe(true);
+    expect(result.current.startupPrivacyState).toBe("sent");
+  });
+
+  it("reports startup privacy as sending until the command finishes", async () => {
+    mockedFetchSettings.mockResolvedValue({ safety: { start_in_privacy: true } });
+    let finishPrivacy!: () => void;
+    const setTrackingMode = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPrivacy = resolve;
+        })
+    );
+    const pixyHid = makePixyHid({ setTrackingMode });
+    const audio = makeAudio();
+
+    const { result } = renderHook(() => usePrivacySafety(pixyHid, audio));
+
+    await waitFor(() => expect(setTrackingMode).toHaveBeenCalledWith("privacy"));
+    expect(result.current.startupPrivacyState).toBe("sending");
+
+    await act(async () => {
+      finishPrivacy();
+    });
+
+    await waitFor(() => expect(result.current.startupPrivacyState).toBe("sent"));
   });
 
   it("does not start in privacy when the safety setting is disabled", async () => {
@@ -106,12 +132,14 @@ describe("usePrivacySafety", () => {
     const pixyHid = makePixyHid();
     const audio = makeAudio();
 
-    renderHook(() => usePrivacySafety(pixyHid, audio));
+    const { result } = renderHook(() => usePrivacySafety(pixyHid, audio));
 
     await waitFor(() => expect(mockedFetchSettings).toHaveBeenCalled());
 
     expect(pixyHid.setTrackingMode).not.toHaveBeenCalled();
     expect(audio.setMuted).not.toHaveBeenCalled();
+    expect(result.current.startupPrivacyEnabled).toBe(false);
+    expect(result.current.startupPrivacyState).toBe("disabled");
   });
 
   it("leaves privacy without unmuting the mic", async () => {

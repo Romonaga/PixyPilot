@@ -197,6 +197,61 @@ describe("CompactControlPanel", () => {
     expect(screen.getByText("ISO")).toBeInTheDocument();
   });
 
+  it("shows the AE mode dependency when exposure is locked", () => {
+    const group: ControlGroup = {
+      id: "exposure",
+      title: "Exposure Control",
+      accent: "amber",
+      icon: Aperture,
+      controls: [
+        control({
+          name: "auto_exposure",
+          label: "Auto Exposure",
+          kind: "menu",
+          value: 3,
+          value_label: "Aperture Priority Mode",
+          menu: [
+            { value: 1, label: "Manual Mode" },
+            { value: 3, label: "Aperture Priority Mode" }
+          ]
+        }),
+        control({
+          name: "exposure_time_absolute",
+          label: "Exposure Time, Absolute",
+          kind: "int",
+          value: 300,
+          min: 1,
+          max: 5000,
+          step: 1,
+          flags: ["inactive"]
+        })
+      ]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue: vi.fn(),
+      setValues: vi.fn()
+    };
+
+    render(
+      <CompactControlPanel
+        group={group}
+        controls={controls}
+        pixyHid={pixyHid()}
+        controlPresets={controlPresets()}
+      />
+    );
+
+    expect(screen.getByText("AE Mode")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
+    expect(screen.getByText("AE Mode: Auto. Set to Manual.")).toBeInTheDocument();
+  });
+
   it("saves active values as a named preset", async () => {
     const user = userEvent.setup();
     const savePreset = vi.fn().mockResolvedValue({

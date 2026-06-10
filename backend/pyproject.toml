@@ -14,6 +14,9 @@ dependencies = [
   "PyYAML>=6.0.2",
 ]
 
+[project.scripts]
+pixypilot-api = "pixypilot.run:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=8.2.0",

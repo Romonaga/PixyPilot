@@ -69,9 +69,21 @@ export function usePixyHid(): UsePixyHidResult {
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
 
+  const clearAssertedState = useCallback(() => {
+    setTrackingModeState(null);
+    setGestureEnabledState(null);
+    setAutoRotateEnabledState(null);
+    setMirrorModeState(null);
+    setFocusMeteringModeState(null);
+    setFocusMeteringPointState(null);
+    setAudioModeState(null);
+    setAutoPrivacySecondsState(null);
+  }, []);
+
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    clearAssertedState();
     try {
       setStatus(await fetchPixyHidStatus());
     } catch (err) {
@@ -79,7 +91,7 @@ export function usePixyHid(): UsePixyHidResult {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearAssertedState]);
 
   useEffect(() => {
     void refresh();

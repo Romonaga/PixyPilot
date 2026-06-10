@@ -2,6 +2,8 @@
 
 This document records what PixyPilot has learned about the EMEET PIXY camera so other Linux users can benefit from the work. It separates confirmed behavior from working hypotheses. Do not write arbitrary values to vendor controls unless the command has been correlated with official app behavior or tested safely.
 
+For a compact packet-capture index, HID report layouts, and confirmed command catalog, see [EMEET_PIXY_HID_REFERENCE.md](EMEET_PIXY_HID_REFERENCE.md).
+
 ## Device Identity
 
 - USB ID: `328f:00c0`
@@ -219,9 +221,9 @@ Set command:
 
 Known values for `XX`:
 
-- `00`: off / idle
-- `01`: tracking / Auto Follow
-- `02`: privacy
+- `00`: Standard Mode / idle
+- `01`: Tracking Mode / Auto Follow
+- `02`: Privacy Mode
 
 Follow-up/query-like command:
 
@@ -229,7 +231,13 @@ Follow-up/query-like command:
 09 01 01 01
 ```
 
-Privacy mode has been observed to darken the camera image. It appears to be an explicit camera state, not just a delayed timer. The auto-privacy delay is separate.
+Vendor-facing EMEET material describes Privacy Mode as reachable three ways:
+
+- Physical tilt: manually rotate the camera downward.
+- App command: EMEET Studio can command Privacy Mode directly.
+- Timer: product listings describe timer-based privacy, but local tests could not make it trigger in EMEET Studio.
+
+PixyPilot has confirmed the app-command path through group `01` value `02`. Physical tilt is documented by EMEET, but it is not a host command. Timer-based privacy remains unconfirmed as working behavior. Privacy mode has been observed to darken the camera image. It appears to be an explicit camera state, not just a delayed timer. The auto-privacy delay is separate.
 
 ### Auto Privacy Delay
 
@@ -244,6 +252,10 @@ Current interpretation:
 - `XX XX XX XX` is a 32-bit little-endian timeout in seconds.
 - `00 00 00 00` disables the automatic transition.
 - This configures a delay, but it does not itself immediately enter privacy mode.
+- The delay write is confirmed from EMEET Studio captures, but the camera-side trigger condition has not been confirmed. As of June 10, 2026, PixyPilot should treat this as experimental.
+- Capture `pcaps/28.pcapng` repeated a `10s` delay write, then showed no later explicit privacy command before the next delay write. That argues against a simple Windows-side 10-second timer in that capture, but does not prove the firmware trigger condition.
+- Capture `pcaps/28.pcapng` also showed device-to-host responses shaped like `09 02 00 02 00 01 00 01 XX`: `XX=03` while privacy was active and `XX=00` after returning to tracking/off. This may be a related privacy/auto-privacy status field, but it is not decoded.
+- Capture `pcaps/30.pcapng` isolated Standard Mode plus Assistance-tab Auto-Enter Privacy enabled with a 10-second delay. The only HID traffic was the group `02` delay write/readback; no automatic privacy transition occurred during the 42-second capture. PixyPilot should not present this as a working automatic privacy feature until the missing trigger condition is discovered.
 
 Follow-up/query-like command:
 
@@ -560,9 +572,11 @@ Observed values:
 
 | Value | Meaning |
 | --- | --- |
-| `00` | off / idle |
-| `01` | standard tracking |
-| `02` | privacy |
+| `00` | Standard Mode / idle |
+| `01` | Tracking Mode / Auto Follow |
+| `02` | Privacy Mode |
+
+Capture `pcaps/29.pcapng` confirmed this mapping directly from the EMEET Studio Control tab dropdown by cycling Tracking Mode -> Privacy Mode -> Standard Mode.
 
 Capture 6 independently confirmed privacy by sending:
 

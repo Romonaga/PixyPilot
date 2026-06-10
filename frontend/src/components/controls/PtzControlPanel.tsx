@@ -153,6 +153,7 @@ function AxisControl({ label, control, disabled, onSetValue }: AxisControlProps)
 
 export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
+  const trackingLocksPtz = pixyHid.trackingMode === "tracking";
   const pan = findControl(group, PTZ_CONTROL_NAMES.pan);
   const tilt = findControl(group, PTZ_CONTROL_NAMES.tilt);
   const zoom = findControl(group, PTZ_CONTROL_NAMES.zoom);
@@ -180,6 +181,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-") ?? false;
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
+    if (trackingLocksPtz) {
+      return;
+    }
     if (hidPtzReady) {
       await pixyHid.sendPtzDirection(hidDirection);
       return;
@@ -223,6 +227,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   useEffect(() => stopJog, []);
 
   const startJog = (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
+    if (trackingLocksPtz) {
+      return;
+    }
     if (directionBlocked(control)) {
       return;
     }
@@ -257,6 +264,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const centerPtz = async () => {
+    if (trackingLocksPtz) {
+      return;
+    }
     cancelJogTimers();
     await stopPtzVector();
     const centerable = [pan, tilt].filter((control): control is V4L2Control => Boolean(control));
@@ -279,6 +289,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const updateVectorPreview = (event: PointerEvent<HTMLButtonElement>) => {
+    if (trackingLocksPtz) {
+      return null;
+    }
     if (!hidPtzVectorReady) {
       return null;
     }
@@ -288,6 +301,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const sendDragVector = async (vector: PtzVector) => {
+    if (trackingLocksPtz) {
+      return;
+    }
     const now = Date.now();
     if (
       vectorDragInFlightRef.current ||
@@ -307,6 +323,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const commitVectorPad = async (event: PointerEvent<HTMLButtonElement>) => {
+    if (trackingLocksPtz) {
+      return;
+    }
     if (!hidPtzVectorReady) {
       await centerPtz();
       return;
@@ -321,6 +340,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const savePreset = async () => {
+    if (trackingLocksPtz) {
+      return;
+    }
     if (!pan || !tilt || !zoom) {
       return;
     }
@@ -335,6 +357,9 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const gotoPreset = async () => {
+    if (trackingLocksPtz) {
+      return;
+    }
     const preset = presets[selectedPreset];
     if ((!preset && !hidPresetLoadReady) || controls.pendingControl !== null) {
       return;
@@ -362,8 +387,8 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
 
   const disabled = controls.pendingControl !== null;
   const directionBlocked = (control: V4L2Control | undefined) =>
-    hidPtzVectorReady || hidPtzReady ? disabled && !jogActiveRef.current : isBlocked(control, controls.pendingControl);
-  const vectorPadDisabled = disabled || (!hidPtzVectorReady && !pan && !tilt);
+    trackingLocksPtz || (hidPtzVectorReady || hidPtzReady ? disabled && !jogActiveRef.current : isBlocked(control, controls.pendingControl));
+  const vectorPadDisabled = trackingLocksPtz || disabled || (!hidPtzVectorReady && !pan && !tilt);
   const activeVectorPosition = activeVector ? vectorPadPosition(activeVector) : null;
 
   return (
@@ -372,6 +397,11 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
         <Icon size={18} />
         <h2>{group.title}</h2>
       </div>
+      {trackingLocksPtz && (
+        <div className="ptz-mode-lock">
+          Tracking Mode owns PTZ. Switch Control Mode to Standard before moving, zooming, homing, or using presets.
+        </div>
+      )}
 
       <div className="ptz-deck">
         <div className="ptz-pad" aria-label="Pan and tilt controls">
@@ -466,19 +496,19 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
             <AxisControl
               label="Pan"
               control={pan}
-              disabled={controls.pendingControl === pan?.name}
+              disabled={trackingLocksPtz || controls.pendingControl === pan?.name}
               onSetValue={(value) => controls.setValue(PTZ_CONTROL_NAMES.pan, value)}
             />
             <AxisControl
               label="Tilt"
               control={tilt}
-              disabled={controls.pendingControl === tilt?.name}
+              disabled={trackingLocksPtz || controls.pendingControl === tilt?.name}
               onSetValue={(value) => controls.setValue(PTZ_CONTROL_NAMES.tilt, value)}
             />
             <AxisControl
               label="Zoom"
               control={zoom}
-              disabled={controls.pendingControl === zoom?.name}
+              disabled={trackingLocksPtz || controls.pendingControl === zoom?.name}
               onSetValue={(value) => controls.setValue(PTZ_CONTROL_NAMES.zoom, value)}
             />
           </div>
@@ -503,7 +533,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
           <div className="ptz-preset-actions">
             <button
               className="secondary-button"
-              disabled={disabled || hidPresetPending || !pan || !tilt || !zoom}
+              disabled={trackingLocksPtz || disabled || hidPresetPending || !pan || !tilt || !zoom}
               onClick={() => void savePreset()}
               aria-label="Save PTZ preset"
               title="Save PTZ preset"
@@ -513,7 +543,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
             </button>
             <button
               className="secondary-button"
-              disabled={disabled || hidPresetPending || (!hidPresetLoadReady && !presets[selectedPreset])}
+              disabled={trackingLocksPtz || disabled || hidPresetPending || (!hidPresetLoadReady && !presets[selectedPreset])}
               onClick={() => void gotoPreset()}
               aria-label="Goto PTZ preset"
               title="Goto PTZ preset"
@@ -544,7 +574,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
         </div>
         <button
           className="secondary-button ptz-home-button"
-          disabled={disabled || (!pan && !tilt)}
+          disabled={trackingLocksPtz || disabled || (!pan && !tilt)}
           onClick={() => void centerPtz()}
           aria-label="Home PTZ"
           title="Home PTZ"
@@ -560,7 +590,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
             <ControlRenderer
               key={control.name}
               control={control}
-              disabled={controls.pendingControl === control.name}
+              disabled={trackingLocksPtz || controls.pendingControl === control.name}
               onSetValue={(value) => controls.setValue(control.name, value)}
             />
           ))}

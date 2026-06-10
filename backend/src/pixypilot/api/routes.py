@@ -37,6 +37,7 @@ from pixypilot.domains.v4l2.service import V4L2Service, get_v4l2_service
 from pixypilot.domains.video.models import (
     VideoRecordingRequest,
     VideoRecordingStatus,
+    VideoStreamStopResult,
     VideoStreamSettings,
 )
 from pixypilot.domains.video.service import VideoService, get_video_service
@@ -169,6 +170,20 @@ async def stream_video(
         media_type="multipart/x-mixed-replace; boundary=frame",
         headers={"Cache-Control": "no-store"},
     )
+
+
+@router.post("/devices/{device_name}/stream/stop", response_model=VideoStreamStopResult)
+async def stop_video_stream(
+    device_name: str,
+    v4l2_service: V4L2Service = Depends(get_v4l2_service),
+    video_service: VideoService = Depends(get_video_service),
+) -> VideoStreamStopResult:
+    try:
+        device_path = v4l2_service.device_path_from_name(device_name)
+        await video_service.stop_streams(device_path)
+        return VideoStreamStopResult(ok=True, device_name=device_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/video/recording/status", response_model=VideoRecordingStatus)

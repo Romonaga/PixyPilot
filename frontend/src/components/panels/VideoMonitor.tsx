@@ -1,4 +1,4 @@
-import { Eye, EyeOff, RadioTower, Square, Video } from "lucide-react";
+import { Eye, EyeOff, RadioTower, Square, Unplug, Video } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 import { focusPointFromContainClick, type FocusPoint } from "../../domains/video/focusPoint";
@@ -136,8 +136,16 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
       </div>
 
       <div className="video-status-row">
-        <span>{selectedFormat?.label ?? "No stream format selected"}</span>
+        <span>{canClickFocus ? "Click preview to focus" : selectedFormat?.label ?? "No stream format selected"}</span>
         <strong>{isRecording ? "Recording" : videoCapture.previewEnabled ? "Previewing" : "Idle"}</strong>
+      </div>
+      <div className={`device-ownership-note ${videoCapture.previewEnabled ? "is-locked" : ""}`}>
+        <Unplug size={14} />
+        <span>
+          {videoCapture.previewEnabled
+            ? "Preview owns the camera. Hide preview before opening it in another app."
+            : "Preview is stopped. The camera is available to other apps."}
+        </span>
       </div>
       {videoCapture.status?.path && <div className="video-record-path">{videoCapture.status.path}</div>}
       {videoCapture.error && <div className="mini-error">{videoCapture.error}</div>}

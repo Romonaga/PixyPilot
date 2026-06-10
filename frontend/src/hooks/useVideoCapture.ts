@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   fetchVideoRecordingStatus,
   startVideoRecording,
+  stopVideoStream,
   stopVideoRecording,
   videoStreamUrl
 } from "../lib/apiClient";
@@ -30,6 +31,7 @@ export function useVideoCapture(
   const [status, setStatus] = useState<VideoRecordingStatus | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousDeviceNameRef = useRef<string | null>(deviceName);
 
   const streamUrl = useMemo(() => {
     if (!previewEnabled || !deviceName || !selectedFormat) {
@@ -52,8 +54,15 @@ export function useVideoCapture(
   }, [refreshStatus]);
 
   useEffect(() => {
-    setPreviewEnabled(false);
+    const previousDeviceName = previousDeviceNameRef.current;
+    setPreviewEnabled((enabled) => {
+      if (enabled && previousDeviceName) {
+        void stopVideoStream(previousDeviceName).catch(() => undefined);
+      }
+      return false;
+    });
     setStreamToken((current) => current + 1);
+    previousDeviceNameRef.current = deviceName;
   }, [deviceName]);
 
   useEffect(() => {
@@ -64,10 +73,15 @@ export function useVideoCapture(
     setPreviewEnabled((enabled) => {
       if (!enabled) {
         setStreamToken((current) => current + 1);
+        setError(null);
+      } else if (deviceName) {
+        void stopVideoStream(deviceName).catch((err) => {
+          setError(err instanceof Error ? err.message : "Unable to release preview stream");
+        });
       }
       return !enabled;
     });
-  }, []);
+  }, [deviceName]);
 
   const restartPreview = useCallback(() => {
     setStreamToken((current) => current + 1);

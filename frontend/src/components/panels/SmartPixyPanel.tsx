@@ -31,9 +31,8 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const disabled = !writable || pixyHid.pendingCommand !== null;
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
-  const autoFollowEnabled = pixyHid.trackingMode === "tracking";
   const privacyEnabled = pixyHid.trackingMode === "privacy";
-  const autoFollowDisabled = disabled || privacyEnabled;
+  const privacyStateKnown = pixyHid.trackingMode !== null;
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -56,6 +55,18 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
     }
   };
 
+  const setControlMode = (mode: TrackingMode) => {
+    if (mode === "privacy") {
+      void privacySafety.enterPrivacy();
+      return;
+    }
+    if (mode === "off") {
+      void privacySafety.leavePrivacy();
+      return;
+    }
+    void pixyHid.setTrackingMode(mode);
+  };
+
   return (
     <section className="smart-panel">
       <div className="panel-title-row">
@@ -73,45 +84,74 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
 
       {pixyHid.error && <div className="mini-error">{pixyHid.error}</div>}
       {!writable && pixyHid.status?.reason && <div className="mini-warning">{pixyHid.status.reason}</div>}
+      <div className={`privacy-safety-strip state-${privacySafety.startupPrivacyState}`}>
+        <Shield size={15} />
+        <span>{privacySafetyText(privacySafety)}</span>
+      </div>
 
       <div className="smart-control-stack">
-        <div className="smart-control smart-toggle-row">
-          <div className="smart-label">
-            <ScanFace size={16} />
-            <span>Auto Follow</span>
-          </div>
-          <button
-            className={`toggle-switch ${autoFollowEnabled ? "is-on" : ""}`}
-            disabled={autoFollowDisabled}
-            aria-pressed={autoFollowEnabled}
-            aria-label="Auto Follow"
-            title={privacyEnabled ? "Turn privacy off before enabling auto follow" : "Auto Follow"}
-            onClick={() => void pixyHid.setTrackingMode(autoFollowEnabled ? "off" : "tracking")}
-          >
-            <span />
-          </button>
-        </div>
-
-        <div className="smart-control">
+        <div className="smart-control privacy-control">
           <div className="smart-label">
             <Shield size={16} />
-            <span>Privacy Mode</span>
+            <span>Control Mode</span>
           </div>
-          <div className="segmented privacy-command">
-            <button
-              className={pixyHid.trackingMode === "off" ? "is-selected" : ""}
-              disabled={disabled}
-              onClick={() => void privacySafety.leavePrivacy()}
-            >
-              Off
-            </button>
-            <button
-              className={privacyEnabled ? "is-selected" : ""}
-              disabled={disabled}
-              onClick={() => void privacySafety.enterPrivacy()}
-            >
-              Privacy
-            </button>
+          <div className="privacy-control-body">
+            <div className="privacy-mode-row">
+              <span>Mode</span>
+              <div className="segmented control-mode-command">
+                {controlModes.map((mode) => (
+                  <button
+                    key={mode.value}
+                    className={pixyHid.trackingMode === mode.value ? "is-selected" : ""}
+                    disabled={disabled}
+                    onClick={() => setControlMode(mode.value)}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="privacy-mode-row">
+              <span>Timer</span>
+              <div className="segmented">
+                {autoPrivacyPresets.map((preset) => (
+                  <button
+                    key={preset.value}
+                    className={pixyHid.autoPrivacySeconds === preset.value ? "is-selected" : ""}
+                    disabled={disabled}
+                    onClick={() => setAutoPrivacyPreset(preset.value)}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="privacy-delay-input">
+              <input
+                className="number-input"
+                type="number"
+                min={0}
+                max={900}
+                step={1}
+                disabled={disabled}
+                value={autoPrivacyDraft}
+                onChange={(event) => setAutoPrivacyDraft(event.target.value)}
+                onBlur={commitAutoPrivacy}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    commitAutoPrivacy();
+                  }
+                }}
+              />
+              <span>sec</span>
+            </div>
+            <small className="privacy-help">
+              {privacyEnabled
+                ? "PixyPilot sent privacy in this session. Auto entry is only used after privacy is off."
+                : !privacyStateKnown
+                  ? "Camera state is unknown after refresh. Select Privacy to send privacy mode now."
+                  : "Timer is captured only: EMEET Studio writes this value, but tests did not trigger privacy."}
+            </small>
           </div>
         </div>
 
@@ -185,47 +225,34 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
             ))}
           </div>
         </div>
-
-        <div className="smart-control smart-control-privacy">
-          <div className="smart-label">
-            <Shield size={16} />
-            <span>Auto privacy delay</span>
-          </div>
-          <div className="segmented">
-            {autoPrivacyPresets.map((preset) => (
-              <button
-                key={preset.value}
-                className={pixyHid.autoPrivacySeconds === preset.value ? "is-selected" : ""}
-                disabled={disabled}
-                onClick={() => setAutoPrivacyPreset(preset.value)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-          <div className="privacy-delay-input">
-            <input
-              className="number-input"
-              type="number"
-              min={0}
-              max={900}
-              step={1}
-              disabled={disabled}
-              value={autoPrivacyDraft}
-              onChange={(event) => setAutoPrivacyDraft(event.target.value)}
-              onBlur={commitAutoPrivacy}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  commitAutoPrivacy();
-                }
-              }}
-            />
-            <span>sec</span>
-          </div>
-        </div>
       </div>
 
       {pixyHid.lastCommand && <div className="last-command">Last command: {pixyHid.lastCommand}</div>}
     </section>
   );
+}
+
+const controlModes: { value: TrackingMode; label: string }[] = [
+  { value: "off", label: "Standard" },
+  { value: "tracking", label: "Tracking" },
+  { value: "privacy", label: "Privacy" }
+];
+
+function privacySafetyText(privacySafety: UsePrivacySafetyResult) {
+  if (!privacySafety.startupPrivacyEnabled) {
+    return "Startup privacy disabled";
+  }
+  if (privacySafety.startupPrivacyState === "waiting-for-hid") {
+    return "Startup privacy armed; waiting for HID access";
+  }
+  if (privacySafety.startupPrivacyState === "sending") {
+    return "Startup privacy sending";
+  }
+  if (privacySafety.startupPrivacyState === "sent") {
+    return "Startup privacy sent; mic mute requested";
+  }
+  if (privacySafety.startupPrivacyState === "failed") {
+    return "Startup privacy failed; press Privacy to retry";
+  }
+  return "Loading startup privacy setting";
 }

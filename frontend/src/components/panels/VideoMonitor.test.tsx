@@ -95,6 +95,32 @@ function pixyHid(setFocusMeteringMode = vi.fn().mockResolvedValue(undefined)): U
 }
 
 describe("VideoMonitor", () => {
+  it("warns that preview owns the camera while streaming", () => {
+    render(
+      <VideoMonitor
+        deviceName="video0"
+        videoFormats={videoFormats()}
+        videoCapture={videoCapture({ previewEnabled: true })}
+        pixyHid={pixyHid()}
+      />
+    );
+
+    expect(screen.getByText("Preview owns the camera. Hide preview before opening it in another app.")).toBeInTheDocument();
+  });
+
+  it("shows that other apps can use the camera when preview is stopped", () => {
+    render(
+      <VideoMonitor
+        deviceName="video0"
+        videoFormats={videoFormats()}
+        videoCapture={videoCapture({ previewEnabled: false, streamUrl: null })}
+        pixyHid={pixyHid()}
+      />
+    );
+
+    expect(screen.getByText("Preview is stopped. The camera is available to other apps.")).toBeInTheDocument();
+  });
+
   it("sends selected-area focus coordinates from a preview click", async () => {
     const setFocusMeteringMode = vi.fn().mockResolvedValue(undefined);
     render(

@@ -18,7 +18,8 @@ import type {
   TrackingMode,
   V4L2Control,
   VideoFormatOption,
-  VideoRecordingStatus
+  VideoRecordingStatus,
+  VideoStreamStopResult
 } from "../types/api";
 
 const API_BASE = "";
@@ -110,6 +111,12 @@ export function videoStreamUrl(
     t: String(token)
   });
   return `${API_BASE}/api/devices/${encodeURIComponent(deviceName)}/stream?${params.toString()}`;
+}
+
+export async function stopVideoStream(deviceName: string): Promise<VideoStreamStopResult> {
+  return requestJson<VideoStreamStopResult>(`/api/devices/${encodeURIComponent(deviceName)}/stream/stop`, {
+    method: "POST"
+  });
 }
 
 export async function fetchVideoRecordingStatus(): Promise<VideoRecordingStatus> {

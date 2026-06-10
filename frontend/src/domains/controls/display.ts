@@ -1,6 +1,7 @@
 import type { V4L2Control } from "../../types/api";
 
 const LABEL_OVERRIDES: Record<string, string> = {
+  auto_exposure: "AE Mode",
   exposure_time_absolute: "Exposure",
   gain: "ISO",
   hue: "Tone",
@@ -14,15 +15,33 @@ export function controlDisplayLabel(control: V4L2Control): string {
 
 export function inactiveReason(control: V4L2Control): string {
   if (control.name === "white_balance_temperature") {
-    return "AWB enabled";
+    return "Set AWB to Lock";
   }
   if (control.name === "exposure_time_absolute") {
-    return "AE mode active";
+    return "Set AE Mode to Manual";
   }
   if (control.name === "focus_absolute") {
-    return "Auto focus active";
+    return "Set Focus Mode to Manual";
   }
   return "Auto mode active";
+}
+
+export function dependencyHint(control: V4L2Control, controls: V4L2Control[]): string | null {
+  if (!control.flags.includes("inactive")) {
+    return null;
+  }
+
+  if (control.name === "white_balance_temperature") {
+    return statefulHint(controls, "white_balance_automatic", "AWB", "Lock");
+  }
+  if (control.name === "exposure_time_absolute") {
+    return statefulHint(controls, "auto_exposure", "AE Mode", "Manual");
+  }
+  if (control.name === "focus_absolute") {
+    return statefulHint(controls, "focus_automatic_continuous", "Focus Mode", "Manual");
+  }
+
+  return inactiveReason(control);
 }
 
 export function boolOptionLabels(control: V4L2Control): { value: number; label: string }[] {
@@ -30,6 +49,12 @@ export function boolOptionLabels(control: V4L2Control): { value: number; label: 
     return [
       { value: 1, label: "Auto" },
       { value: 0, label: "Lock" }
+    ];
+  }
+  if (control.name === "focus_automatic_continuous") {
+    return [
+      { value: 1, label: "Auto" },
+      { value: 0, label: "Manual" }
     ];
   }
   if (control.name.includes("automatic") || control.name.includes("auto")) {
@@ -42,4 +67,25 @@ export function boolOptionLabels(control: V4L2Control): { value: number; label: 
     { value: 0, label: "Off" },
     { value: 1, label: "On" }
   ];
+}
+
+function statefulHint(controls: V4L2Control[], parentName: string, parentLabel: string, targetLabel: string): string {
+  const parent = controls.find((control) => control.name === parentName);
+  if (!parent) {
+    return `Set ${parentLabel} to ${targetLabel}`;
+  }
+
+  const valueLabel = parent.value_label ?? parent.menu.find((option) => option.value === parent.value)?.label;
+  if (!valueLabel) {
+    return `Set ${parentLabel} to ${targetLabel}`;
+  }
+
+  return `${parentLabel}: ${shortDependencyLabel(valueLabel)}. Set to ${targetLabel}.`;
+}
+
+function shortDependencyLabel(label: string): string {
+  if (label === "Aperture Priority Mode") {
+    return "Auto";
+  }
+  return label.replace(" Priority Mode", "").replace(" Mode", "").trim();
 }

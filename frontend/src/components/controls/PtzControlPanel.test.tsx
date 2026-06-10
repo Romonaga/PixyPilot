@@ -235,6 +235,46 @@ describe("PtzControlPanel", () => {
     expect(setValue).not.toHaveBeenCalled();
   });
 
+  it("locks all PTZ controls while Tracking Mode owns the camera", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const sendPtzDirection = vi.fn().mockResolvedValue(undefined);
+    const savePtzPreset = vi.fn().mockResolvedValue(undefined);
+    const loadPtzPreset = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_direction", "ptz_preset_save", "ptz_preset_load"]
+        },
+        trackingMode: "tracking",
+        sendPtzDirection,
+        savePtzPreset,
+        loadPtzPreset
+      })
+    );
+
+    expect(screen.getByText("Tracking Mode owns PTZ. Switch Control Mode to Standard before moving, zooming, homing, or using presets.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pan left" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Center PTZ" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Home PTZ" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save PTZ preset" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Goto PTZ preset" })).toBeDisabled();
+    expect(screen.getAllByRole("slider")[2]).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Pan left" }));
+
+    expect(sendPtzDirection).not.toHaveBeenCalled();
+    expect(savePtzPreset).not.toHaveBeenCalled();
+    expect(loadPtzPreset).not.toHaveBeenCalled();
+    expect(setValue).not.toHaveBeenCalled();
+  });
+
   it("prefers the captured discrete HID jog command for arrows when both PTZ paths are available", async () => {
     const user = userEvent.setup();
     const setValue = vi.fn().mockResolvedValue(undefined);

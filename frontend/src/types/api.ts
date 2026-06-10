@@ -46,6 +46,11 @@ export type VideoRecordingStatus = {
   reason: string | null;
 };
 
+export type VideoStreamStopResult = {
+  ok: boolean;
+  device_name: string | null;
+};
+
 export type ControlPresetScope = "image" | "focus" | "exposure";
 
 export type ControlPreset = {

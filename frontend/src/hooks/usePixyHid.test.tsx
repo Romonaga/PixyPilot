@@ -107,6 +107,38 @@ describe("usePixyHid", () => {
     expect(result.current.trackingMode).toBe("privacy");
   });
 
+  it("clears locally asserted HID state when HID status is refreshed", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["tracking", "privacy"]
+    });
+    mockedSetPixyTracking.mockResolvedValue({
+      ok: true,
+      command: "tracking",
+      value: "privacy",
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setTrackingMode("privacy");
+    });
+    expect(result.current.trackingMode).toBe("privacy");
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.trackingMode).toBeNull();
+  });
+
   it("sends auto rotate commands when requested", async () => {
     mockedFetchPixyHidStatus.mockResolvedValue({
       available: true,

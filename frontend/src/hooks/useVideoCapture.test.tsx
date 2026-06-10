@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchVideoRecordingStatus,
   startVideoRecording,
+  stopVideoStream,
   stopVideoRecording
 } from "../lib/apiClient";
 import type { VideoFormatOption } from "../types/api";
@@ -15,12 +16,14 @@ vi.mock("../lib/apiClient", async () => {
     ...actual,
     fetchVideoRecordingStatus: vi.fn(),
     startVideoRecording: vi.fn(),
+    stopVideoStream: vi.fn(),
     stopVideoRecording: vi.fn()
   };
 });
 
 const mockedFetchVideoRecordingStatus = vi.mocked(fetchVideoRecordingStatus);
 const mockedStartVideoRecording = vi.mocked(startVideoRecording);
+const mockedStopVideoStream = vi.mocked(stopVideoStream);
 const mockedStopVideoRecording = vi.mocked(stopVideoRecording);
 
 const format: VideoFormatOption = {
@@ -45,6 +48,7 @@ describe("useVideoCapture", () => {
   beforeEach(() => {
     mockedFetchVideoRecordingStatus.mockReset();
     mockedStartVideoRecording.mockReset();
+    mockedStopVideoStream.mockReset();
     mockedStopVideoRecording.mockReset();
     mockedFetchVideoRecordingStatus.mockResolvedValue({
       recording: false,
@@ -53,6 +57,7 @@ describe("useVideoCapture", () => {
       started_at: null,
       reason: null
     });
+    mockedStopVideoStream.mockResolvedValue({ ok: true, device_name: "video0" });
   });
 
   it("builds a stream URL only when preview is enabled", async () => {
@@ -87,6 +92,23 @@ describe("useVideoCapture", () => {
 
     expect(result.current.streamUrl).not.toBe(firstUrl);
     expect(result.current.previewEnabled).toBe(true);
+  });
+
+  it("releases the backend stream when preview is hidden", async () => {
+    const { result } = renderHook(() => useVideoCapture("video0", format));
+
+    await waitFor(() => expect(result.current.status?.recording).toBe(false));
+
+    act(() => {
+      result.current.togglePreview();
+    });
+
+    act(() => {
+      result.current.togglePreview();
+    });
+
+    await waitFor(() => expect(mockedStopVideoStream).toHaveBeenCalledWith("video0"));
+    expect(result.current.previewEnabled).toBe(false);
   });
 
   it("keeps preview visible and reconnects when the selected format changes", async () => {

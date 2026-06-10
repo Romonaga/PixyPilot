@@ -7,6 +7,8 @@ import { fetchSettings } from "../lib/apiClient";
 let startupPrivacyCommandAttempted = false;
 
 export type UsePrivacySafetyResult = {
+  startupPrivacyEnabled: boolean;
+  startupPrivacyState: "loading" | "disabled" | "waiting-for-hid" | "sending" | "sent" | "failed";
   enterPrivacy: () => Promise<void>;
   leavePrivacy: () => Promise<void>;
 };
@@ -21,6 +23,8 @@ export function usePrivacySafety(
 ): UsePrivacySafetyResult {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [startInPrivacy, setStartInPrivacy] = useState(true);
+  const [startupPrivacyState, setStartupPrivacyState] =
+    useState<UsePrivacySafetyResult["startupPrivacyState"]>("loading");
 
   useEffect(() => {
     let ignore = false;
@@ -58,15 +62,34 @@ export function usePrivacySafety(
   }, [pixyHid.setTrackingMode]);
 
   useEffect(() => {
-    if (!settingsLoaded || !startInPrivacy || startupPrivacyCommandAttempted || pixyHid.status?.writable !== true) {
+    if (!settingsLoaded) {
+      return;
+    }
+    if (!startInPrivacy) {
+      setStartupPrivacyState("disabled");
+      return;
+    }
+    if (startupPrivacyCommandAttempted) {
+      return;
+    }
+    if (pixyHid.status?.writable !== true) {
+      setStartupPrivacyState("waiting-for-hid");
       return;
     }
 
     startupPrivacyCommandAttempted = true;
-    void enterPrivacy();
+    setStartupPrivacyState("sending");
+    void enterPrivacy()
+      .then(() => setStartupPrivacyState("sent"))
+      .catch(() => {
+        startupPrivacyCommandAttempted = false;
+        setStartupPrivacyState("failed");
+      });
   }, [enterPrivacy, pixyHid.status?.writable, settingsLoaded, startInPrivacy]);
 
   return {
+    startupPrivacyEnabled: startInPrivacy,
+    startupPrivacyState,
     enterPrivacy,
     leavePrivacy
   };

@@ -4,6 +4,8 @@ import { fetchControls, setControlValue } from "../lib/apiClient";
 import { groupControls } from "../domains/controls/grouping";
 import type { V4L2Control } from "../types/api";
 
+const ACTIVE_STATE_PARENT_CONTROLS = new Set(["auto_exposure", "white_balance_automatic", "focus_automatic_continuous"]);
+
 export type UseControlsResult = {
   controls: V4L2Control[];
   groups: ReturnType<typeof groupControls>;
@@ -54,9 +56,13 @@ export function useControls(deviceName: string | null): UseControlsResult {
       );
       try {
         const updated = await setControlValue(deviceName, controlName, value);
-        setControls((current) =>
-          current.map((control) => (control.name === controlName ? updated : control))
-        );
+        if (ACTIVE_STATE_PARENT_CONTROLS.has(controlName)) {
+          setControls(await fetchControls(deviceName));
+        } else {
+          setControls((current) =>
+            current.map((control) => (control.name === controlName ? updated : control))
+          );
+        }
       } catch (err) {
         setControls(previousControls);
         setError(err instanceof Error ? err.message : "Unable to set control");

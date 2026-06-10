@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { boolOptionLabels, controlDisplayLabel, inactiveReason } from "../../domains/controls/display";
+import { boolOptionLabels, controlDisplayLabel, dependencyHint } from "../../domains/controls/display";
 import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/effects";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
@@ -115,6 +115,7 @@ export function CompactControlPanel({ group, controls, pixyHid, controlPresets }
           <CompactControlRow
             key={control.name}
             control={control}
+            peerControls={orderedControls}
             disabled={controls.pendingControl === control.name || controls.pendingControl === "preset"}
             onSetValue={(value) => controls.setValue(control.name, value)}
           />
@@ -142,16 +143,21 @@ type RowProps = {
   onSetValue: (value: number) => Promise<void>;
 };
 
-function CompactControlRow({ control, disabled, onSetValue }: RowProps) {
+type CompactRowProps = RowProps & {
+  peerControls: V4L2Control[];
+};
+
+function CompactControlRow({ control, peerControls, disabled, onSetValue }: CompactRowProps) {
   const isInactive = control.flags.includes("inactive");
   const unavailable = disabled || isInactive;
   const hasPresets = control.kind === "bool" || (control.kind === "menu" && control.menu.length > 0 && control.menu.length <= 4);
+  const hint = dependencyHint(control, peerControls);
 
   return (
     <div className={`reference-control-row ${hasPresets ? "has-presets" : ""} ${isInactive ? "is-inactive" : ""}`}>
       <div className="reference-control-label">
         <span>{controlDisplayLabel(control)}</span>
-        {isInactive && <small>{inactiveReason(control)}</small>}
+        {hint && <small>{hint}</small>}
       </div>
       <div className="reference-control-input">
         <CompactInput control={control} disabled={unavailable} onSetValue={onSetValue} />
@@ -244,5 +250,8 @@ function CompactRangeInput({ control, disabled, onSetValue }: RowProps) {
 }
 
 function shortPresetLabel(label: string) {
+  if (label === "Aperture Priority Mode") {
+    return "Auto";
+  }
   return label.replace(" Priority Mode", "").replace(" Mode", "").replace("Frequency", "").trim();
 }

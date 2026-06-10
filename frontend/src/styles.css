@@ -186,6 +186,8 @@ h2 {
 .control-panel,
 .summary-band,
 .signal-panel,
+.smart-panel,
+.command-log-panel,
 .experimental-panel {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 8px;
@@ -587,6 +589,35 @@ h2 {
   text-transform: uppercase;
 }
 
+.device-ownership-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 6px 9px;
+  border: 1px solid rgba(131, 255, 156, 0.2);
+  border-radius: 6px;
+  color: #b6c9c8;
+  background: rgba(131, 255, 156, 0.06);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.device-ownership-note svg {
+  flex: 0 0 auto;
+  color: #83ff9c;
+}
+
+.device-ownership-note.is-locked {
+  border-color: rgba(255, 212, 94, 0.3);
+  color: #ffe4a3;
+  background: rgba(255, 212, 94, 0.08);
+}
+
+.device-ownership-note.is-locked svg {
+  color: #ffd45e;
+}
+
 .video-record-path {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -952,6 +983,20 @@ h2 {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
     rgba(0, 0, 0, 0.28);
+}
+
+.ptz-mode-lock {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin-bottom: 10px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 212, 94, 0.28);
+  border-radius: 6px;
+  color: #ffe4a3;
+  background: rgba(255, 212, 94, 0.08);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .ptz-pad {
@@ -1360,6 +1405,7 @@ h2 {
 
 .signal-panel,
 .smart-panel,
+.command-log-panel,
 .experimental-panel {
   padding: 14px;
 }
@@ -1541,13 +1587,32 @@ h2 {
   background: #ff5cc8;
 }
 
-.privacy-command {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.control-mode-command {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.smart-control-privacy {
-  grid-template-columns: minmax(0, 1fr) auto;
+.privacy-control {
+  align-items: start;
+}
+
+.privacy-control-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.privacy-mode-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
+  gap: 8px;
+}
+
+.privacy-mode-row > span,
+.privacy-help {
+  color: #aab7b8;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .privacy-delay-input {
@@ -1559,6 +1624,11 @@ h2 {
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.privacy-help {
+  line-height: 1.35;
+  text-transform: none;
 }
 
 .mic-mute-row {
@@ -1617,6 +1687,68 @@ h2 {
   color: #ffe4a0;
   background: rgba(255, 212, 94, 0.08);
   border: 1px solid rgba(255, 212, 94, 0.24);
+}
+
+.privacy-safety-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(131, 255, 156, 0.28);
+  border-radius: 8px;
+  color: #c8f6d0;
+  background: rgba(131, 255, 156, 0.07);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.privacy-safety-strip.state-loading,
+.privacy-safety-strip.state-waiting-for-hid {
+  border-color: rgba(255, 212, 94, 0.3);
+  color: #ffe4a0;
+  background: rgba(255, 212, 94, 0.07);
+}
+
+.privacy-safety-strip.state-disabled {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #b8c7c8;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.command-log-list {
+  display: grid;
+  gap: 7px;
+}
+
+.command-log-row {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 7px 9px;
+}
+
+.command-log-row span {
+  color: #91a2a3;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.command-log-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce9e8;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .last-command {
