@@ -7,7 +7,8 @@ import type {
   PixyHidCommandResult,
   PixyHidStatus,
   TrackingMode,
-  V4L2Control
+  V4L2Control,
+  VideoFormatOption
 } from "../types/api";
 
 const API_BASE = "";
@@ -53,6 +54,20 @@ export async function setControlValue(
       body: JSON.stringify({ value })
     }
   );
+}
+
+export async function fetchVideoFormats(deviceName: string): Promise<VideoFormatOption[]> {
+  return requestJson<VideoFormatOption[]>(`/api/devices/${encodeURIComponent(deviceName)}/formats`);
+}
+
+export async function setVideoFormat(
+  deviceName: string,
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+): Promise<VideoFormatOption> {
+  return requestJson<VideoFormatOption>(`/api/devices/${encodeURIComponent(deviceName)}/format`, {
+    method: "PATCH",
+    body: JSON.stringify(format)
+  });
 }
 
 export async function fetchPixyHidStatus(): Promise<PixyHidStatus> {

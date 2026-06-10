@@ -268,6 +268,36 @@ h2 {
   text-transform: uppercase;
 }
 
+.format-picker {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid rgba(82, 229, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.format-picker strong,
+.format-picker small {
+  display: block;
+}
+
+.format-picker strong {
+  color: #eef5f4;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.format-picker small {
+  color: #91a2a3;
+  font-size: 11px;
+}
+
+.format-error {
+  color: #ff8f8f;
+}
+
 .device-meta {
   gap: 8px;
   margin-top: 14px;

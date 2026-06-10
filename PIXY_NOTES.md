@@ -447,6 +447,36 @@ Windows EMEET Studio Gesture + Auto Rotate mapping:
   - Auto Rotate When Upside Down is safe to expose as a named HID toggle.
   - It is a group 0x04 feature with feature id 0x04.
 
+Windows EMEET Studio video format mapping:
+- Capture file analyzed locally:
+  - pcaps/13 video res.pcapng
+- User action order:
+  - 2K
+  - 4K
+  - 1080P 60FPS
+  - 1080P 30FPS
+  - 720P 30FPS
+- Final UVC VS_COMMIT_CONTROL writes:
+  - 2K:
+    - format index 1, frame index 2, interval 333333, frame size 3686400, payload 3072
+    - maps to MJPG 2560x1440 @ 30 fps
+  - 4K:
+    - format index 1, frame index 1, interval 333333, frame size 8294400, payload 3072
+    - maps to MJPG 3840x2160 @ 30 fps
+  - 1080P 60FPS:
+    - format index 1, frame index 3, interval 166666, frame size 2073600, payload 3072
+    - maps to MJPG 1920x1080 @ 60 fps
+  - 1080P 30FPS:
+    - format index 1, frame index 3, interval 333333, frame size 2073600, payload 3072
+    - maps to MJPG 1920x1080 @ 30 fps
+  - 720P 30FPS:
+    - format index 1, frame index 5, interval 333333, frame size 921600, payload 3072
+    - maps to MJPG 1280x720 @ 30 fps
+- Current conclusion:
+  - EMEET Studio uses normal UVC Probe/Commit for these video formats.
+  - No vendor HID or UVC Extension Unit command is needed for format switching.
+  - Linux should expose this through normal V4L2 format/frame interval handling.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

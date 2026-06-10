@@ -14,7 +14,12 @@ from pixypilot.domains.pixy_hid.models import (
 from pixypilot.domains.pixy_hid.service import PixyHidService, get_pixy_hid_service
 from pixypilot.domains.settings.models import AppSettings
 from pixypilot.domains.settings.service import SettingsService, get_settings_service
-from pixypilot.domains.v4l2.models import ControlSetRequest, V4L2Control
+from pixypilot.domains.v4l2.models import (
+    ControlSetRequest,
+    V4L2Control,
+    VideoFormatOption,
+    VideoFormatSetRequest,
+)
 from pixypilot.domains.v4l2.service import V4L2Service, get_v4l2_service
 
 router = APIRouter()
@@ -57,6 +62,37 @@ async def set_control(
     device_path = service.device_path_from_name(device_name)
     try:
         return await service.set_control(device_path, control_name, request.value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/devices/{device_name}/formats", response_model=list[VideoFormatOption])
+async def list_formats(
+    device_name: str,
+    service: V4L2Service = Depends(get_v4l2_service),
+) -> list[VideoFormatOption]:
+    device_path = service.device_path_from_name(device_name)
+    try:
+        return await service.list_formats(device_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.patch("/devices/{device_name}/format", response_model=VideoFormatOption)
+async def set_format(
+    device_name: str,
+    request: VideoFormatSetRequest,
+    service: V4L2Service = Depends(get_v4l2_service),
+) -> VideoFormatOption:
+    device_path = service.device_path_from_name(device_name)
+    try:
+        return await service.set_format(
+            device_path,
+            request.pixel_format,
+            request.width,
+            request.height,
+            request.fps,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

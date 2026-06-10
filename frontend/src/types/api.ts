@@ -29,6 +29,15 @@ export type V4L2Control = {
   menu: MenuOption[];
 };
 
+export type VideoFormatOption = {
+  pixel_format: string;
+  description: string;
+  width: number;
+  height: number;
+  fps: number;
+  label: string;
+};
+
 export type PixyHidStatus = {
   available: boolean;
   path: string | null;

@@ -6,6 +6,7 @@ import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
+import type { UseVideoFormatsResult } from "../../hooks/useVideoFormats";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
@@ -15,12 +16,13 @@ import { StatusPill } from "../ui/StatusPill";
 type Props = {
   devices: UseDevicesResult;
   controls: UseControlsResult;
+  videoFormats: UseVideoFormatsResult;
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
   privacySafety: UsePrivacySafetyResult;
 };
 
-export function AppShell({ devices, controls, pixyHid, audio, privacySafety }: Props) {
+export function AppShell({ devices, controls, videoFormats, pixyHid, audio, privacySafety }: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -48,7 +50,7 @@ export function AppShell({ devices, controls, pixyHid, audio, privacySafety }: P
       </header>
 
       <section className="command-grid">
-        <DeviceRail devices={devices} controls={controls} pixyHid={pixyHid} />
+        <DeviceRail devices={devices} controls={controls} videoFormats={videoFormats} pixyHid={pixyHid} />
 
         <div className="main-console">
           {controls.error && <div className="error-strip">{controls.error}</div>}

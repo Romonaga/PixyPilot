@@ -2,8 +2,8 @@ from pathlib import Path
 
 from pixypilot.core.commands import AsyncCommandRunner, CommandError
 from pixypilot.domains.devices.models import Device
-from pixypilot.domains.v4l2.models import V4L2Control
-from pixypilot.domains.v4l2.parser import parse_controls
+from pixypilot.domains.v4l2.models import V4L2Control, VideoFormatOption
+from pixypilot.domains.v4l2.parser import parse_controls, parse_video_formats
 
 
 class V4L2Service:
@@ -41,6 +41,46 @@ class V4L2Service:
         self._validate_device_path(device_path)
         result = await self.runner.run(["v4l2-ctl", "-d", device_path, "--list-ctrls-menu"])
         return parse_controls(result.stdout)
+
+    async def list_formats(self, device_path: str) -> list[VideoFormatOption]:
+        self._validate_device_path(device_path)
+        result = await self.runner.run(["v4l2-ctl", "-d", device_path, "--list-formats-ext"])
+        return parse_video_formats(result.stdout)
+
+    async def set_format(
+        self,
+        device_path: str,
+        pixel_format: str,
+        width: int,
+        height: int,
+        fps: float,
+    ) -> VideoFormatOption:
+        self._validate_device_path(device_path)
+        formats = await self.list_formats(device_path)
+        selected = next(
+            (
+                item
+                for item in formats
+                if item.pixel_format == pixel_format
+                and item.width == width
+                and item.height == height
+                and abs(item.fps - fps) < 0.001
+            ),
+            None,
+        )
+        if selected is None:
+            raise ValueError(f"Unsupported format: {pixel_format} {width}x{height}@{fps}")
+
+        await self.runner.run(
+            [
+                "v4l2-ctl",
+                "-d",
+                device_path,
+                f"--set-fmt-video=width={width},height={height},pixelformat={pixel_format}",
+            ]
+        )
+        await self.runner.run(["v4l2-ctl", "-d", device_path, f"--set-parm={_format_fps_for_v4l2(fps)}"])
+        return selected
 
     async def set_control(self, device_path: str, control_name: str, value: int) -> V4L2Control:
         self._validate_device_path(device_path)
@@ -106,6 +146,13 @@ def _device_caps_include_video_capture(output: str) -> bool:
             device_caps_lines.append(line.strip())
 
     return "Video Capture" in device_caps_lines
+
+
+def _format_fps_for_v4l2(fps: float) -> str:
+    rounded = round(fps)
+    if abs(fps - rounded) < 0.001:
+        return str(rounded)
+    return f"{fps:.3f}".rstrip("0").rstrip(".")
 
 
 def get_v4l2_service() -> V4L2Service:

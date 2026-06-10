@@ -1,4 +1,4 @@
-from pixypilot.domains.v4l2.parser import parse_controls
+from pixypilot.domains.v4l2.parser import parse_controls, parse_video_formats
 
 
 SAMPLE = """
@@ -19,6 +19,25 @@ Camera Controls
 \t\t\t\t3: Aperture Priority Mode
                    pan_absolute 0x009a0908 (int)    : min=-540000 max=540000 step=3600 default=0 value=0 flags=0x00001000
      focus_automatic_continuous 0x009a090c (bool)   : default=1 value=1
+"""
+
+FORMAT_SAMPLE = """
+ioctl: VIDIOC_ENUM_FMT
+    Type: Video Capture
+
+    [0]: 'MJPG' (Motion-JPEG, compressed)
+        Size: Discrete 3840x2160
+            Interval: Discrete 0.033s (30.000 fps)
+        Size: Discrete 2560x1440
+            Interval: Discrete 0.033s (30.000 fps)
+        Size: Discrete 1920x1080
+            Interval: Discrete 0.017s (60.000 fps)
+            Interval: Discrete 0.033s (30.000 fps)
+        Size: Discrete 1280x720
+            Interval: Discrete 0.033s (30.000 fps)
+    [1]: 'YUYV' (YUYV 4:2:2)
+        Size: Discrete 640x480
+            Interval: Discrete 0.033s (30.000 fps)
 """
 
 
@@ -46,3 +65,17 @@ def test_parse_controls_groups_menu_and_flags() -> None:
     assert by_name["auto_exposure"].group == "Camera Controls"
     assert by_name["auto_exposure"].value_label == "Aperture Priority Mode"
     assert by_name["focus_automatic_continuous"].kind == "bool"
+
+
+def test_parse_video_formats_expands_discrete_intervals() -> None:
+    formats = parse_video_formats(FORMAT_SAMPLE)
+
+    assert [(item.pixel_format, item.width, item.height, item.fps) for item in formats] == [
+        ("MJPG", 3840, 2160, 30.0),
+        ("MJPG", 2560, 1440, 30.0),
+        ("MJPG", 1920, 1080, 60.0),
+        ("MJPG", 1920, 1080, 30.0),
+        ("MJPG", 1280, 720, 30.0),
+        ("YUYV", 640, 480, 30.0),
+    ]
+    assert formats[0].label == "MJPG 3840x2160 30fps"

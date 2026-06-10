@@ -85,6 +85,18 @@ Observed advertised formats:
   - `640x480@30`
   - `640x360@30`
 
+EMEET Studio uses normal UVC Probe/Commit negotiation for its format picker. Capture `pcaps/13 video res.pcapng` mapped these Studio labels:
+
+| EMEET Studio label | UVC format index | UVC frame index | Frame interval | Linux format |
+| --- | ---: | ---: | ---: | --- |
+| 2K | `1` | `2` | `333333` | `MJPG 2560x1440@30` |
+| 4K | `1` | `1` | `333333` | `MJPG 3840x2160@30` |
+| 1080P 60FPS | `1` | `3` | `166666` | `MJPG 1920x1080@60` |
+| 1080P 30FPS | `1` | `3` | `333333` | `MJPG 1920x1080@30` |
+| 720P 30FPS | `1` | `5` | `333333` | `MJPG 1280x720@30` |
+
+No vendor HID or UVC Extension Unit command was observed for these format changes.
+
 ## Confirmed Audio Controls
 
 The PIXY microphone can be controlled through standard ALSA.

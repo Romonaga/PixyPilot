@@ -33,3 +33,19 @@ class V4L2Control(BaseModel):
 
 class ControlSetRequest(BaseModel):
     value: int
+
+
+class VideoFormatOption(BaseModel):
+    pixel_format: str
+    description: str
+    width: int
+    height: int
+    fps: float
+    label: str
+
+
+class VideoFormatSetRequest(BaseModel):
+    pixel_format: str
+    width: int
+    height: int
+    fps: float

@@ -28,11 +28,13 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     lastCommand: null,
     trackingMode: null,
     gestureEnabled: null,
+    autoRotateEnabled: null,
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
     setTrackingMode: vi.fn().mockResolvedValue(undefined),
     setGestureEnabled: vi.fn(),
+    setAutoRotateEnabled: vi.fn(),
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     ...overrides

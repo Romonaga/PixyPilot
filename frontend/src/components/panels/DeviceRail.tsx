@@ -3,6 +3,7 @@ import { Aperture, Camera, Cpu, Crosshair, Focus, RotateCw, SlidersHorizontal, S
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import { formatKey, type UseVideoFormatsResult } from "../../hooks/useVideoFormats";
 
 function deviceNameFromPath(path: string): string {
   return path.split("/").at(-1) ?? path;
@@ -11,6 +12,7 @@ function deviceNameFromPath(path: string): string {
 type Props = {
   devices: UseDevicesResult;
   controls: UseControlsResult;
+  videoFormats: UseVideoFormatsResult;
   pixyHid: UsePixyHidResult;
 };
 
@@ -18,7 +20,7 @@ function hasAnyControl(controls: UseControlsResult, names: string[]): boolean {
   return controls.controls.some((control) => names.includes(control.name));
 }
 
-export function DeviceRail({ devices, controls, pixyHid }: Props) {
+export function DeviceRail({ devices, controls, videoFormats, pixyHid }: Props) {
   const selectedDeviceName = devices.selectedDeviceName ?? "";
   const selectedDevice = devices.selectedDevice;
   const capabilityRows = [
@@ -90,6 +92,31 @@ export function DeviceRail({ devices, controls, pixyHid }: Props) {
             );
           })}
         </select>
+      </div>
+
+      <div className="format-picker">
+        <div>
+          <strong>Video Format</strong>
+          <small>{videoFormats.selectedFormat?.description ?? "Standard UVC stream"}</small>
+        </div>
+        <select
+          className="device-select"
+          aria-label="Select video format"
+          value={videoFormats.selectedKey}
+          disabled={videoFormats.formats.length === 0 || videoFormats.pending}
+          onChange={(event) => void videoFormats.setSelectedKey(event.target.value)}
+        >
+          {videoFormats.formats.length === 0 && <option value="">No formats</option>}
+          {videoFormats.formats.map((format) => {
+            const key = formatKey(format);
+            return (
+              <option key={key} value={key}>
+                {format.label}
+              </option>
+            );
+          })}
+        </select>
+        {videoFormats.error && <small className="format-error">{videoFormats.error}</small>}
       </div>
 
       <button className="secondary-button" onClick={() => void devices.refresh()}>
