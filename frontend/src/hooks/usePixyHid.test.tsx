@@ -7,6 +7,7 @@ import {
   setPixyAutoPrivacy,
   setPixyAutoRotate,
   setPixyGesture,
+  setPixyMirror,
   setPixyTracking
 } from "../lib/apiClient";
 import { usePixyHid } from "./usePixyHid";
@@ -17,6 +18,7 @@ vi.mock("../lib/apiClient", () => ({
   setPixyAutoPrivacy: vi.fn(),
   setPixyAutoRotate: vi.fn(),
   setPixyGesture: vi.fn(),
+  setPixyMirror: vi.fn(),
   setPixyTracking: vi.fn()
 }));
 
@@ -25,6 +27,7 @@ const mockedSetPixyAudio = vi.mocked(setPixyAudio);
 const mockedSetPixyAutoPrivacy = vi.mocked(setPixyAutoPrivacy);
 const mockedSetPixyAutoRotate = vi.mocked(setPixyAutoRotate);
 const mockedSetPixyGesture = vi.mocked(setPixyGesture);
+const mockedSetPixyMirror = vi.mocked(setPixyMirror);
 const mockedSetPixyTracking = vi.mocked(setPixyTracking);
 
 describe("usePixyHid", () => {
@@ -34,6 +37,7 @@ describe("usePixyHid", () => {
     mockedSetPixyAutoPrivacy.mockReset();
     mockedSetPixyAutoRotate.mockReset();
     mockedSetPixyGesture.mockReset();
+    mockedSetPixyMirror.mockReset();
     mockedSetPixyTracking.mockReset();
   });
 
@@ -109,5 +113,33 @@ describe("usePixyHid", () => {
 
     expect(mockedSetPixyAutoRotate).toHaveBeenCalledWith(true);
     expect(result.current.autoRotateEnabled).toBe(true);
+  });
+
+  it("sends mirror mode commands when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["mirror"]
+    });
+    mockedSetPixyMirror.mockResolvedValue({
+      ok: true,
+      command: "mirror",
+      value: "hv",
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setMirrorMode("hv");
+    });
+
+    expect(mockedSetPixyMirror).toHaveBeenCalledWith("hv");
+    expect(result.current.mirrorMode).toBe("hv");
   });
 });

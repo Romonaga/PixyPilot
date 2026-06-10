@@ -7,6 +7,7 @@ from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
     AutoPrivacyRequest,
     GestureRequest,
+    MirrorRequest,
     PixyHidCommandResult,
     PixyHidStatus,
     TrackingModeRequest,
@@ -155,6 +156,19 @@ async def set_pixy_auto_rotate(
 ) -> PixyHidCommandResult:
     try:
         return await service.set_auto_rotate(request.enabled)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/mirror", response_model=PixyHidCommandResult)
+async def set_pixy_mirror(
+    request: MirrorRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.set_mirror(request.horizontal, request.vertical)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:

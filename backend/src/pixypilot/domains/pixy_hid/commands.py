@@ -16,6 +16,10 @@ AUDIO_VALUES: dict[AudioMode, int] = {
     "original": 0x03,
 }
 
+MIRROR_HORIZONTAL_FEATURE = 0x01
+MIRROR_VERTICAL_FEATURE = 0x02
+AUTO_ROTATE_FEATURE = 0x04
+
 
 def build_report(payload: Sequence[int]) -> bytes:
     if len(payload) > REPORT_SIZE:
@@ -41,11 +45,22 @@ def gesture_reports(enabled: bool) -> list[bytes]:
     ]
 
 
-def auto_rotate_reports(enabled: bool) -> list[bytes]:
+def feature_toggle_reports(feature_id: int, enabled: bool) -> list[bytes]:
     value = 0x01 if enabled else 0x00
     return [
-        build_report([0x09, 0x04, 0x00, 0x08, 0x00, 0x02, 0x00, 0x02, 0x04, value]),
-        build_report([0x09, 0x04, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, 0x04]),
+        build_report([0x09, 0x04, 0x00, 0x08, 0x00, 0x02, 0x00, 0x02, feature_id, value]),
+        build_report([0x09, 0x04, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, feature_id]),
+    ]
+
+
+def auto_rotate_reports(enabled: bool) -> list[bytes]:
+    return feature_toggle_reports(AUTO_ROTATE_FEATURE, enabled)
+
+
+def mirror_reports(horizontal: bool, vertical: bool) -> list[bytes]:
+    return [
+        *feature_toggle_reports(MIRROR_VERTICAL_FEATURE, vertical),
+        *feature_toggle_reports(MIRROR_HORIZONTAL_FEATURE, horizontal),
     ]
 
 

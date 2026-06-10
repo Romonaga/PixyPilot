@@ -1,5 +1,6 @@
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import { CompactControlPanel } from "./CompactControlPanel";
 import { ControlRenderer } from "./ControlRenderer";
 import { PtzControlPanel } from "./PtzControlPanel";
@@ -7,9 +8,10 @@ import { PtzControlPanel } from "./PtzControlPanel";
 type Props = {
   group: ControlGroup;
   controls: UseControlsResult;
+  pixyHid: UsePixyHidResult;
 };
 
-export function ControlGroupPanel({ group, controls }: Props) {
+export function ControlGroupPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
 
   if (group.id === "ptz" && group.controls.length > 0) {
@@ -17,7 +19,7 @@ export function ControlGroupPanel({ group, controls }: Props) {
   }
 
   if (group.id === "image" || group.id === "focus" || group.id === "exposure") {
-    return <CompactControlPanel group={group} controls={controls} />;
+    return <CompactControlPanel group={group} controls={controls} pixyHid={pixyHid} />;
   }
 
   if (group.controls.length === 0) {

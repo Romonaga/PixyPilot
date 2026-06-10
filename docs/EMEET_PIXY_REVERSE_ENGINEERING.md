@@ -247,6 +247,41 @@ An additional input report was observed after both on and off transitions:
 
 Current interpretation: auto-rotate is a group `0x04` feature with feature id `0x04`. The `09 63...` report is likely an async notification or acknowledgement, but its exact meaning is not decoded.
 
+### Mirror / Flip
+
+Capture analyzed:
+
+```text
+pcaps/17.pcapng
+```
+
+Set command:
+
+```text
+09 04 00 08 00 02 00 02 FF XX
+```
+
+Status/query-like command:
+
+```text
+09 04 00 07 00 01 00 01 FF
+```
+
+The device response mirrors the state:
+
+```text
+09 04 00 07 00 02 00 02 FF XX
+```
+
+Known feature ids for `FF`:
+
+| Feature | Feature id | `XX` values |
+| --- | ---: | --- |
+| horizontal flip | `01` | `00` off, `01` on |
+| vertical flip | `02` | `00` off, `01` on |
+
+Current interpretation: these are independent HID toggles. PixyPilot exposes them as a four-state mirror control: Off, H, V, and HV.
+
 ### Audio DSP Mode
 
 Set command:

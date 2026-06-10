@@ -57,7 +57,7 @@ export function AppShell({ devices, controls, videoFormats, pixyHid, audio, priv
           {devices.error && <div className="error-strip">{devices.error}</div>}
           <div className="control-grid">
             {controls.groups.map((group) => (
-              <ControlGroupPanel key={group.id} group={group} controls={controls} />
+              <ControlGroupPanel key={group.id} group={group} controls={controls} pixyHid={pixyHid} />
             ))}
           </div>
         </div>

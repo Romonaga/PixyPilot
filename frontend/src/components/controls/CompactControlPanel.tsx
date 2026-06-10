@@ -4,11 +4,13 @@ import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/e
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
-import type { V4L2Control } from "../../types/api";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import type { MirrorMode, V4L2Control } from "../../types/api";
 
 type Props = {
   group: ControlGroup;
   controls: UseControlsResult;
+  pixyHid: UsePixyHidResult;
 };
 
 const GROUP_ORDER: Partial<Record<ControlGroup["id"], string[]>> = {
@@ -29,9 +31,17 @@ const GROUP_ORDER: Partial<Record<ControlGroup["id"], string[]>> = {
   exposure: ["auto_exposure", "exposure_time_absolute"]
 };
 
-export function CompactControlPanel({ group, controls }: Props) {
+const MIRROR_OPTIONS: { value: MirrorMode; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "h", label: "H" },
+  { value: "v", label: "V" },
+  { value: "hv", label: "HV" }
+];
+
+export function CompactControlPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
   const orderedControls = orderControls(group.controls, GROUP_ORDER[group.id] ?? []);
+  const mirrorDisabled = pixyHid.status?.writable !== true || pixyHid.pendingCommand !== null;
 
   return (
     <section className={`control-panel reference-control-panel control-panel-${group.id} accent-${group.accent}`}>
@@ -40,16 +50,33 @@ export function CompactControlPanel({ group, controls }: Props) {
         <h2>{group.title}</h2>
       </div>
       {group.id === "image" && (
-        <div className="effect-preset-strip" aria-label="Image effects">
-          {IMAGE_EFFECTS.map((effect) => (
-            <button
-              key={effect.id}
-              disabled={controls.pendingControl !== null}
-              onClick={() => void controls.setValues(effectValuesForControls(effect, group.controls))}
-            >
-              {effect.label}
-            </button>
-          ))}
+        <div className="image-preset-tools">
+          <div className="effect-preset-strip" aria-label="Image effects">
+            {IMAGE_EFFECTS.map((effect) => (
+              <button
+                key={effect.id}
+                disabled={controls.pendingControl !== null}
+                onClick={() => void controls.setValues(effectValuesForControls(effect, group.controls))}
+              >
+                {effect.label}
+              </button>
+            ))}
+          </div>
+          <div className="mirror-preset-row">
+            <span>Mirror</span>
+            <div className="reference-segmented columns-4">
+              {MIRROR_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={pixyHid.mirrorMode === option.value ? "is-selected" : ""}
+                  disabled={mirrorDisabled}
+                  onClick={() => void pixyHid.setMirrorMode(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       <div className="reference-control-stack">

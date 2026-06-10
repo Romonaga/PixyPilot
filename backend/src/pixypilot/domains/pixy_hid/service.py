@@ -8,6 +8,7 @@ from pixypilot.domains.pixy_hid.commands import (
     auto_privacy_reports,
     auto_rotate_reports,
     gesture_reports,
+    mirror_reports,
     tracking_reports,
 )
 from pixypilot.domains.pixy_hid.models import (
@@ -19,7 +20,15 @@ from pixypilot.domains.pixy_hid.models import (
 
 PIXY_VENDOR_ID = "0000328F"
 PIXY_PRODUCT_ID = "000000C0"
-KNOWN_CONTROLS = ["tracking", "privacy", "gesture", "auto_rotate", "auto_privacy", "audio_mode"]
+KNOWN_CONTROLS = [
+    "tracking",
+    "privacy",
+    "gesture",
+    "auto_rotate",
+    "mirror",
+    "auto_privacy",
+    "audio_mode",
+]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
 
 
@@ -78,6 +87,12 @@ class PixyHidService:
         path = await self._require_writable_path()
         await self._write_reports(path, auto_rotate_reports(enabled))
         return PixyHidCommandResult(ok=True, command="auto_rotate", value=enabled, path=path)
+
+    async def set_mirror(self, horizontal: bool, vertical: bool) -> PixyHidCommandResult:
+        path = await self._require_writable_path()
+        await self._write_reports(path, mirror_reports(horizontal, vertical))
+        value = _mirror_value(horizontal, vertical)
+        return PixyHidCommandResult(ok=True, command="mirror", value=value, path=path)
 
     async def set_audio_mode(self, mode: AudioMode) -> PixyHidCommandResult:
         path = await self._require_writable_path()
@@ -139,6 +154,16 @@ def _configured_report_gap_seconds() -> float:
         return max(0, int(raw_value)) / 1000
     except ValueError:
         return DEFAULT_REPORT_GAP_SECONDS
+
+
+def _mirror_value(horizontal: bool, vertical: bool) -> str:
+    if horizontal and vertical:
+        return "hv"
+    if horizontal:
+        return "h"
+    if vertical:
+        return "v"
+    return "off"
 
 
 def get_pixy_hid_service() -> PixyHidService:

@@ -49,6 +49,7 @@ export type PixyHidStatus = {
 
 export type TrackingMode = "off" | "tracking" | "privacy";
 export type AudioMode = "noise_cancel" | "live" | "original";
+export type MirrorMode = "off" | "h" | "v" | "hv";
 
 export type PixyHidCommandResult = {
   ok: boolean;

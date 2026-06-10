@@ -30,6 +30,11 @@ class GestureRequest(BaseModel):
     enabled: bool
 
 
+class MirrorRequest(BaseModel):
+    horizontal: bool
+    vertical: bool
+
+
 class AudioModeRequest(BaseModel):
     mode: AudioMode
 

@@ -4,6 +4,7 @@ import type {
   AudioMode,
   AppSettings,
   Device,
+  MirrorMode,
   PixyHidCommandResult,
   PixyHidStatus,
   TrackingMode,
@@ -92,6 +93,16 @@ export async function setPixyAutoRotate(enabled: boolean): Promise<PixyHidComman
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/auto-rotate", {
     method: "PATCH",
     body: JSON.stringify({ enabled })
+  });
+}
+
+export async function setPixyMirror(mode: MirrorMode): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/mirror", {
+    method: "PATCH",
+    body: JSON.stringify({
+      horizontal: mode === "h" || mode === "hv",
+      vertical: mode === "v" || mode === "hv"
+    })
   });
 }
 

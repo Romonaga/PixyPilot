@@ -570,6 +570,28 @@ Windows EMEET Studio Anti Flicker mapping:
   - This is already exposed in Linux as V4L2 control power_line_frequency.
   - No HID or UVC Extension Unit command is needed.
 
+Windows EMEET Studio Mirror / Flip mapping:
+- Capture file analyzed locally:
+  - pcaps/17.pcapng
+- User action reported:
+  - flip vertical
+  - flip horizontal
+- Confirmed path:
+  - Vendor HID group 0x04 feature toggles.
+- Command shape:
+  - Set: 09 04 00 08 00 02 00 02 FF XX
+  - Query/status: 09 04 00 07 00 01 00 01 FF
+  - Response: 09 04 00 07 00 02 00 02 FF XX
+- Confirmed feature ids based on reported capture order:
+  - FF 02 = vertical flip
+  - FF 01 = horizontal flip
+- Confirmed values:
+  - XX 00 = off
+  - XX 01 = on
+- Current conclusion:
+  - Horizontal and vertical flip are independent HID toggles.
+  - PixyPilot can expose these as Mirror Off/H/V/HV.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

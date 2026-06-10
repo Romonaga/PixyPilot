@@ -6,9 +6,10 @@ import {
   setPixyAutoPrivacy,
   setPixyAutoRotate,
   setPixyGesture,
+  setPixyMirror,
   setPixyTracking
 } from "../lib/apiClient";
-import type { AudioMode, PixyHidStatus, TrackingMode } from "../types/api";
+import type { AudioMode, MirrorMode, PixyHidStatus, TrackingMode } from "../types/api";
 
 export type UsePixyHidResult = {
   status: PixyHidStatus | null;
@@ -19,12 +20,14 @@ export type UsePixyHidResult = {
   trackingMode: TrackingMode | null;
   gestureEnabled: boolean | null;
   autoRotateEnabled: boolean | null;
+  mirrorMode: MirrorMode | null;
   audioMode: AudioMode | null;
   autoPrivacySeconds: number | null;
   refresh: () => Promise<void>;
   setTrackingMode: (mode: TrackingMode) => Promise<void>;
   setGestureEnabled: (enabled: boolean) => Promise<void>;
   setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
+  setMirrorMode: (mode: MirrorMode) => Promise<void>;
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
 };
@@ -38,6 +41,7 @@ export function usePixyHid(): UsePixyHidResult {
   const [trackingMode, setTrackingModeState] = useState<TrackingMode | null>(null);
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
   const [autoRotateEnabled, setAutoRotateEnabledState] = useState<boolean | null>(null);
+  const [mirrorMode, setMirrorModeState] = useState<MirrorMode | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
 
@@ -100,6 +104,15 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const setMirrorMode = useCallback(
+    async (mode: MirrorMode) =>
+      runCommand(`mirror:${mode}`, async () => {
+        await setPixyMirror(mode);
+        setMirrorModeState(mode);
+      }),
+    [runCommand]
+  );
+
   const setAudioMode = useCallback(
     async (mode: AudioMode) =>
       runCommand(`audio:${mode}`, async () => {
@@ -127,12 +140,14 @@ export function usePixyHid(): UsePixyHidResult {
     trackingMode,
     gestureEnabled,
     autoRotateEnabled,
+    mirrorMode,
     audioMode,
     autoPrivacySeconds,
     refresh,
     setTrackingMode,
     setGestureEnabled,
     setAutoRotateEnabled,
+    setMirrorMode,
     setAudioMode,
     setAutoPrivacySeconds
   };

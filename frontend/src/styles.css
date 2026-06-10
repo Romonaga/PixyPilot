@@ -544,11 +544,16 @@ h2 {
   display: grid;
 }
 
+.image-preset-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .effect-preset-strip {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
-  margin-bottom: 8px;
 }
 
 .effect-preset-strip button {
@@ -566,6 +571,20 @@ h2 {
 
 .effect-preset-strip button:disabled {
   opacity: 0.45;
+}
+
+.mirror-preset-row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.mirror-preset-row > span {
+  color: #f4f0df;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .control-panel-image.reference-control-panel .reference-control-stack {
