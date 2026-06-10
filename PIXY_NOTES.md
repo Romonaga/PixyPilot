@@ -826,7 +826,7 @@ Project direction:
 - Backend responsibilities:
   - Enumerate V4L2 devices and controls.
   - Return controls as JSON.
-  - Validate and set V4L2 control values.
+  - Validate V4L2 controls and set standard control values through native Linux V4L2 ioctls.
   - Expose Pixy HID controls through a separate provider.
   - Later expose UVC extension selectors as named capabilities only after they are decoded.
 - Frontend responsibilities:
@@ -836,7 +836,7 @@ Project direction:
   - API clients, types, parsers, validation, and formatting belong in reusable libs.
   - Use smart critical-path tests rather than broad low-value tests.
 - Capability buckets:
-  - standard_v4l2: confirmed and enumerable now.
+  - standard_v4l2: confirmed, enumerable now, and writeable through native ioctl for simple controls.
   - pixy_hid: reverse-engineered and implemented as an experimental provider, likely usable after hidraw permission fix.
   - uvc_extension: present but unnamed; needs sniffing/correlation before normal app exposure.
 - Permission need:
@@ -844,7 +844,8 @@ Project direction:
 
 Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
-- V4L2 control writes are live for exposed controls.
+- V4L2 control writes are live for exposed controls and now use native `VIDIOC_S_CTRL` writes rather than spawning `v4l2-ctl`.
+- `v4l2-ctl` remains in use for enumeration and video format switching.
 - Live preview is available through an ffmpeg-backed MJPEG stream endpoint.
 - Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.
 - Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.

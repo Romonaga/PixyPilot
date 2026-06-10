@@ -7,7 +7,7 @@ The first implementation focuses on the confirmed V4L2/UVC control path:
 - enumerate camera devices
 - enumerate V4L2 controls
 - expose controls as JSON
-- validate and set values
+- validate controls and set values through native V4L2 ioctls
 - preview the selected camera stream
 - record the selected stream to local disk
 - render a cockpit-style React UI for PTZ, image, focus, and exposure controls
@@ -35,6 +35,8 @@ npm run dev
 ```
 
 The frontend expects the API at `http://127.0.0.1:8000` during development.
+
+Standard camera control writes use native Linux V4L2 ioctls. `v4l2-ctl` is still used for device/control/format enumeration and format switching while those paths remain discovery-heavy.
 
 ## Video Preview And Recording
 

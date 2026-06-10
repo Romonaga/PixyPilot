@@ -3,12 +3,18 @@ from pathlib import Path
 from pixypilot.core.commands import AsyncCommandRunner, CommandError
 from pixypilot.domains.devices.models import Device
 from pixypilot.domains.v4l2.models import V4L2Control, VideoFormatOption
+from pixypilot.domains.v4l2.native import NativeControlWriter, control_with_value
 from pixypilot.domains.v4l2.parser import parse_controls, parse_video_formats
 
 
 class V4L2Service:
-    def __init__(self, runner: AsyncCommandRunner | None = None) -> None:
+    def __init__(
+        self,
+        runner: AsyncCommandRunner | None = None,
+        control_writer: NativeControlWriter | None = None,
+    ) -> None:
         self.runner = runner or AsyncCommandRunner()
+        self.control_writer = control_writer or NativeControlWriter()
 
     def device_path_from_name(self, device_name: str) -> str:
         if not device_name.startswith("video") or "/" in device_name:
@@ -89,9 +95,8 @@ class V4L2Service:
         if control is None:
             raise ValueError(f"Unknown control: {control_name}")
         self._validate_control_value(control, value)
-        await self.runner.run(["v4l2-ctl", "-d", device_path, f"--set-ctrl={control_name}={value}"])
-        refreshed = await self.list_controls(device_path)
-        return next(item for item in refreshed if item.name == control_name)
+        await self.control_writer.set_control(device_path, control.control_id, value)
+        return control_with_value(control, value)
 
     def _validate_device_path(self, device_path: str) -> None:
         if not device_path.startswith("/dev/video"):

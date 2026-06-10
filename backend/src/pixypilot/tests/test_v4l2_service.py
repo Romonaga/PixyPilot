@@ -4,6 +4,23 @@ from pixypilot.domains.v4l2.models import MenuOption, V4L2Control
 from pixypilot.domains.v4l2.service import V4L2Service, _device_caps_include_video_capture
 
 
+class FakeControlWriter:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, int]] = []
+
+    async def set_control(self, device_path: str, control_id: str, value: int) -> None:
+        self.calls.append((device_path, control_id, value))
+
+
+class StaticControlService(V4L2Service):
+    def __init__(self, controls: list[V4L2Control], writer: FakeControlWriter) -> None:
+        super().__init__(control_writer=writer)
+        self.static_controls = controls
+
+    async def list_controls(self, device_path: str) -> list[V4L2Control]:
+        return self.static_controls
+
+
 def make_control(**overrides: object) -> V4L2Control:
     data = {
         "name": "brightness",
@@ -80,3 +97,34 @@ Media Driver Info:
 
     assert _device_caps_include_video_capture(capture)
     assert not _device_caps_include_video_capture(metadata_only)
+
+
+async def test_set_control_uses_native_writer_and_returns_updated_value() -> None:
+    writer = FakeControlWriter()
+    service = StaticControlService(
+        [make_control(name="zoom_absolute", control_id="0x009a090d", value=100, min=100, max=150, step=1)],
+        writer,
+    )
+
+    updated = await service.set_control("/dev/video0", "zoom_absolute", 120)
+
+    assert writer.calls == [("/dev/video0", "0x009a090d", 120)]
+    assert updated.value == 120
+
+
+async def test_set_control_updates_menu_value_label_without_refreshing_controls() -> None:
+    writer = FakeControlWriter()
+    control = make_control(
+        name="power_line_frequency",
+        control_id="0x00980918",
+        kind="menu",
+        value=2,
+        menu=[MenuOption(value=1, label="50 Hz"), MenuOption(value=2, label="60 Hz")],
+    )
+    service = StaticControlService([control], writer)
+
+    updated = await service.set_control("/dev/video0", "power_line_frequency", 1)
+
+    assert writer.calls == [("/dev/video0", "0x00980918", 1)]
+    assert updated.value == 1
+    assert updated.value_label == "50 Hz"
