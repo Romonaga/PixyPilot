@@ -54,7 +54,11 @@ export function useVideoCapture(
   useEffect(() => {
     setPreviewEnabled(false);
     setStreamToken((current) => current + 1);
-  }, [deviceName, selectedFormat]);
+  }, [deviceName]);
+
+  useEffect(() => {
+    setStreamToken((current) => current + 1);
+  }, [selectedFormat]);
 
   const togglePreview = useCallback(() => {
     setPreviewEnabled((enabled) => {

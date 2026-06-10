@@ -17,14 +17,47 @@ This document records what PixyPilot has learned about the EMEET PIXY camera so 
 
 ## Control Paths
 
-The PIXY currently appears to have three useful control paths.
+The PIXY currently exposes several useful control paths.
 
 | Path | Status | Purpose |
 | --- | --- | --- |
 | V4L2/UVC | Confirmed | Standard image, focus, exposure, PTZ, and format controls. PixyPilot uses native Linux V4L2 ioctls for inspection, enumeration, control writes, and format switching. |
 | ALSA | Confirmed | Microphone mute and microphone capture volume |
-| Vendor HID | Partially confirmed | Smart features such as tracking, privacy, gesture, and audio DSP modes |
+| Vendor HID | Partially decoded | Smart features, focus metering, mirror/rotate, PTZ jog/vector movement, native PTZ presets, privacy, gesture, and audio DSP modes |
 | UVC Extension Unit | Present, not decoded | Ten vendor selectors exposed through UVC, names still unknown |
+
+## PixyPilot Implementation Status
+
+Current implementation status:
+
+- V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux ioctls.
+- MJPG live preview uses native V4L2 mmap capture and has been validated across the advertised MJPG format matrix.
+- YUYV/raw preview still uses `ffmpeg` as a fallback because browser preview requires JPEG frames.
+- Recording still uses `ffmpeg`.
+- ALSA microphone mute/status currently uses `arecord`/`amixer`.
+- Vendor HID smart controls are written directly to `/dev/hidrawN`.
+- UVC extension selectors are documented as raw investigation data only and are not exposed as normal controls.
+
+Validated MJPG preview formats:
+
+| Format | Result |
+| --- | --- |
+| `3840x2160@30` | native preview OK |
+| `2560x1440@30` | native preview OK |
+| `1920x1080@60` | native preview OK |
+| `1920x1080@30` | native preview OK |
+| `1280x960@30` | native preview OK |
+| `1280x720@60` | native preview OK |
+| `1280x720@30` | native preview OK |
+| `1024x576@60` | native preview OK |
+| `1024x576@30` | native preview OK |
+| `960x720@30` | native preview OK |
+| `800x600@30` | native preview OK |
+| `640x480@30` | native preview OK |
+| `640x360@60` | native preview OK |
+| `640x360@30` | native preview OK |
+
+The YUYV formats `640x480@30` and `640x360@30` were validated through the current ffmpeg fallback preview path.
 
 ## Confirmed V4L2 Controls
 
@@ -141,6 +174,8 @@ EMEET Studio uses normal UVC Probe/Commit negotiation for its format picker. Cap
 | 720P 30FPS | `1` | `5` | `333333` | `MJPG 1280x720@30` |
 
 No vendor HID or UVC Extension Unit command was observed for these format changes.
+
+PixyPilot applies these format changes with native `VIDIOC_S_FMT` and `VIDIOC_S_PARM` calls. Active preview streams are stopped before changing format to avoid `EBUSY` from the V4L2 device.
 
 ## Confirmed Audio Controls
 
@@ -755,7 +790,7 @@ Capture `pcaps/20.pcapng` tested manual 90-degree rotate-left, 90-degree rotate-
 
 Capture `pcaps/23.pcapng` tested zoom far to near and back to far. The only control writes after streaming began were standard UVC `SET_CUR` writes to Camera Terminal entity `0x01`, selector `0x0b` (`Zoom Absolute`): value `150` for near and value `100` for far. No HID reports were present.
 
-Capture `pcaps/24.pcapng` tested saving official app PTZ presets to slots 1, 2, and 3. It confirmed HID group `03`, command `15` saves a 1-based slot and command `16` queries that slot's saved state. PixyPilot implements native preset save from this capture. Native preset goto still needs a separate isolated capture.
+Capture `pcaps/24.pcapng` tested saving official app PTZ presets to slots 1, 2, and 3. It confirmed HID group `03`, command `15` saves a 1-based slot and command `16` queries that slot's saved state. PixyPilot implements native preset save from this capture.
 
 Capture `pcaps/25.pcapng` tested loading presets. Slots 1, 2, and 3 used HID group `03`, command `18` with the 1-based slot number. EMEET Studio then wrote standard UVC Zoom Absolute value `100` after each load. PixyPilot implements native HID preset load and restores zoom from the local app preset when available.
 

@@ -36,9 +36,16 @@ type PtzPreset = {
 };
 
 const SPEEDS = [1, 2, 3, 4, 5];
-const PTZ_VECTOR_SPEED_STEP = 6;
-const PTZ_JOG_REPEAT_MS = 35;
-const PTZ_VECTOR_DRAG_THROTTLE_MS = 75;
+const PTZ_VECTOR_SPEED_STEP = 2;
+const PTZ_JOG_INITIAL_REPEAT_MS = 260;
+const PTZ_JOG_REPEAT_MS_BY_SPEED: Record<number, number> = {
+  1: 360,
+  2: 280,
+  3: 220,
+  4: 160,
+  5: 110
+};
+const PTZ_VECTOR_DRAG_THROTTLE_MS = 120;
 
 function findControl(group: ControlGroup, name: string): V4L2Control | undefined {
   return group.controls.find((control) => control.name === name);
@@ -153,7 +160,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const auxiliaryControls = group.controls.filter(
     (control) => !primaryControlNames.has(control.name) && isUsableAuxiliaryControl(control)
   );
-  const [speed, setSpeed] = useState(3);
+  const [speed, setSpeed] = useState(1);
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
   const [activeVector, setActiveVector] = useState<PtzVector | null>(null);
@@ -161,6 +168,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const jogTimerRef = useRef<number | null>(null);
   const vectorDragInFlightRef = useRef(false);
   const vectorDragLastSentAtRef = useRef(0);
+  const vectorMotionActiveRef = useRef(false);
   const hidPtzReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
   const hidPtzVectorReady =
@@ -172,28 +180,44 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-") ?? false;
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
-    if (hidPtzVectorReady) {
-      const vector = ptzVectorForDirection(hidDirection, speed);
-      setActiveVector(vector);
-      await pixyHid.sendPtzVector(vector);
-      return;
-    }
     if (hidPtzReady) {
       await pixyHid.sendPtzDirection(hidDirection);
+      return;
+    }
+    if (hidPtzVectorReady) {
+      const vector = ptzVectorForDirection(hidDirection, speed);
+      vectorMotionActiveRef.current = true;
+      setActiveVector(vector);
+      await pixyHid.sendPtzVector(vector);
       return;
     }
     if (!control || control.flags.includes("inactive")) {
       return;
     }
-    await controls.setValue(control.name, clamp(control.value + stepFor(control) * speed * direction, control));
+    await controls.setValue(control.name, clamp(control.value + stepFor(control) * direction, control));
   };
 
-  const stopJog = () => {
+  const stopPtzVector = async () => {
+    if (!vectorMotionActiveRef.current || !hidPtzVectorReady) {
+      setActiveVector(null);
+      return;
+    }
+    vectorMotionActiveRef.current = false;
+    setActiveVector(null);
+    await pixyHid.sendPtzVector({ x: 0, y: 0, z: 0 });
+  };
+
+  const cancelJogTimers = () => {
     jogActiveRef.current = false;
     if (jogTimerRef.current !== null) {
       window.clearTimeout(jogTimerRef.current);
       jogTimerRef.current = null;
     }
+  };
+
+  const stopJog = () => {
+    cancelJogTimers();
+    void stopPtzVector();
   };
 
   useEffect(() => stopJog, []);
@@ -205,14 +229,18 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
     stopJog();
     jogActiveRef.current = true;
 
-    const tick = async () => {
+    const repeat = async () => {
       await moveAxis(control, direction, hidDirection);
       if (jogActiveRef.current) {
-        jogTimerRef.current = window.setTimeout(() => void tick(), PTZ_JOG_REPEAT_MS);
+        jogTimerRef.current = window.setTimeout(() => void repeat(), PTZ_JOG_REPEAT_MS_BY_SPEED[speed] ?? 220);
       }
     };
 
-    void tick();
+    void moveAxis(control, direction, hidDirection).then(() => {
+      if (jogActiveRef.current) {
+        jogTimerRef.current = window.setTimeout(() => void repeat(), PTZ_JOG_INITIAL_REPEAT_MS);
+      }
+    });
   };
 
   const keyJog = async (
@@ -229,11 +257,16 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   };
 
   const centerPtz = async () => {
+    cancelJogTimers();
+    await stopPtzVector();
     const centerable = [pan, tilt].filter((control): control is V4L2Control => Boolean(control));
     for (const control of centerable) {
       if (!control.flags.includes("inactive")) {
         await controls.setValue(control.name, clamp(0, control));
       }
+    }
+    if (zoom && !zoom.flags.includes("inactive")) {
+      await controls.setValue(zoom.name, clamp(zoom.default ?? zoom.min ?? 0, zoom));
     }
   };
 
@@ -265,6 +298,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
     }
     vectorDragInFlightRef.current = true;
     vectorDragLastSentAtRef.current = now;
+    vectorMotionActiveRef.current = true;
     try {
       await pixyHid.sendPtzVector(vector);
     } finally {
@@ -283,7 +317,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
       await centerPtz();
       return;
     }
-    await pixyHid.sendPtzVector(vector);
+    await stopPtzVector();
   };
 
   const savePreset = async () => {
@@ -410,7 +444,8 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
                 }
               }
             }}
-            onPointerLeave={() => setActiveVector(null)}
+            onPointerCancel={() => void stopPtzVector()}
+            onPointerLeave={() => void stopPtzVector()}
             onPointerUp={(event) => void commitVectorPad(event)}
             title={hidPtzVectorReady ? "Point PTZ" : "Center PTZ"}
             aria-label="Center PTZ"

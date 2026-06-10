@@ -94,18 +94,21 @@ export function useVideoFormats(deviceName: string | null): UseVideoFormatsResul
       if (!selected) {
         return;
       }
+      const previousKey = selectedKey;
+      setSelectedKeyState(key);
       setPending(true);
       setError(null);
       try {
-        const updated = await setVideoFormat(deviceName, selected);
-        setSelectedKeyState(formatKey(updated));
+        await setVideoFormat(deviceName, selected);
+        setSelectedKeyState(key);
       } catch (err) {
+        setSelectedKeyState(previousKey);
         setError(err instanceof Error ? err.message : "Unable to set video format");
       } finally {
         setPending(false);
       }
     },
-    [deviceName, formats]
+    [deviceName, formats, selectedKey]
   );
 
   return {

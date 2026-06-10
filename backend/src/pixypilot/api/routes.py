@@ -132,9 +132,11 @@ async def set_format(
     device_name: str,
     request: VideoFormatSetRequest,
     service: V4L2Service = Depends(get_v4l2_service),
+    video_service: VideoService = Depends(get_video_service),
 ) -> VideoFormatOption:
     device_path = service.device_path_from_name(device_name)
     try:
+        await video_service.stop_streams(device_path)
         return await service.set_format(
             device_path,
             request.pixel_format,
@@ -185,6 +187,7 @@ async def start_recording(
 ) -> VideoRecordingStatus:
     try:
         device_path = v4l2_service.device_path_from_name(device_name)
+        await video_service.stop_streams(device_path)
         return await video_service.start_recording(device_name, device_path, request)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

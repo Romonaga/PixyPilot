@@ -32,6 +32,15 @@ const format: VideoFormatOption = {
   label: "MJPG 1280x720 30fps"
 };
 
+const alternateFormat: VideoFormatOption = {
+  pixel_format: "MJPG",
+  description: "Motion-JPEG",
+  width: 1920,
+  height: 1080,
+  fps: 60,
+  label: "MJPG 1920x1080 60fps"
+};
+
 describe("useVideoCapture", () => {
   beforeEach(() => {
     mockedFetchVideoRecordingStatus.mockReset();
@@ -78,6 +87,27 @@ describe("useVideoCapture", () => {
 
     expect(result.current.streamUrl).not.toBe(firstUrl);
     expect(result.current.previewEnabled).toBe(true);
+  });
+
+  it("keeps preview visible and reconnects when the selected format changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ selectedFormat }) => useVideoCapture("video0", selectedFormat),
+      { initialProps: { selectedFormat: format } }
+    );
+
+    await waitFor(() => expect(result.current.status?.recording).toBe(false));
+
+    act(() => {
+      result.current.togglePreview();
+    });
+    const firstUrl = result.current.streamUrl;
+
+    rerender({ selectedFormat: alternateFormat });
+
+    expect(result.current.previewEnabled).toBe(true);
+    expect(result.current.streamUrl).not.toBe(firstUrl);
+    expect(result.current.streamUrl).toContain("width=1920");
+    expect(result.current.streamUrl).toContain("fps=60");
   });
 
 

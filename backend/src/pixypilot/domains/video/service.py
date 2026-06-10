@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pixypilot.domains.video.native_mjpeg import NativeMjpegCapture
 from pixypilot.domains.video.models import VideoRecordingStatus, VideoStreamSettings
 
 PIXEL_FORMAT_INPUTS = {
@@ -20,22 +21,44 @@ class VideoService:
         self.recordings_dir = recordings_dir or _recordings_dir()
         self._recording_process: asyncio.subprocess.Process | None = None
         self._recording_status = VideoRecordingStatus(recording=False)
+        self._stream_processes: dict[str, list[asyncio.subprocess.Process]] = {}
+        self._native_streams: dict[str, NativeMjpegCapture] = {}
+        self._stream_lock = asyncio.Lock()
 
     async def mjpeg_stream(self, device_path: str, settings: VideoStreamSettings) -> AsyncIterator[bytes]:
-        command = build_stream_command(device_path, settings)
-        process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-        )
+        if settings.pixel_format.upper() == "MJPG":
+            async for chunk in self._native_mjpeg_stream(device_path, settings):
+                yield chunk
+            return
+
+        process = await self._start_ffmpeg_stream(device_path, settings)
         if process.stdout is None:
+            await self._unregister_stream(device_path, process)
+            await _stop_process(process)
             return
 
         try:
             async for frame in _jpeg_frames(process.stdout):
                 yield FRAME_BOUNDARY + frame + b"\r\n"
         finally:
+            await self._unregister_stream(device_path, process)
             await _stop_process(process)
+
+    async def stop_streams(self, device_path: str | None = None) -> None:
+        async with self._stream_lock:
+            if device_path is None:
+                processes = [process for group in self._stream_processes.values() for process in group]
+                self._stream_processes.clear()
+                captures = list(self._native_streams.values())
+                self._native_streams.clear()
+            else:
+                processes = self._stream_processes.pop(device_path, [])
+                captures = [self._native_streams.pop(device_path)] if device_path in self._native_streams else []
+
+        for process in processes:
+            await _stop_process(process)
+        for capture in captures:
+            await asyncio.to_thread(capture.close)
 
     async def start_recording(
         self,
@@ -89,6 +112,77 @@ class VideoService:
         self._recording_status = self._recording_status.model_copy(
             update={"recording": False, "reason": "Recording process exited"}
         )
+
+    async def _native_mjpeg_stream(self, device_path: str, settings: VideoStreamSettings) -> AsyncIterator[bytes]:
+        capture = await self._start_native_stream(device_path, settings)
+        try:
+            while True:
+                try:
+                    frame = await asyncio.to_thread(capture.read_frame)
+                except TimeoutError:
+                    continue
+                except (OSError, RuntimeError):
+                    break
+                yield FRAME_BOUNDARY + frame + b"\r\n"
+        finally:
+            await asyncio.to_thread(capture.close)
+            await self._unregister_native_stream(device_path, capture)
+
+    async def _start_native_stream(self, device_path: str, settings: VideoStreamSettings) -> NativeMjpegCapture:
+        async with self._stream_lock:
+            stale_processes = self._stream_processes.pop(device_path, [])
+            stale_capture = self._native_streams.pop(device_path, None)
+
+        for process in stale_processes:
+            await _stop_process(process)
+        if stale_capture is not None:
+            await asyncio.to_thread(stale_capture.close)
+
+        capture = NativeMjpegCapture(device_path, settings)
+        await asyncio.to_thread(capture.open)
+        async with self._stream_lock:
+            stale_capture = self._native_streams.pop(device_path, None)
+            if stale_capture is not None:
+                await asyncio.to_thread(stale_capture.close)
+            self._native_streams[device_path] = capture
+        return capture
+
+    async def _unregister_native_stream(self, device_path: str, capture: NativeMjpegCapture) -> None:
+        async with self._stream_lock:
+            if self._native_streams.get(device_path) is capture:
+                self._native_streams.pop(device_path, None)
+
+    async def _start_ffmpeg_stream(self, device_path: str, settings: VideoStreamSettings) -> asyncio.subprocess.Process:
+        command = build_stream_command(device_path, settings)
+        async with self._stream_lock:
+            stale_processes = self._stream_processes.pop(device_path, [])
+            stale_capture = self._native_streams.pop(device_path, None)
+
+        for process in stale_processes:
+            await _stop_process(process)
+        if stale_capture is not None:
+            await asyncio.to_thread(stale_capture.close)
+
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        async with self._stream_lock:
+            stale_processes = self._stream_processes.pop(device_path, [])
+            for stale_process in stale_processes:
+                await _stop_process(stale_process)
+            self._stream_processes[device_path] = [process]
+        return process
+
+    async def _unregister_stream(self, device_path: str, process: asyncio.subprocess.Process) -> None:
+        async with self._stream_lock:
+            processes = self._stream_processes.get(device_path)
+            if not processes:
+                return
+            self._stream_processes[device_path] = [item for item in processes if item is not process]
+            if not self._stream_processes[device_path]:
+                self._stream_processes.pop(device_path, None)
 
 
 def build_stream_command(device_path: str, settings: VideoStreamSettings) -> list[str]:

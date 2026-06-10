@@ -47,7 +47,7 @@ describe("useVideoFormats", () => {
 
   it("loads formats and sets a selected format tuple", async () => {
     mockedFetchVideoFormats.mockResolvedValue(formats);
-    mockedSetVideoFormat.mockResolvedValue(formats[1]);
+    mockedSetVideoFormat.mockResolvedValue({ ...formats[1], fps: 59.999, label: "MJPG 1920x1080 59.999fps" });
 
     const { result } = renderHook(() => useVideoFormats("video0"));
 
@@ -61,6 +61,23 @@ describe("useVideoFormats", () => {
 
     expect(mockedSetVideoFormat).toHaveBeenCalledWith("video0", formats[1]);
     expect(result.current.selectedKey).toBe(formatKey(formats[1]));
+  });
+
+  it("reverts the selected format when the backend rejects the change", async () => {
+    mockedFetchVideoFormats.mockResolvedValue(formats);
+    mockedSetVideoFormat.mockRejectedValue(new Error("Unable to set V4L2 format"));
+
+    const { result } = renderHook(() => useVideoFormats("video0"));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const originalKey = result.current.selectedKey;
+
+    await act(async () => {
+      await result.current.setSelectedKey(formatKey(formats[1]));
+    });
+
+    expect(result.current.selectedKey).toBe(originalKey);
+    expect(result.current.error).toBe("Unable to set V4L2 format");
   });
 
   it("prefers a stable desktop preview format over the highest resolution", () => {

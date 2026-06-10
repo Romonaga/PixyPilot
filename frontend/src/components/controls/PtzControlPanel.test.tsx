@@ -103,10 +103,10 @@ describe("PtzControlPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Pan left" }));
 
-    expect(setValue).toHaveBeenCalledWith("pan_absolute", -10);
+    expect(setValue).toHaveBeenCalledWith("pan_absolute", 10);
   });
 
-  it("centers pan and tilt controls", async () => {
+  it("homes pan, tilt, and zoom controls", async () => {
     const setValue = renderPanel();
     const centerButton = screen.getByRole("button", { name: "Center PTZ" });
     vi.spyOn(centerButton, "getBoundingClientRect").mockReturnValue({
@@ -123,8 +123,9 @@ describe("PtzControlPanel", () => {
 
     fireEvent.pointerUp(centerButton, { clientX: 50, clientY: 50 });
 
-    expect(setValue).toHaveBeenCalledWith("pan_absolute", 0);
+    await waitFor(() => expect(setValue).toHaveBeenCalledWith("pan_absolute", 0));
     await waitFor(() => expect(setValue).toHaveBeenCalledWith("tilt_absolute", 0));
+    await waitFor(() => expect(setValue).toHaveBeenCalledWith("zoom_absolute", 0));
   });
 
   it("sets zoom from the visible zoom slider", () => {
@@ -234,7 +235,7 @@ describe("PtzControlPanel", () => {
     expect(setValue).not.toHaveBeenCalled();
   });
 
-  it("uses speed-scaled HID PTZ vector jogs when available", async () => {
+  it("prefers the captured discrete HID jog command for arrows when both PTZ paths are available", async () => {
     const user = userEvent.setup();
     const setValue = vi.fn().mockResolvedValue(undefined);
     const sendPtzDirection = vi.fn().mockResolvedValue(undefined);
@@ -258,8 +259,34 @@ describe("PtzControlPanel", () => {
     await user.click(screen.getByRole("button", { name: "Speed 5" }));
     await user.click(screen.getByRole("button", { name: "Pan right" }));
 
-    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 30, y: 0 }));
-    expect(sendPtzDirection).not.toHaveBeenCalled();
+    await waitFor(() => expect(sendPtzDirection).toHaveBeenCalledWith("right"));
+    expect(sendPtzVector).not.toHaveBeenCalled();
+    expect(setValue).not.toHaveBeenCalled();
+  });
+
+  it("stops fallback HID vector movement on pointer release", async () => {
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const sendPtzVector = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_vector"]
+        },
+        sendPtzVector
+      })
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Pan right" }));
+    fireEvent.pointerUp(screen.getByRole("button", { name: "Pan right" }));
+
+    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 2, y: 0 }));
+    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 0, y: 0, z: 0 }));
     expect(setValue).not.toHaveBeenCalled();
   });
 
@@ -298,7 +325,8 @@ describe("PtzControlPanel", () => {
     fireEvent.pointerUp(centerButton, { clientX: 100, clientY: 50 });
 
     await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 30, y: 0 }));
+    await waitFor(() => expect(sendPtzVector).toHaveBeenCalledWith({ x: 0, y: 0, z: 0 }));
     expect(setValue).not.toHaveBeenCalled();
-    expect(centerButton.querySelector(".ptz-vector-puck")).not.toBeNull();
+    expect(centerButton.querySelector(".ptz-vector-puck")).toBeNull();
   });
 });

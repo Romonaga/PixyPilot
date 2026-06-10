@@ -37,6 +37,15 @@ Tests:
 - ffmpeg capture produced normal image.
 - Indicates camera and UVC driver are working.
 - Likely guvcview display/decoding issue.
+- PixyPilot native MJPG preview has been validated against the full advertised format matrix without leaving ffmpeg processes behind.
+
+PixyPilot implementation status:
+- V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux ioctls.
+- MJPG preview uses native V4L2 mmap capture.
+- YUYV/raw preview still uses ffmpeg as a fallback to encode browser-viewable MJPEG frames.
+- Recording still uses ffmpeg.
+- ALSA microphone mute/status currently uses arecord/amixer command-line tools.
+- Vendor HID smart controls are written directly to the hidraw node.
 
 Controls exposed through V4L2:
 - pan_absolute
@@ -121,7 +130,7 @@ Reverse-engineered HID base:
     SET 09 05 00 03 00 01 00 01 XX
     XX values: 01 noise cancel, 02 live, 03 original
     QRY/follow-up: 09 05 00 04
-- These commands should be treated as a confirmed-looking starting point, not as production-safe until tested locally.
+- These initial commands have since been validated locally and are implemented in PixyPilot. Later packet captures added mirror/flip, auto-rotate, focus metering, PTZ jog/vector movement, and PTZ preset save/load.
 
 USB descriptor details:
 - UVC extension unit:
@@ -882,7 +891,9 @@ Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
 - V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching now use native Linux V4L2 ioctls rather than spawning `v4l2-ctl`.
 - Image/Focus/Exposure preset save/apply/delete is live and stored in `config/presets.yaml`.
-- Live preview is available through an ffmpeg-backed MJPEG stream endpoint.
+- Live preview is available through an MJPEG stream endpoint.
+  - MJPG preview uses native V4L2 mmap capture and has been validated across the full advertised MJPG format matrix.
+  - YUYV/raw preview still falls back to ffmpeg so the backend can encode browser-viewable MJPEG frames.
 - Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.
 - Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.
 - PTZ is now a first-class cockpit panel:
@@ -898,8 +909,14 @@ Implemented app status:
   - status endpoint detects the hidraw path
   - tracking mode command
   - gesture command
+  - auto-rotate command
+  - mirror/flip command
+  - focus metering command
   - audio mode command
   - auto-privacy timeout command
+  - directional PTZ jog command
+  - circular PTZ vector command
+  - native PTZ preset save/load commands
 - Standard USB audio provider is wired as a separate domain:
   - detects the PIXY ALSA capture card
   - reads Mic Capture Switch and Mic Capture Volume
@@ -917,7 +934,6 @@ Implemented app status:
   - Sound-following / Speaker Tracking is not shown because we have not found it exposed in EMEET Studio.
 
 Open investigation:
-- Verify the gist HID commands locally after solving /dev/hidraw14 permissions.
 - Capture official EMEET Studio traffic for any smart features not covered by the gist.
 - Correlate UVC extension selectors by:
   - Snapshotting selector values.

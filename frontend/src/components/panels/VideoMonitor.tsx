@@ -112,6 +112,7 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
         {videoCapture.streamUrl ? (
           <>
             <img
+              key={videoCapture.streamUrl}
               src={videoCapture.streamUrl}
               alt="Live camera stream"
               onError={handleStreamError}

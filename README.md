@@ -2,17 +2,19 @@
 
 PixyPilot is a local Linux control deck for the EMEET PIXY camera.
 
-The first implementation focuses on the confirmed V4L2/UVC control path:
+The current implementation focuses on confirmed Linux control paths:
 
 - enumerate camera devices
 - enumerate V4L2 controls
+- enumerate V4L2 video formats
 - expose controls as JSON
 - validate controls and set values through native V4L2 ioctls
+- switch video formats through native V4L2 ioctls
 - preview the selected camera stream
 - record the selected stream to local disk
 - render a cockpit-style React UI for PTZ, image, focus, and exposure controls
 
-The vendor-specific Pixy HID path is now isolated in its own experimental provider. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
+The vendor-specific Pixy HID path is isolated in its own provider and now covers the decoded smart controls, directional/vector PTZ movement, mirror/rotate, focus metering, and native PTZ preset save/load. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
 
 Reverse-engineering findings for other Linux users are collected in [docs/EMEET_PIXY_REVERSE_ENGINEERING.md](docs/EMEET_PIXY_REVERSE_ENGINEERING.md).
 
@@ -44,7 +46,7 @@ npm run dev
 
 The frontend expects the API at `http://127.0.0.1:8000` during development.
 
-Standard V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux V4L2 ioctls.
+Standard V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux V4L2 ioctls. MJPG live preview also uses native V4L2 mmap capture.
 
 ## Control Presets
 
@@ -58,7 +60,13 @@ export PIXYPILOT_PRESETS_PATH=/path/to/presets.yaml
 
 ## Video Preview And Recording
 
-PixyPilot uses `ffmpeg` for V4L2 preview and recording. The live monitor streams MJPEG through the backend, and recordings are written under `recordings/` by default. That directory is ignored by git because camera recordings are large and private.
+PixyPilot streams live monitor frames through the backend as MJPEG.
+
+- MJPG preview uses native V4L2 mmap capture and does not shell out to `ffmpeg`.
+- Non-MJPG preview, such as YUYV, still falls back to `ffmpeg` because those raw frames need JPEG encoding for the browser stream.
+- Recording still uses `ffmpeg` and writes files under `recordings/` by default.
+
+The `recordings/` directory is ignored by git because camera recordings are large and private.
 
 Override the recording directory with:
 
