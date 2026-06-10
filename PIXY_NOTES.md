@@ -216,6 +216,71 @@ Windows USBPcap baseline:
   - Change one image-control preset/value at a time.
   - Change one video format/resolution/FPS option at a time.
 
+Windows EMEET Studio launch-idle capture:
+- Capture file analyzed locally:
+  pcaps/02_emeet_studio_launch_idle.pcapng
+- Capture facts:
+  - Taken on Windows 11 with Dumpcap/Wireshark 4.6.6.
+  - USBPcap interface: USBPcap2.
+  - 3639 packets over 46.940095 seconds.
+  - File size: 94 MB.
+  - High-volume payload is video streaming; useful control signal is 44 HID data packets and 69 UVC control packets.
+- String descriptors queried by EMEET Studio:
+  - Manufacturer: EMEET.
+  - Product: EMEET PIXY.
+  - Serial-like device string is queried. Do not publish user-specific serial values in public docs.
+- Standard UVC behavior:
+  - Studio sets Power Line Frequency to value 2, matching 60 Hz.
+  - Studio reads current values for brightness, contrast, exposure, auto exposure, gain, sharpness, saturation, hue, white balance temperature, white balance auto, backlight compensation, zoom, focus, autofocus, pan/tilt, and power-line frequency.
+  - Studio negotiates UVC streaming through normal Probe/Commit requests.
+  - Final observed preview stream is Format Index 1, Frame Index 3, interval 333333, max frame size 2073600, max payload 3072.
+  - Based on the descriptor table, that corresponds to MJPG 1920x1080@30.
+- HID startup/status traffic:
+  - Studio sends and receives interrupt HID reports on report ID 0x09.
+  - Query: 09 01 00 04
+    Response begins: 09 01 00 04 00 02 00 02 04 20
+    Inference: group 0x01 capability/status query, exact meaning unknown.
+  - Query: 09 05 00 04
+    Response begins: 09 05 00 04 00 01 00 01 02
+    Inference: audio DSP mode query; value 0x02 matches the known Live mode value.
+  - Query: 09 04 00 02
+    Response begins: 09 04 00 02 00 05 00 05 00 00 00 00 00
+    Inference: group 0x04 status/capability query, exact meaning unknown.
+  - Queries: 09 04 00 07 with payload values 01, 02, and 04
+    Responses echo the requested value.
+    Inference: possible per-feature status reads inside group 0x04; needs action captures.
+  - Queries: 09 04 00 0e, 09 04 00 0a, 09 04 00 0c
+    Responses return one-byte value 00.
+    Inference: additional group 0x04 status reads; feature names unknown.
+  - Command/query: 09 02 02 03 00 01 00 01 00
+    No direct parsed response in this capture.
+    Inference: auto-privacy or startup policy related; needs correlation.
+  - Query: 09 02 01 01
+    Response begins: 09 02 01 01 00 04 00 04 00
+    Inference: auto-privacy delay/status query, value 0 in this run.
+  - Query: 09 01 01 01
+    Responses observed with values 03 and 00 at different times.
+    Inference: tracking/privacy state query, but value 03 is not yet decoded.
+  - Queries: 09 03 01 16 with sub-values 01, 02, and 03
+    Responses are 14-byte payloads echoing the sub-value.
+    Inference: group 0x03 structured status/config values; needs action captures.
+  - Query: 09 03 01 14
+    Response begins with a 13-byte zero payload.
+    Inference: unknown group 0x03 status.
+  - Queries: 09 41 00 04 and 09 61 00 04
+    Responses contain short two-byte values ending in 0x20.
+    Inference: unknown capability or version queries.
+  - Query: 09 01 00 03
+    Response contains an ASCII device/build identifier.
+    Do not publish user-specific values in public docs.
+  - Query: 09 03 01 17
+    Response contains one-byte value 0x20.
+    Inference: unknown group 0x03 status.
+- Current conclusion:
+  - Launching EMEET Studio does not reveal Auto Framing or Speaker Tracking command values by itself.
+  - Studio's startup traffic gives us a menu of status/capability queries to compare against one-action captures.
+  - No clear UVC Extension Unit selector writes were observed during idle startup; the missing smart features are still more likely HID or HID plus vendor extension status.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

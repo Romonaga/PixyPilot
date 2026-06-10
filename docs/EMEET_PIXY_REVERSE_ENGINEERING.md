@@ -238,6 +238,63 @@ Useful findings from this baseline:
 
 The baseline does not include official EMEET Studio user actions, so it does not reveal the meaning of Auto Framing, Speaker Tracking, presets, or vendor image modes.
 
+## EMEET Studio Launch Idle Capture
+
+Second capture analyzed:
+
+```text
+pcaps/02_emeet_studio_launch_idle.pcapng
+```
+
+Capture facts:
+
+- Taken on Windows 11 with Dumpcap/Wireshark 4.6.6.
+- 3639 packets over 46.940095 seconds.
+- Most bytes are video streaming, not control traffic.
+- Useful control signal:
+  - 44 HID data packets
+  - 69 UVC control packets
+
+What EMEET Studio did at launch:
+
+- Queried string descriptors for manufacturer and product:
+  - Manufacturer: `EMEET`
+  - Product: `EMEET PIXY`
+- Queried a serial/build-like string. Public docs should not publish user-specific serial values.
+- Set Power Line Frequency to value `2`, matching 60 Hz.
+- Read normal UVC control values for image, exposure, focus, PTZ, and white balance.
+- Negotiated preview streaming through standard UVC Probe/Commit requests.
+- Final observed preview stream:
+  - Format Index `1`
+  - Frame Index `3`
+  - Frame interval `333333`
+  - Max frame size `2073600`
+  - Max payload transfer size `3072`
+  - Based on the descriptor table, this is MJPG `1920x1080@30`.
+
+HID startup/status traffic observed:
+
+| Host query | Observed response pattern | Current interpretation |
+| --- | --- | --- |
+| `09 01 00 04` | `09 01 00 04 00 02 00 02 04 20...` | Unknown group 1 capability/status query |
+| `09 05 00 04` | `09 05 00 04 00 01 00 01 02...` | Audio DSP mode query; value `02` matches Live mode |
+| `09 04 00 02` | `09 04 00 02 00 05 00 05 00 00 00 00 00...` | Unknown group 4 status/capability query |
+| `09 04 00 07 ... 01/02/04` | responses echo `01`, `02`, or `04` | Possible per-feature status reads inside group 4 |
+| `09 04 00 0e`, `09 04 00 0a`, `09 04 00 0c` | one-byte value `00` | Unknown group 4 status reads |
+| `09 02 01 01` | `09 02 01 01 00 04 00 04 00...` | Auto-privacy delay/status query; value was `0` in this run |
+| `09 01 01 01` | values `03` and `00` seen at different times | Tracking/privacy state query; value `03` still unknown |
+| `09 03 01 16 ... 01/02/03` | 14-byte responses echoing sub-value | Unknown group 3 structured status/config |
+| `09 03 01 14` | 13-byte zero payload | Unknown group 3 status |
+| `09 41 00 04`, `09 61 00 04` | short two-byte values ending in `20` | Unknown capability or version queries |
+| `09 01 00 03` | ASCII device/build identifier | Device/build information query |
+| `09 03 01 17` | one-byte value `20` | Unknown group 3 status |
+
+Current conclusion from launch-idle:
+
+- EMEET Studio startup gives us useful status queries, but not feature-toggle commands for Auto Framing or Speaker Tracking.
+- No clear UVC Extension Unit selector writes were observed during idle startup.
+- The next captures must isolate one user action at a time so these startup queries can be separated from real feature commands.
+
 ## Known Gaps
 
 These features are not fully decoded yet:
