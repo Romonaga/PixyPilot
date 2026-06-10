@@ -1,20 +1,26 @@
 from pathlib import Path
 
-from pixypilot.core.commands import AsyncCommandRunner, CommandError
 from pixypilot.domains.devices.models import Device
 from pixypilot.domains.v4l2.models import V4L2Control, VideoFormatOption
-from pixypilot.domains.v4l2.native import NativeControlWriter, control_with_value
-from pixypilot.domains.v4l2.parser import parse_controls, parse_video_formats
+from pixypilot.domains.v4l2.native import (
+    NativeControlWriter,
+    NativeEnumerator,
+    NativeFormatWriter,
+    NativeV4L2Error,
+    control_with_value,
+)
 
 
 class V4L2Service:
     def __init__(
         self,
-        runner: AsyncCommandRunner | None = None,
+        enumerator: NativeEnumerator | None = None,
         control_writer: NativeControlWriter | None = None,
+        format_writer: NativeFormatWriter | None = None,
     ) -> None:
-        self.runner = runner or AsyncCommandRunner()
+        self.enumerator = enumerator or NativeEnumerator()
         self.control_writer = control_writer or NativeControlWriter()
+        self.format_writer = format_writer or NativeFormatWriter()
 
     def device_path_from_name(self, device_name: str) -> str:
         if not device_name.startswith("video") or "/" in device_name:
@@ -26,32 +32,24 @@ class V4L2Service:
         devices: list[Device] = []
         for path in paths:
             try:
-                devices.append(await self._inspect_device(str(path)))
-            except CommandError:
+                devices.append(await self.enumerator.inspect_device(str(path)))
+            except NativeV4L2Error:
                 devices.append(Device(path=str(path), name=path.name))
         return devices
 
-    async def _inspect_device(self, path: str) -> Device:
-        result = await self.runner.run(["v4l2-ctl", "-d", path, "--info"])
-        fields = _parse_info_fields(result.stdout)
-        caps = result.stdout
-        return Device(
-            path=path,
-            name=fields.get("Card type") or Path(path).name,
-            driver=fields.get("Driver name"),
-            bus_info=fields.get("Bus info"),
-            is_capture=_device_caps_include_video_capture(caps),
-        )
-
     async def list_controls(self, device_path: str) -> list[V4L2Control]:
         self._validate_device_path(device_path)
-        result = await self.runner.run(["v4l2-ctl", "-d", device_path, "--list-ctrls-menu"])
-        return parse_controls(result.stdout)
+        try:
+            return await self.enumerator.list_controls(device_path)
+        except NativeV4L2Error as exc:
+            raise ValueError(str(exc)) from exc
 
     async def list_formats(self, device_path: str) -> list[VideoFormatOption]:
         self._validate_device_path(device_path)
-        result = await self.runner.run(["v4l2-ctl", "-d", device_path, "--list-formats-ext"])
-        return parse_video_formats(result.stdout)
+        try:
+            return await self.enumerator.list_formats(device_path)
+        except NativeV4L2Error as exc:
+            raise ValueError(str(exc)) from exc
 
     async def set_format(
         self,
@@ -77,15 +75,10 @@ class V4L2Service:
         if selected is None:
             raise ValueError(f"Unsupported format: {pixel_format} {width}x{height}@{fps}")
 
-        await self.runner.run(
-            [
-                "v4l2-ctl",
-                "-d",
-                device_path,
-                f"--set-fmt-video=width={width},height={height},pixelformat={pixel_format}",
-            ]
-        )
-        await self.runner.run(["v4l2-ctl", "-d", device_path, f"--set-parm={_format_fps_for_v4l2(fps)}"])
+        try:
+            await self.format_writer.set_format(device_path, pixel_format, width, height, fps)
+        except NativeV4L2Error as exc:
+            raise ValueError(str(exc)) from exc
         return selected
 
     async def set_control(self, device_path: str, control_name: str, value: int) -> V4L2Control:
@@ -95,7 +88,10 @@ class V4L2Service:
         if control is None:
             raise ValueError(f"Unknown control: {control_name}")
         self._validate_control_value(control, value)
-        await self.control_writer.set_control(device_path, control.control_id, value)
+        try:
+            await self.control_writer.set_control(device_path, control.control_id, value)
+        except NativeV4L2Error as exc:
+            raise ValueError(str(exc)) from exc
         return control_with_value(control, value)
 
     def _validate_device_path(self, device_path: str) -> None:
@@ -151,13 +147,6 @@ def _device_caps_include_video_capture(output: str) -> bool:
             device_caps_lines.append(line.strip())
 
     return "Video Capture" in device_caps_lines
-
-
-def _format_fps_for_v4l2(fps: float) -> str:
-    rounded = round(fps)
-    if abs(fps - rounded) < 0.001:
-        return str(rounded)
-    return f"{fps:.3f}".rstrip("0").rstrip(".")
 
 
 def get_v4l2_service() -> V4L2Service:

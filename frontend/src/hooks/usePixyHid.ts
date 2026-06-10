@@ -16,6 +16,7 @@ import {
 } from "../lib/apiClient";
 import type {
   AudioMode,
+  FocusMeteringPoint,
   FocusMeteringMode,
   MirrorMode,
   PixyHidStatus,
@@ -36,6 +37,7 @@ export type UsePixyHidResult = {
   autoRotateEnabled: boolean | null;
   mirrorMode: MirrorMode | null;
   focusMeteringMode: FocusMeteringMode | null;
+  focusMeteringPoint: FocusMeteringPoint | null;
   audioMode: AudioMode | null;
   autoPrivacySeconds: number | null;
   refresh: () => Promise<void>;
@@ -43,7 +45,7 @@ export type UsePixyHidResult = {
   setGestureEnabled: (enabled: boolean) => Promise<void>;
   setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
   setMirrorMode: (mode: MirrorMode) => Promise<void>;
-  setFocusMeteringMode: (mode: FocusMeteringMode) => Promise<void>;
+  setFocusMeteringMode: (mode: FocusMeteringMode, point?: FocusMeteringPoint) => Promise<void>;
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
   sendPtzDirection: (direction: PtzDirection) => Promise<void>;
@@ -63,6 +65,7 @@ export function usePixyHid(): UsePixyHidResult {
   const [autoRotateEnabled, setAutoRotateEnabledState] = useState<boolean | null>(null);
   const [mirrorMode, setMirrorModeState] = useState<MirrorMode | null>(null);
   const [focusMeteringMode, setFocusMeteringModeState] = useState<FocusMeteringMode | null>(null);
+  const [focusMeteringPoint, setFocusMeteringPointState] = useState<FocusMeteringPoint | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
 
@@ -135,10 +138,11 @@ export function usePixyHid(): UsePixyHidResult {
   );
 
   const setFocusMeteringMode = useCallback(
-    async (mode: FocusMeteringMode) =>
-      runCommand(`focus-metering:${mode}`, async () => {
-        await setPixyFocusMetering(mode);
+    async (mode: FocusMeteringMode, point?: FocusMeteringPoint) =>
+      runCommand(`focus-metering:${mode}${point ? `:${point.x},${point.y}` : ""}`, async () => {
+        await setPixyFocusMetering(mode, point);
         setFocusMeteringModeState(mode);
+        setFocusMeteringPointState(point ?? null);
       }),
     [runCommand]
   );
@@ -204,6 +208,7 @@ export function usePixyHid(): UsePixyHidResult {
     autoRotateEnabled,
     mirrorMode,
     focusMeteringMode,
+    focusMeteringPoint,
     audioMode,
     autoPrivacySeconds,
     refresh,

@@ -512,6 +512,46 @@ h2 {
   background: #020407;
 }
 
+.video-frame.can-click-focus {
+  cursor: crosshair;
+}
+
+.focus-target-reticle {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 212, 94, 0.96);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.65),
+    0 0 18px rgba(255, 212, 94, 0.34);
+  pointer-events: none;
+}
+
+.focus-target-reticle::before,
+.focus-target-reticle::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 212, 94, 0.96);
+}
+
+.focus-target-reticle::before {
+  left: 50%;
+  top: -7px;
+  width: 2px;
+  height: 46px;
+  transform: translateX(-50%);
+}
+
+.focus-target-reticle::after {
+  top: 50%;
+  left: -7px;
+  width: 46px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
 .video-placeholder {
   display: grid;
   place-items: center;

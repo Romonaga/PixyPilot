@@ -880,8 +880,7 @@ Project direction:
 
 Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
-- V4L2 control writes are live for exposed controls and now use native `VIDIOC_S_CTRL` writes rather than spawning `v4l2-ctl`.
-- `v4l2-ctl` remains in use for enumeration and video format switching.
+- V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching now use native Linux V4L2 ioctls rather than spawning `v4l2-ctl`.
 - Image/Focus/Exposure preset save/apply/delete is live and stored in `config/presets.yaml`.
 - Live preview is available through an ffmpeg-backed MJPEG stream endpoint.
 - Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.

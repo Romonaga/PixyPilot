@@ -36,7 +36,7 @@ npm run dev
 
 The frontend expects the API at `http://127.0.0.1:8000` during development.
 
-Standard camera control writes use native Linux V4L2 ioctls. `v4l2-ctl` is still used for device/control/format enumeration and format switching while those paths remain discovery-heavy.
+Standard V4L2 device inspection, control enumeration, format enumeration, control writes, and format switching use native Linux V4L2 ioctls.
 
 ## Control Presets
 

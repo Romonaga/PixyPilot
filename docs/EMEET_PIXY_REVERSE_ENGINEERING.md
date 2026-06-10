@@ -21,7 +21,7 @@ The PIXY currently appears to have three useful control paths.
 
 | Path | Status | Purpose |
 | --- | --- | --- |
-| V4L2/UVC | Confirmed | Standard image, focus, exposure, PTZ, and format controls. PixyPilot writes simple controls with native `VIDIOC_S_CTRL` ioctls. |
+| V4L2/UVC | Confirmed | Standard image, focus, exposure, PTZ, and format controls. PixyPilot uses native Linux V4L2 ioctls for inspection, enumeration, control writes, and format switching. |
 | ALSA | Confirmed | Microphone mute and microphone capture volume |
 | Vendor HID | Partially confirmed | Smart features such as tracking, privacy, gesture, and audio DSP modes |
 | UVC Extension Unit | Present, not decoded | Ten vendor selectors exposed through UVC, names still unknown |

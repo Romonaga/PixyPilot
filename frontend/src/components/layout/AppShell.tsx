@@ -74,6 +74,7 @@ export function AppShell({
             deviceName={devices.selectedDeviceName}
             videoFormats={videoFormats}
             videoCapture={videoCapture}
+            pixyHid={pixyHid}
           />
           <div className="control-grid">
             {controls.groups.map((group) => (

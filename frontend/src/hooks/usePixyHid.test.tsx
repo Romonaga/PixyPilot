@@ -187,8 +187,37 @@ describe("usePixyHid", () => {
       await result.current.setFocusMeteringMode("human_face");
     });
 
-    expect(mockedSetPixyFocusMetering).toHaveBeenCalledWith("human_face");
+    expect(mockedSetPixyFocusMetering).toHaveBeenCalledWith("human_face", undefined);
     expect(result.current.focusMeteringMode).toBe("human_face");
+  });
+
+  it("sends selected-area focus coordinates when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["focus_metering"]
+    });
+    mockedSetPixyFocusMetering.mockResolvedValue({
+      ok: true,
+      command: "focus_metering",
+      value: "selected_area",
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setFocusMeteringMode("selected_area", { x: 12, y: 96 });
+    });
+
+    expect(mockedSetPixyFocusMetering).toHaveBeenCalledWith("selected_area", { x: 12, y: 96 });
+    expect(result.current.focusMeteringMode).toBe("selected_area");
+    expect(result.current.focusMeteringPoint).toEqual({ x: 12, y: 96 });
   });
 
   it("sends captured HID PTZ direction commands when requested", async () => {

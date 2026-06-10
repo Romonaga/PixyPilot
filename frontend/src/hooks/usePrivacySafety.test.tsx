@@ -31,6 +31,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     autoRotateEnabled: null,
     mirrorMode: null,
     focusMeteringMode: null,
+    focusMeteringPoint: null,
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),

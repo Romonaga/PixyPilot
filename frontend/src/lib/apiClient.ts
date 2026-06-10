@@ -7,6 +7,7 @@ import type {
   ControlPresetCreateRequest,
   ControlPresetDeleteResult,
   Device,
+  FocusMeteringPoint,
   FocusMeteringMode,
   MirrorMode,
   PixyHidCommandResult,
@@ -165,10 +166,13 @@ export async function setPixyMirror(mode: MirrorMode): Promise<PixyHidCommandRes
   });
 }
 
-export async function setPixyFocusMetering(mode: FocusMeteringMode): Promise<PixyHidCommandResult> {
+export async function setPixyFocusMetering(
+  mode: FocusMeteringMode,
+  point?: FocusMeteringPoint
+): Promise<PixyHidCommandResult> {
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/focus-metering", {
     method: "PATCH",
-    body: JSON.stringify({ mode })
+    body: JSON.stringify({ mode, ...point })
   });
 }
 

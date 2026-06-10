@@ -1,5 +1,8 @@
 import { Eye, EyeOff, RadioTower, Square, Video } from "lucide-react";
+import { useState, type PointerEvent } from "react";
 
+import { focusPointFromContainClick, type FocusPoint } from "../../domains/video/focusPoint";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { UseVideoCaptureResult } from "../../hooks/useVideoCapture";
 import type { UseVideoFormatsResult } from "../../hooks/useVideoFormats";
 
@@ -7,12 +10,41 @@ type Props = {
   deviceName: string | null;
   videoFormats: UseVideoFormatsResult;
   videoCapture: UseVideoCaptureResult;
+  pixyHid: UsePixyHidResult;
 };
 
-export function VideoMonitor({ deviceName, videoFormats, videoCapture }: Props) {
+export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }: Props) {
   const selectedFormat = videoFormats.selectedFormat;
   const canUseVideo = Boolean(deviceName && selectedFormat);
   const isRecording = videoCapture.status?.recording === true;
+  const [focusTarget, setFocusTarget] = useState<FocusPoint | null>(null);
+  const canClickFocus =
+    Boolean(videoCapture.streamUrl && selectedFormat) &&
+    pixyHid.status?.writable === true &&
+    pixyHid.status.known_controls.includes("focus_metering") &&
+    pixyHid.pendingCommand === null;
+
+  const handleFocusClick = async (event: PointerEvent<HTMLDivElement>) => {
+    if (!canClickFocus || !selectedFormat) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const point = focusPointFromContainClick(
+      { width: rect.width, height: rect.height },
+      { width: selectedFormat.width, height: selectedFormat.height },
+      { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    );
+    if (!point) {
+      return;
+    }
+
+    await pixyHid.setFocusMeteringMode("selected_area", point);
+    setFocusTarget({
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100
+    });
+  };
 
   return (
     <section className="video-monitor control-panel accent-cyan">
@@ -45,9 +77,22 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture }: Props) 
         </div>
       </div>
 
-      <div className="video-frame">
+      <div
+        className={`video-frame ${canClickFocus ? "can-click-focus" : ""}`}
+        onPointerUp={(event) => void handleFocusClick(event)}
+        title={canClickFocus ? "Click to set focus target" : undefined}
+      >
         {videoCapture.streamUrl ? (
-          <img src={videoCapture.streamUrl} alt="Live camera stream" />
+          <>
+            <img src={videoCapture.streamUrl} alt="Live camera stream" />
+            {focusTarget && (
+              <span
+                className="focus-target-reticle"
+                style={{ left: `${focusTarget.x}%`, top: `${focusTarget.y}%` }}
+                aria-hidden="true"
+              />
+            )}
+          </>
         ) : (
           <div className="video-placeholder">
             <Video size={28} />

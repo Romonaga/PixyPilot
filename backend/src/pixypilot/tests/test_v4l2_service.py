@@ -1,6 +1,6 @@
 import pytest
 
-from pixypilot.domains.v4l2.models import MenuOption, V4L2Control
+from pixypilot.domains.v4l2.models import MenuOption, V4L2Control, VideoFormatOption
 from pixypilot.domains.v4l2.service import V4L2Service, _device_caps_include_video_capture
 
 
@@ -12,13 +12,38 @@ class FakeControlWriter:
         self.calls.append((device_path, control_id, value))
 
 
+class FakeFormatWriter:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, int, int, float]] = []
+
+    async def set_format(
+        self,
+        device_path: str,
+        pixel_format: str,
+        width: int,
+        height: int,
+        fps: float,
+    ) -> None:
+        self.calls.append((device_path, pixel_format, width, height, fps))
+
+
 class StaticControlService(V4L2Service):
-    def __init__(self, controls: list[V4L2Control], writer: FakeControlWriter) -> None:
-        super().__init__(control_writer=writer)
+    def __init__(
+        self,
+        controls: list[V4L2Control],
+        writer: FakeControlWriter,
+        formats: list[VideoFormatOption] | None = None,
+        format_writer: FakeFormatWriter | None = None,
+    ) -> None:
+        super().__init__(control_writer=writer, format_writer=format_writer)
         self.static_controls = controls
+        self.static_formats = formats or []
 
     async def list_controls(self, device_path: str) -> list[V4L2Control]:
         return self.static_controls
+
+    async def list_formats(self, device_path: str) -> list[VideoFormatOption]:
+        return self.static_formats
 
 
 def make_control(**overrides: object) -> V4L2Control:
@@ -128,3 +153,22 @@ async def test_set_control_updates_menu_value_label_without_refreshing_controls(
     assert writer.calls == [("/dev/video0", "0x00980918", 1)]
     assert updated.value == 1
     assert updated.value_label == "50 Hz"
+
+
+async def test_set_format_uses_native_writer_after_validating_format() -> None:
+    control_writer = FakeControlWriter()
+    format_writer = FakeFormatWriter()
+    option = VideoFormatOption(
+        pixel_format="MJPG",
+        description="Motion-JPEG",
+        width=1920,
+        height=1080,
+        fps=60,
+        label="MJPG 1920x1080 60fps",
+    )
+    service = StaticControlService([], control_writer, formats=[option], format_writer=format_writer)
+
+    selected = await service.set_format("/dev/video0", "MJPG", 1920, 1080, 60)
+
+    assert selected == option
+    assert format_writer.calls == [("/dev/video0", "MJPG", 1920, 1080, 60)]
