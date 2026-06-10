@@ -6,23 +6,26 @@ import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
+import type { UseVideoCaptureResult } from "../../hooks/useVideoCapture";
 import type { UseVideoFormatsResult } from "../../hooks/useVideoFormats";
 import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
 import { SmartPixyPanel } from "../panels/SmartPixyPanel";
+import { VideoMonitor } from "../panels/VideoMonitor";
 import { StatusPill } from "../ui/StatusPill";
 
 type Props = {
   devices: UseDevicesResult;
   controls: UseControlsResult;
   videoFormats: UseVideoFormatsResult;
+  videoCapture: UseVideoCaptureResult;
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
   privacySafety: UsePrivacySafetyResult;
 };
 
-export function AppShell({ devices, controls, videoFormats, pixyHid, audio, privacySafety }: Props) {
+export function AppShell({ devices, controls, videoFormats, videoCapture, pixyHid, audio, privacySafety }: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -55,6 +58,11 @@ export function AppShell({ devices, controls, videoFormats, pixyHid, audio, priv
         <div className="main-console">
           {controls.error && <div className="error-strip">{controls.error}</div>}
           {devices.error && <div className="error-strip">{devices.error}</div>}
+          <VideoMonitor
+            deviceName={devices.selectedDeviceName}
+            videoFormats={videoFormats}
+            videoCapture={videoCapture}
+          />
           <div className="control-grid">
             {controls.groups.map((group) => (
               <ControlGroupPanel key={group.id} group={group} controls={controls} pixyHid={pixyHid} />

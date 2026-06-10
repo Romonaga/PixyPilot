@@ -845,6 +845,8 @@ Project direction:
 Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
 - V4L2 control writes are live for exposed controls.
+- Live preview is available through an ffmpeg-backed MJPEG stream endpoint.
+- Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.
 - Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.
 - PTZ is now a first-class cockpit panel:
   - directional pan/tilt pad

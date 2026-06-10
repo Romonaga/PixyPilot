@@ -457,6 +457,102 @@ h2 {
   gap: 18px;
 }
 
+.video-monitor {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.video-monitor-header,
+.video-actions,
+.video-status-row {
+  display: flex;
+  align-items: center;
+}
+
+.video-monitor-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.video-monitor-header .panel-title-row {
+  margin-bottom: 0;
+}
+
+.video-actions {
+  gap: 8px;
+}
+
+.record-button.is-recording {
+  border-color: rgba(255, 95, 95, 0.64);
+  color: #ff9a9a;
+  background: rgba(255, 95, 95, 0.12);
+}
+
+.video-frame {
+  position: relative;
+  display: grid;
+  min-height: 236px;
+  max-height: 360px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(82, 229, 255, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(82, 229, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    #070b10;
+}
+
+.video-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #020407;
+}
+
+.video-placeholder {
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  color: #91a2a3;
+  text-align: center;
+}
+
+.video-placeholder svg {
+  color: #52e5ff;
+}
+
+.video-placeholder strong {
+  color: #eef5f4;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.video-placeholder span,
+.video-status-row,
+.video-record-path {
+  color: #91a2a3;
+  font-size: 12px;
+}
+
+.video-status-row {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.video-status-row strong {
+  color: #52e5ff;
+  text-transform: uppercase;
+}
+
+.video-record-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .control-panel {
   padding: 14px;
   border-top: 3px solid rgba(255, 255, 255, 0.16);

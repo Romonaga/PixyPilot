@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from pixypilot.domains.audio.models import AudioCommandResult, AudioMuteRequest, AudioStatus
 from pixypilot.domains.audio.service import AudioService, get_audio_service
@@ -26,6 +27,12 @@ from pixypilot.domains.v4l2.models import (
     VideoFormatSetRequest,
 )
 from pixypilot.domains.v4l2.service import V4L2Service, get_v4l2_service
+from pixypilot.domains.video.models import (
+    VideoRecordingRequest,
+    VideoRecordingStatus,
+    VideoStreamSettings,
+)
+from pixypilot.domains.video.service import VideoService, get_video_service
 
 router = APIRouter()
 
@@ -100,6 +107,57 @@ async def set_format(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/devices/{device_name}/stream")
+async def stream_video(
+    device_name: str,
+    pixel_format: str = Query(default="MJPG"),
+    width: int = Query(default=1280, ge=1),
+    height: int = Query(default=720, ge=1),
+    fps: float = Query(default=30, gt=0),
+    v4l2_service: V4L2Service = Depends(get_v4l2_service),
+    video_service: VideoService = Depends(get_video_service),
+) -> StreamingResponse:
+    try:
+        device_path = v4l2_service.device_path_from_name(device_name)
+        settings = VideoStreamSettings(pixel_format=pixel_format, width=width, height=height, fps=fps)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return StreamingResponse(
+        video_service.mjpeg_stream(device_path, settings),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.get("/video/recording/status", response_model=VideoRecordingStatus)
+async def recording_status(
+    video_service: VideoService = Depends(get_video_service),
+) -> VideoRecordingStatus:
+    return await video_service.recording_status()
+
+
+@router.post("/devices/{device_name}/recording/start", response_model=VideoRecordingStatus)
+async def start_recording(
+    device_name: str,
+    request: VideoRecordingRequest,
+    v4l2_service: V4L2Service = Depends(get_v4l2_service),
+    video_service: VideoService = Depends(get_video_service),
+) -> VideoRecordingStatus:
+    try:
+        device_path = v4l2_service.device_path_from_name(device_name)
+        return await video_service.start_recording(device_name, device_path, request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/video/recording/stop", response_model=VideoRecordingStatus)
+async def stop_recording(
+    video_service: VideoService = Depends(get_video_service),
+) -> VideoRecordingStatus:
+    return await video_service.stop_recording()
 
 
 @router.get("/audio/status", response_model=AudioStatus)

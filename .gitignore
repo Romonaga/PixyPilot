@@ -19,3 +19,6 @@ frontend/vite.config.d.ts
 
 # Local USB captures can include host/device metadata. Keep them local by default.
 pcaps/
+
+# Local camera recordings can be large and private.
+recordings/

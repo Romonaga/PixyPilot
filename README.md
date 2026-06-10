@@ -8,6 +8,8 @@ The first implementation focuses on the confirmed V4L2/UVC control path:
 - enumerate V4L2 controls
 - expose controls as JSON
 - validate and set values
+- preview the selected camera stream
+- record the selected stream to local disk
 - render a cockpit-style React UI for PTZ, image, focus, and exposure controls
 
 The vendor-specific Pixy HID path is now isolated in its own experimental provider. Raw UVC extension-unit capabilities are tracked in `PIXY_NOTES.md` and remain read-only until their selectors are decoded safely.
@@ -33,6 +35,16 @@ npm run dev
 ```
 
 The frontend expects the API at `http://127.0.0.1:8000` during development.
+
+## Video Preview And Recording
+
+PixyPilot uses `ffmpeg` for V4L2 preview and recording. The live monitor streams MJPEG through the backend, and recordings are written under `recordings/` by default. That directory is ignored by git because camera recordings are large and private.
+
+Override the recording directory with:
+
+```bash
+export PIXYPILOT_RECORDINGS_DIR=/path/to/recordings
+```
 
 ## HID Permissions
 

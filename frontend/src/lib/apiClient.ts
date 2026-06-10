@@ -13,7 +13,8 @@ import type {
   PtzVector,
   TrackingMode,
   V4L2Control,
-  VideoFormatOption
+  VideoFormatOption,
+  VideoRecordingStatus
 } from "../types/api";
 
 const API_BASE = "";
@@ -72,6 +73,40 @@ export async function setVideoFormat(
   return requestJson<VideoFormatOption>(`/api/devices/${encodeURIComponent(deviceName)}/format`, {
     method: "PATCH",
     body: JSON.stringify(format)
+  });
+}
+
+export function videoStreamUrl(
+  deviceName: string,
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+): string {
+  const params = new URLSearchParams({
+    pixel_format: format.pixel_format,
+    width: String(format.width),
+    height: String(format.height),
+    fps: String(format.fps),
+    t: String(Date.now())
+  });
+  return `${API_BASE}/api/devices/${encodeURIComponent(deviceName)}/stream?${params.toString()}`;
+}
+
+export async function fetchVideoRecordingStatus(): Promise<VideoRecordingStatus> {
+  return requestJson<VideoRecordingStatus>("/api/video/recording/status");
+}
+
+export async function startVideoRecording(
+  deviceName: string,
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+): Promise<VideoRecordingStatus> {
+  return requestJson<VideoRecordingStatus>(`/api/devices/${encodeURIComponent(deviceName)}/recording/start`, {
+    method: "POST",
+    body: JSON.stringify(format)
+  });
+}
+
+export async function stopVideoRecording(): Promise<VideoRecordingStatus> {
+  return requestJson<VideoRecordingStatus>("/api/video/recording/stop", {
+    method: "POST"
   });
 }
 

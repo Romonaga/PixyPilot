@@ -38,6 +38,14 @@ export type VideoFormatOption = {
   label: string;
 };
 
+export type VideoRecordingStatus = {
+  recording: boolean;
+  device_name: string | null;
+  path: string | null;
+  started_at: string | null;
+  reason: string | null;
+};
+
 export type PixyHidStatus = {
   available: boolean;
   path: string | null;
