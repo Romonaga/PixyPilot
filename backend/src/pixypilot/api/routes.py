@@ -10,6 +10,7 @@ from pixypilot.domains.pixy_hid.models import (
     MirrorRequest,
     PixyHidCommandResult,
     PixyHidStatus,
+    PtzDirectionRequest,
     TrackingModeRequest,
 )
 from pixypilot.domains.pixy_hid.service import PixyHidService, get_pixy_hid_service
@@ -195,6 +196,19 @@ async def set_pixy_auto_privacy(
 ) -> PixyHidCommandResult:
     try:
         return await service.set_auto_privacy(request.timeout_seconds)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-direction", response_model=PixyHidCommandResult)
+async def send_pixy_ptz_direction(
+    request: PtzDirectionRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.send_ptz_direction(request.direction)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:

@@ -7,9 +7,10 @@ import {
   setPixyAutoRotate,
   setPixyGesture,
   setPixyMirror,
+  sendPixyPtzDirection,
   setPixyTracking
 } from "../lib/apiClient";
-import type { AudioMode, MirrorMode, PixyHidStatus, TrackingMode } from "../types/api";
+import type { AudioMode, MirrorMode, PixyHidStatus, PtzDirection, TrackingMode } from "../types/api";
 
 export type UsePixyHidResult = {
   status: PixyHidStatus | null;
@@ -30,6 +31,7 @@ export type UsePixyHidResult = {
   setMirrorMode: (mode: MirrorMode) => Promise<void>;
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
+  sendPtzDirection: (direction: PtzDirection) => Promise<void>;
 };
 
 export function usePixyHid(): UsePixyHidResult {
@@ -131,6 +133,14 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const sendPtzDirection = useCallback(
+    async (direction: PtzDirection) =>
+      runCommand(`ptz:${direction}`, async () => {
+        await sendPixyPtzDirection(direction);
+      }),
+    [runCommand]
+  );
+
   return {
     status,
     isLoading,
@@ -149,6 +159,7 @@ export function usePixyHid(): UsePixyHidResult {
     setAutoRotateEnabled,
     setMirrorMode,
     setAudioMode,
-    setAutoPrivacySeconds
+    setAutoPrivacySeconds,
+    sendPtzDirection
   };
 }

@@ -657,6 +657,47 @@ Windows EMEET Studio manual rotate-left / rotate-right / restore capture:
   - PixyPilot should not expose this as a hardware camera control unless a later isolated capture shows actual PIXY control traffic.
   - If desired, PixyPilot can provide a local preview rotation control in the web UI, but that would transform only the app preview, not the camera hardware state.
 
+Windows EMEET Studio directional PTZ pad capture:
+- Capture file analyzed locally:
+  - pcaps/21.pcapng
+- User action reported:
+  - Pressed pan left 3 times, pan right 3 times, tilt up 3 times, tilt down 3 times.
+- Capture facts:
+  - 2626 packets over 20.570561 seconds.
+  - PIXY device 2.3.0 / USB ID 328f:00c0 is present.
+  - Directional pad clicks use HID interrupt reports, not standard UVC/V4L2 absolute pan/tilt writes.
+  - Host-to-device reports were sent to endpoint 2.3.1, with device status responses from 2.3.4.
+  - 9 host PTZ jog reports were visible in the capture, not the full 12 expected from the reported click count.
+- Captured host reports:
+  - Pan left:
+    - 09 63 01 19 00 05 00 05 01 00 00 80 3f ...
+    - repeated at 4.467087s, 4.963053s, and 5.478349s.
+  - Pan right:
+    - 09 63 01 19 00 05 00 05 01 00 00 80 bf ...
+    - repeated at 7.405993s and 8.415653s.
+  - Tilt up:
+    - 09 63 01 19 00 05 00 05 02 00 00 80 3f ...
+    - repeated at 10.963318s and 11.930391s.
+  - Tilt down:
+    - 09 63 01 19 00 05 00 05 02 00 00 80 bf ...
+    - repeated at 13.470887s and 14.401157s.
+- Current interpretation:
+  - Group/command prefix is 09 63 01 19 00 05 00 05.
+  - Byte 8 is axis:
+    - 01 = pan
+    - 02 = tilt
+  - Bytes 9..12 are little-endian float32 jog magnitude:
+    - 00 00 80 3f = +1.0
+    - 00 00 80 bf = -1.0
+  - Based on the reported action order:
+    - left = pan +1.0
+    - right = pan -1.0
+    - up = tilt +1.0
+    - down = tilt -1.0
+  - Device responses looked like status/ack packets:
+    - 09 63 01 19 00 02 00 02 01 20 ...
+    - 09 63 01 19 00 02 00 02 02 20 ...
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

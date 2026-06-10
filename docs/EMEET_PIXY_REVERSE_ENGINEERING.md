@@ -574,6 +574,32 @@ Current interpretation of selected-area payload:
 - The center click produced `38 38`, so preview scaling/margins still need validation before implementing arbitrary click-to-focus.
 - The three named modes are safe to expose. Selected-area clicking should be treated as experimental until the preview-to-device coordinate transform is validated.
 
+## Directional PTZ HID Jog
+
+Capture `pcaps/21.pcapng` tested the official app PTZ arrow pad. The user reported pressing left three times, right three times, up three times, then down three times. The capture contains 9 visible host jog reports rather than all 12 reported clicks, but the axis/sign mapping is clear.
+
+Directional jogs use HID interrupt reports, not standard UVC/V4L2 absolute pan/tilt writes:
+
+```text
+09 63 01 19 00 05 00 05 AX DD DD DD DD ...
+```
+
+Where `AX` is the axis and `DD DD DD DD` is a little-endian float32 delta:
+
+| Direction | Axis | Delta bytes | Float |
+| --- | --- | --- | --- |
+| left | `01` | `00 00 80 3f` | `+1.0` |
+| right | `01` | `00 00 80 bf` | `-1.0` |
+| up | `02` | `00 00 80 3f` | `+1.0` |
+| down | `02` | `00 00 80 bf` | `-1.0` |
+
+Observed device responses looked like status/ack packets:
+
+```text
+09 63 01 19 00 02 00 02 01 20 ...
+09 63 01 19 00 02 00 02 02 20 ...
+```
+
 ## Known Gaps
 
 These features are not fully decoded yet:

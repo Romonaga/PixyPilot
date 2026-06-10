@@ -7,6 +7,7 @@ import type {
   MirrorMode,
   PixyHidCommandResult,
   PixyHidStatus,
+  PtzDirection,
   TrackingMode,
   V4L2Control,
   VideoFormatOption
@@ -117,6 +118,13 @@ export async function setPixyAutoPrivacy(timeoutSeconds: number): Promise<PixyHi
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/auto-privacy", {
     method: "PATCH",
     body: JSON.stringify({ timeout_seconds: timeoutSeconds })
+  });
+}
+
+export async function sendPixyPtzDirection(direction: PtzDirection): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-direction", {
+    method: "PATCH",
+    body: JSON.stringify({ direction })
   });
 }
 

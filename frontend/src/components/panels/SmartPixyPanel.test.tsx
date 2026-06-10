@@ -34,6 +34,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     setMirrorMode: vi.fn(),
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
+    sendPtzDirection: vi.fn(),
     ...overrides
   };
 }

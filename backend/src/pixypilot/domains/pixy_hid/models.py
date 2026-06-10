@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 TrackingMode = Literal["off", "tracking", "privacy"]
 AudioMode = Literal["noise_cancel", "live", "original"]
+PtzDirection = Literal["left", "right", "up", "down"]
 
 
 class PixyHidStatus(BaseModel):
@@ -41,3 +42,7 @@ class AudioModeRequest(BaseModel):
 
 class AutoPrivacyRequest(BaseModel):
     timeout_seconds: int = Field(ge=0, le=0xFFFFFFFF)
+
+
+class PtzDirectionRequest(BaseModel):
+    direction: PtzDirection

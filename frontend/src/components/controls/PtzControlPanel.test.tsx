@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ControlGroup } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { V4L2Control } from "../../types/api";
 import { PtzControlPanel } from "./PtzControlPanel";
 
@@ -27,7 +28,42 @@ function control(overrides: Partial<V4L2Control>): V4L2Control {
   };
 }
 
-function renderPanel(setValue = vi.fn().mockResolvedValue(undefined)) {
+function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
+  return {
+    status: {
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: false,
+      reason: "HID device is present but not writable by this user",
+      known_controls: []
+    },
+    isLoading: false,
+    pendingCommand: null,
+    error: null,
+    lastCommand: null,
+    trackingMode: null,
+    gestureEnabled: null,
+    autoRotateEnabled: null,
+    mirrorMode: null,
+    audioMode: null,
+    autoPrivacySeconds: null,
+    refresh: vi.fn(),
+    setTrackingMode: vi.fn(),
+    setGestureEnabled: vi.fn(),
+    setAutoRotateEnabled: vi.fn(),
+    setMirrorMode: vi.fn(),
+    setAudioMode: vi.fn(),
+    setAutoPrivacySeconds: vi.fn(),
+    sendPtzDirection: vi.fn(),
+    ...overrides
+  };
+}
+
+function renderPanel(
+  setValue = vi.fn().mockResolvedValue(undefined),
+  pixyHidState: UsePixyHidResult = pixyHid()
+) {
   const group: ControlGroup = {
     id: "ptz",
     title: "PTZ Drive",
@@ -50,7 +86,7 @@ function renderPanel(setValue = vi.fn().mockResolvedValue(undefined)) {
     setValues: vi.fn()
   };
 
-  render(<PtzControlPanel group={group} controls={controls} />);
+  render(<PtzControlPanel group={group} controls={controls} pixyHid={pixyHidState} />);
   return setValue;
 }
 
@@ -104,5 +140,30 @@ describe("PtzControlPanel", () => {
     await user.click(screen.getByRole("button", { name: "Pan right" }));
 
     expect(setValue).toHaveBeenCalledWith("pan_absolute", 30);
+  });
+
+  it("uses the captured HID PTZ jog command when available", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const sendPtzDirection = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_direction"]
+        },
+        sendPtzDirection
+      })
+    );
+
+    await user.click(screen.getByRole("button", { name: "Pan left" }));
+
+    expect(sendPtzDirection).toHaveBeenCalledWith("left");
+    expect(setValue).not.toHaveBeenCalled();
   });
 });

@@ -15,7 +15,7 @@ export function ControlGroupPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
 
   if (group.id === "ptz" && group.controls.length > 0) {
-    return <PtzControlPanel group={group} controls={controls} />;
+    return <PtzControlPanel group={group} controls={controls} pixyHid={pixyHid} />;
   }
 
   if (group.id === "image" || group.id === "focus" || group.id === "exposure") {

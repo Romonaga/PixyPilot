@@ -9,12 +9,14 @@ from pixypilot.domains.pixy_hid.commands import (
     auto_rotate_reports,
     gesture_reports,
     mirror_reports,
+    ptz_direction_reports,
     tracking_reports,
 )
 from pixypilot.domains.pixy_hid.models import (
     AudioMode,
     PixyHidCommandResult,
     PixyHidStatus,
+    PtzDirection,
     TrackingMode,
 )
 
@@ -28,6 +30,7 @@ KNOWN_CONTROLS = [
     "mirror",
     "auto_privacy",
     "audio_mode",
+    "ptz_direction",
 ]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
 
@@ -108,6 +111,11 @@ class PixyHidService:
             value=timeout_seconds,
             path=path,
         )
+
+    async def send_ptz_direction(self, direction: PtzDirection) -> PixyHidCommandResult:
+        path = await self._require_writable_path()
+        await self._write_reports(path, ptz_direction_reports(direction))
+        return PixyHidCommandResult(ok=True, command="ptz_direction", value=direction, path=path)
 
     async def _require_writable_path(self) -> str:
         status = await self.status()

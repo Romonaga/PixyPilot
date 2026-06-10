@@ -1,6 +1,7 @@
+import struct
 from collections.abc import Sequence
 
-from pixypilot.domains.pixy_hid.models import AudioMode, TrackingMode
+from pixypilot.domains.pixy_hid.models import AudioMode, PtzDirection, TrackingMode
 
 REPORT_SIZE = 32
 
@@ -19,6 +20,12 @@ AUDIO_VALUES: dict[AudioMode, int] = {
 MIRROR_HORIZONTAL_FEATURE = 0x01
 MIRROR_VERTICAL_FEATURE = 0x02
 AUTO_ROTATE_FEATURE = 0x04
+PTZ_DIRECTION_VALUES: dict[PtzDirection, tuple[int, float]] = {
+    "left": (0x01, 1.0),
+    "right": (0x01, -1.0),
+    "up": (0x02, 1.0),
+    "down": (0x02, -1.0),
+}
 
 
 def build_report(payload: Sequence[int]) -> bytes:
@@ -79,4 +86,12 @@ def auto_privacy_reports(timeout_seconds: int) -> list[bytes]:
     return [
         build_report([0x09, 0x02, 0x01, 0x00, 0x00, 0x04, 0x00, 0x04, *timeout_bytes]),
         build_report([0x09, 0x02, 0x01, 0x01]),
+    ]
+
+
+def ptz_direction_reports(direction: PtzDirection) -> list[bytes]:
+    axis, delta = PTZ_DIRECTION_VALUES[direction]
+    delta_bytes = list(struct.pack("<f", delta))
+    return [
+        build_report([0x09, 0x63, 0x01, 0x19, 0x00, 0x05, 0x00, 0x05, axis, *delta_bytes]),
     ]

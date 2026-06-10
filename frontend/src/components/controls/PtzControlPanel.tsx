@@ -12,12 +12,14 @@ import {
 import type { ControlGroup } from "../../domains/controls/grouping";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { UseControlsResult } from "../../hooks/useControls";
-import type { V4L2Control } from "../../types/api";
+import type { UsePixyHidResult } from "../../hooks/usePixyHid";
+import type { PtzDirection, V4L2Control } from "../../types/api";
 import { ControlRenderer } from "./ControlRenderer";
 
 type Props = {
   group: ControlGroup;
   controls: UseControlsResult;
+  pixyHid: UsePixyHidResult;
 };
 
 const PTZ_CONTROL_NAMES = {
@@ -124,7 +126,7 @@ function AxisControl({ label, control, disabled, onSetValue }: AxisControlProps)
   );
 }
 
-export function PtzControlPanel({ group, controls }: Props) {
+export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const Icon = group.icon;
   const pan = findControl(group, PTZ_CONTROL_NAMES.pan);
   const tilt = findControl(group, PTZ_CONTROL_NAMES.tilt);
@@ -136,8 +138,15 @@ export function PtzControlPanel({ group, controls }: Props) {
   const [speed, setSpeed] = useState(3);
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [presets, setPresets] = useState<(PtzPreset | null)[]>([null, null, null]);
+  const hidPtzReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
+  const hidPtzPending = pixyHid.pendingCommand?.startsWith("ptz:") ?? false;
 
-  const moveAxis = async (control: V4L2Control | undefined, direction: number) => {
+  const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
+    if (hidPtzReady) {
+      await pixyHid.sendPtzDirection(hidDirection);
+      return;
+    }
     if (!control || control.flags.includes("inactive")) {
       return;
     }
@@ -181,6 +190,8 @@ export function PtzControlPanel({ group, controls }: Props) {
   };
 
   const disabled = controls.pendingControl !== null;
+  const directionBlocked = (control: V4L2Control | undefined) =>
+    hidPtzReady ? disabled || hidPtzPending : isBlocked(control, controls.pendingControl);
 
   return (
     <section className={`control-panel ptz-panel accent-${group.accent}`}>
@@ -193,8 +204,8 @@ export function PtzControlPanel({ group, controls }: Props) {
         <div className="ptz-pad" aria-label="Pan and tilt controls">
           <button
             className="ptz-direction ptz-up"
-            disabled={isBlocked(tilt, controls.pendingControl)}
-            onClick={() => void moveAxis(tilt, 1)}
+            disabled={directionBlocked(tilt)}
+            onClick={() => void moveAxis(tilt, 1, "up")}
             title="Tilt up"
             aria-label="Tilt up"
           >
@@ -202,8 +213,8 @@ export function PtzControlPanel({ group, controls }: Props) {
           </button>
           <button
             className="ptz-direction ptz-right"
-            disabled={isBlocked(pan, controls.pendingControl)}
-            onClick={() => void moveAxis(pan, 1)}
+            disabled={directionBlocked(pan)}
+            onClick={() => void moveAxis(pan, 1, "right")}
             title="Pan right"
             aria-label="Pan right"
           >
@@ -211,8 +222,8 @@ export function PtzControlPanel({ group, controls }: Props) {
           </button>
           <button
             className="ptz-direction ptz-down"
-            disabled={isBlocked(tilt, controls.pendingControl)}
-            onClick={() => void moveAxis(tilt, -1)}
+            disabled={directionBlocked(tilt)}
+            onClick={() => void moveAxis(tilt, -1, "down")}
             title="Tilt down"
             aria-label="Tilt down"
           >
@@ -220,8 +231,8 @@ export function PtzControlPanel({ group, controls }: Props) {
           </button>
           <button
             className="ptz-direction ptz-left"
-            disabled={isBlocked(pan, controls.pendingControl)}
-            onClick={() => void moveAxis(pan, -1)}
+            disabled={directionBlocked(pan)}
+            onClick={() => void moveAxis(pan, -1, "left")}
             title="Pan left"
             aria-label="Pan left"
           >
