@@ -86,6 +86,15 @@ Capture `pcaps/15.pcapng` showed that EMEET Studio effects are standard UVC Proc
 - `zoom_absolute`: `100..150`, default `100`
 - `zoom_continuous`: exposed by Linux as `0..0`, so it behaves as a no-op and should be hidden in normal UI
 
+Capture `pcaps/23.pcapng` confirmed EMEET Studio's far/near zoom slider uses the standard UVC Camera Terminal `Zoom (Absolute)` control, not HID and not a vendor UVC extension selector.
+
+| EMEET Studio action | UVC selector | Payload | Value |
+| --- | --- | --- | ---: |
+| Zoom near | Camera Terminal selector `0x0b` | `96 00` | `150` |
+| Zoom far | Camera Terminal selector `0x0b` | `64 00` | `100` |
+
+The Linux `zoom_absolute` V4L2 control is therefore the correct implementation path for zoom. `zoom_continuous` remains hidden because Linux exposes it as a zero-width range on this camera.
+
 ## Video Formats
 
 Observed advertised formats:
@@ -641,13 +650,15 @@ These features are not fully decoded yet:
 - Recording-area follow toggle write, if it ever proves distinct from standard tracking
 - Official-app presets
 - Native AF trigger and AF lock behavior
-- Native UVC relative zoom behavior
+- Native UVC relative zoom behavior, if the official app exposes a separate continuous zoom gesture
 - Names and payloads for UVC extension selectors `1..10`
 - Whether some smart features use HID, UVC extension selectors, or both
 
 Capture `pcaps/19.pcapng` was re-captured after setting follow mode and then starting recording. It includes PIXY traffic and shows recording startup at MJPG 1280x720 30 fps plus one group `01` HID status packet with value `01`, meaning tracking/follow was active. It did not include a host-to-device follow SET command, so it currently confirms that recording-area follow uses the already-known tracking state unless a later isolated toggle capture proves otherwise.
 
 Capture `pcaps/20.pcapng` tested manual 90-degree rotate-left, 90-degree rotate-right, then restore. The PIXY control endpoint appears only during initial enumeration, there is no HID endpoint traffic, and no UVC/UVC-extension control writes occur after enumeration. The only sustained PIXY traffic is video streaming. Current conclusion: manual rotation in EMEET Studio is likely an application-side preview/output transform, not a camera-side USB command. This is separate from the decoded Auto Rotate when upside down HID toggle.
+
+Capture `pcaps/23.pcapng` tested zoom far to near and back to far. The only control writes after streaming began were standard UVC `SET_CUR` writes to Camera Terminal entity `0x01`, selector `0x0b` (`Zoom Absolute`): value `150` for near and value `100` for far. No HID reports were present.
 
 ## Capture Plan
 

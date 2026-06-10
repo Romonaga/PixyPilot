@@ -87,6 +87,8 @@ Confirmed V4L2 controls from /dev/video0:
   - focus_absolute: int 0..1023 step 1 default 192 current 512, inactive while continuous autofocus is on
   - focus_automatic_continuous: bool default 1 current 1
   - zoom_absolute: int 100..150 step 1 default 100 current 110
+    - pcaps/23.pcapng confirmed EMEET Studio uses this standard UVC Zoom Absolute selector for far/near zoom.
+    - Far = 100 (payload 64 00), near = 150 (payload 96 00).
   - zoom_continuous: int 0..0 step 0 default 0 current 0
 
 Reverse-engineered HID base:
@@ -724,6 +726,29 @@ Windows EMEET Studio circular PTZ control capture:
     - 00 00 f0 41 00 00 f0 c1 00 00 00 00 = x +30.0, y -30.0, z 0.0
     - 00 00 00 00 00 00 00 00 00 00 00 00 = neutral/stop
   - The final all-zero vector report appears to be the release/stop command.
+
+Capture 23 - Zoom far/near:
+- File:
+  - pcaps/23.pcapng
+- User action:
+  - Zoom from far to near, then back to far.
+- Capture summary:
+  - 1532 packets over 11.715550 seconds.
+  - No HID reports were present.
+  - Only two meaningful PIXY control writes occurred after streaming was active.
+- Decoded UVC writes:
+  - Frame 751, time 5.619308s:
+    - bmRequestType 0x21, SET_CUR.
+    - Camera Terminal entity 0x01, selector 0x0b, Zoom Absolute.
+    - Payload 96 00, value 150.
+  - Frame 1179, time 8.933809s:
+    - bmRequestType 0x21, SET_CUR.
+    - Camera Terminal entity 0x01, selector 0x0b, Zoom Absolute.
+    - Payload 64 00, value 100.
+- Conclusion:
+  - EMEET Studio's far/near zoom slider maps directly to Linux `zoom_absolute`.
+  - No vendor HID command or UVC extension selector is needed.
+  - `zoom_continuous` is still not useful on Linux for this camera because it is exposed as min 0, max 0.
 
 Project direction:
 - Build a local FastAPI + React web UI.
