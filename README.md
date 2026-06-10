@@ -16,6 +16,14 @@ The vendor-specific Pixy HID path is now isolated in its own experimental provid
 
 Reverse-engineering findings for other Linux users are collected in [docs/EMEET_PIXY_REVERSE_ENGINEERING.md](docs/EMEET_PIXY_REVERSE_ENGINEERING.md).
 
+## Attribution
+
+PixyPilot builds on the public EMEET PIXY reverse-engineering work published by `rm1138`:
+
+- https://gist.github.com/rm1138/ef132c3a39f3c1effabf6354e2eca965
+
+That work was the only public Linux-focused EMEET PIXY control reference we found early in the project, and it helped identify the device's useful control paths and HID report shape. PixyPilot's current implementation also includes additional local testing, packet captures from EMEET Studio, native V4L2 ioctl work, and UI/application code developed in this repository.
+
 ## Backend
 
 ```bash
