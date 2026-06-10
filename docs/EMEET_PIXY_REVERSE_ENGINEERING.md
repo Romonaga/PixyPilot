@@ -329,6 +329,72 @@ Current conclusion:
 - Smart Pixy Auto Framing still needs its own one-action capture.
 - PixyPilot already exposes this behavior through Focus Control as `focus_automatic_continuous` plus `focus_absolute`.
 
+## Focus/Metering And Control Captures
+
+Additional captures analyzed:
+
+```text
+pcaps/04_focus_metering_modes.pcapng
+pcaps/05_standard_tracking_toggle.pcapng
+pcaps/06_privacy_toggle.pcapng
+```
+
+The EMEET Studio UI has at least two relevant areas:
+
+- Focus/Metering:
+  - focus on selected areas
+  - focus on central areas
+  - human face
+- Control:
+  - standard tracking
+  - privacy
+
+### Control Section
+
+The Control section maps to the known group `0x01` HID command family:
+
+```text
+09 01 01 00 00 01 00 01 XX
+```
+
+Observed values:
+
+| Value | Meaning |
+| --- | --- |
+| `00` | off / idle |
+| `01` | standard tracking |
+| `02` | privacy |
+
+Capture 6 independently confirmed privacy by sending:
+
+```text
+09 01 01 00 00 01 00 01 02
+```
+
+The status query remains:
+
+```text
+09 01 01 01
+```
+
+### Focus/Metering Section
+
+The Focus/Metering controls appear to use group `0x04` HID commands. The exact label-to-value mapping still needs one more clean capture or a confirmed action order, but the mode-like values observed so far are `00`, `01`, and `02`.
+
+Observed command pattern:
+
+```text
+09 04 00 01 00 05 00 05 XX
+09 04 00 03 00 05 00 05 XX
+09 04 00 02 ...
+```
+
+Current interpretation:
+
+- `XX` is likely the Focus/Metering mode value.
+- Values `00`, `01`, and `02` likely correspond to the three visible Focus/Metering options.
+- Do not wire these into a normal UI until the mapping to selected-area, center-area, and human-face modes is confirmed.
+
 ## Known Gaps
 
 These features are not fully decoded yet:

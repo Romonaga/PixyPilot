@@ -312,6 +312,50 @@ Windows EMEET Studio AF toggle capture:
   - Smart Pixy Auto Framing still needs a separate one-action capture.
   - In PixyPilot terms, this behavior is already covered by the Focus Control auto/manual switch backed by V4L2 focus_automatic_continuous.
 
+Windows EMEET Studio Focus/Metering and Control captures:
+- Capture files analyzed locally:
+  - pcaps/04_focus_metering_modes.pcapng
+  - pcaps/05_standard_tracking_toggle.pcapng
+  - pcaps/06_privacy_toggle.pcapng
+- User note:
+  - The app has a Focus/Metering section with "focus on selected areas", "focus on central areas", and "human face".
+  - The app has a Control section with "standard tracking" and "privacy".
+  - User reported privacy was accidentally used during capture 5.
+- Capture 4 facts:
+  - 1940 packets over 14.872082 seconds.
+  - HID host commands observed:
+    - 09 01 01 00 00 01 00 01 01
+    - 09 01 01 00 00 01 00 01 02
+    - 09 01 01 00 00 01 00 01 00
+    - Multiple 09 04 00 01/02/03 status or mode commands with value 01.
+- Capture 5 facts:
+  - 2808 packets over 22.021226 seconds.
+  - HID host commands observed only in group 0x04:
+    - 09 04 00 01 00 05 00 05 02
+    - 09 04 00 03 00 05 00 05 02
+    - 09 04 00 02 00 00 ...
+    - same pattern repeated with values 00 and 01.
+- Capture 6 facts:
+  - 2197 packets over 17.349502 seconds.
+  - HID host command for privacy:
+    - 09 01 01 00 00 01 00 01 02
+  - Follow-up/status query:
+    - 09 01 01 01
+  - Device response for current state included value 02.
+- Current conclusions:
+  - The Control section is confirmed to use the known group 0x01 tracking/privacy mode command:
+    - 09 01 01 00 00 01 00 01 XX
+    - XX 00 = off/idle
+    - XX 01 = standard tracking
+    - XX 02 = privacy
+  - Capture 6 independently confirms privacy uses value 02.
+  - The Focus/Metering section appears to use group 0x04 commands:
+    - 09 04 00 01 00 05 00 05 XX
+    - 09 04 00 03 00 05 00 05 XX
+    - followed by or paired with 09 04 00 02 status/query traffic.
+  - Values 00, 01, and 02 were observed for group 0x04 mode-like commands.
+  - Exact mapping of group 0x04 values to "selected areas", "central areas", and "human face" still needs either a clean one-mode-per-capture run or a confirmed action order for capture 5.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
