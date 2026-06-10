@@ -600,6 +600,38 @@ Observed device responses looked like status/ack packets:
 09 63 01 19 00 02 00 02 02 20 ...
 ```
 
+## Circular PTZ HID Vector
+
+Capture `pcaps/22.pcapng` tested the official app's circular PTZ control by moving it clockwise several times. This is distinct from the arrow-pad jog command above.
+
+Circular movement uses HID interrupt reports:
+
+```text
+09 63 01 20 00 0c 00 0c XX XX XX XX YY YY YY YY ZZ ZZ ZZ ZZ ...
+```
+
+The 12-byte payload after the prefix decodes as three little-endian float32 values:
+
+| Field | Observed behavior |
+| --- | --- |
+| X | horizontal vector, roughly `-30.0..+30.0` |
+| Y | vertical vector, roughly `-30.0..+30.0` |
+| Z | stayed `0.0` in this capture |
+
+Examples:
+
+| Bytes | Decoded |
+| --- | --- |
+| `a3 8b ae c0 a3 8b 2e 40 00 00 00 00` | X `-5.455`, Y `+2.727`, Z `0.0` |
+| `00 00 f0 41 00 00 f0 c1 00 00 00 00` | X `+30.0`, Y `-30.0`, Z `0.0` |
+| `00 00 00 00 00 00 00 00 00 00 00 00` | neutral/stop |
+
+Observed device responses looked like status/ack packets:
+
+```text
+09 63 01 20 00 01 00 01 20 ...
+```
+
 ## Known Gaps
 
 These features are not fully decoded yet:

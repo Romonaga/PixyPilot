@@ -698,6 +698,33 @@ Windows EMEET Studio directional PTZ pad capture:
     - 09 63 01 19 00 02 00 02 01 20 ...
     - 09 63 01 19 00 02 00 02 02 20 ...
 
+Windows EMEET Studio circular PTZ control capture:
+- Capture file analyzed locally:
+  - pcaps/22.pcapng
+- User action reported:
+  - Moved the PTZ control in the official program in a clockwise rotation several times.
+- Capture facts:
+  - 2824 packets over 16.110503 seconds.
+  - PIXY device 2.3.0 / USB ID 328f:00c0 is present.
+  - Circular control movement uses HID interrupt reports, not standard UVC/V4L2 absolute pan/tilt writes.
+  - Host-to-device reports were sent to endpoint 2.3.1, with device status responses from 2.3.4.
+  - 198 host vector reports were visible.
+  - Device responses looked like status/ack packets:
+    - 09 63 01 20 00 01 00 01 20 ...
+- Captured host report shape:
+  - 09 63 01 20 00 0c 00 0c XX XX XX XX YY YY YY YY ZZ ZZ ZZ ZZ ...
+- Current interpretation:
+  - Group/command prefix is 09 63 01 20 00 0c 00 0c.
+  - The next 12 bytes are three little-endian float32 values.
+  - X and Y change with joystick direction.
+  - Z remained 0.0 for the capture.
+  - Observed X/Y range was approximately -30.0 through +30.0.
+  - Example decoded values:
+    - a3 8b ae c0 a3 8b 2e 40 00 00 00 00 = x -5.455, y +2.727, z 0.0
+    - 00 00 f0 41 00 00 f0 c1 00 00 00 00 = x +30.0, y -30.0, z 0.0
+    - 00 00 00 00 00 00 00 00 00 00 00 00 = neutral/stop
+  - The final all-zero vector report appears to be the release/stop command.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

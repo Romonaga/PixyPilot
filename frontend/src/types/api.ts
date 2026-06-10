@@ -51,6 +51,11 @@ export type TrackingMode = "off" | "tracking" | "privacy";
 export type AudioMode = "noise_cancel" | "live" | "original";
 export type MirrorMode = "off" | "h" | "v" | "hv";
 export type PtzDirection = "left" | "right" | "up" | "down";
+export type PtzVector = {
+  x: number;
+  y: number;
+  z?: number;
+};
 
 export type PixyHidCommandResult = {
   ok: boolean;

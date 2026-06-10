@@ -56,6 +56,7 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
+    sendPtzVector: vi.fn(),
     ...overrides
   };
 }

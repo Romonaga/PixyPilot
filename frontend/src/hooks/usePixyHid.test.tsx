@@ -9,6 +9,7 @@ import {
   setPixyGesture,
   setPixyMirror,
   sendPixyPtzDirection,
+  sendPixyPtzVector,
   setPixyTracking
 } from "../lib/apiClient";
 import { usePixyHid } from "./usePixyHid";
@@ -21,6 +22,7 @@ vi.mock("../lib/apiClient", () => ({
   setPixyGesture: vi.fn(),
   setPixyMirror: vi.fn(),
   sendPixyPtzDirection: vi.fn(),
+  sendPixyPtzVector: vi.fn(),
   setPixyTracking: vi.fn()
 }));
 
@@ -31,6 +33,7 @@ const mockedSetPixyAutoRotate = vi.mocked(setPixyAutoRotate);
 const mockedSetPixyGesture = vi.mocked(setPixyGesture);
 const mockedSetPixyMirror = vi.mocked(setPixyMirror);
 const mockedSendPixyPtzDirection = vi.mocked(sendPixyPtzDirection);
+const mockedSendPixyPtzVector = vi.mocked(sendPixyPtzVector);
 const mockedSetPixyTracking = vi.mocked(setPixyTracking);
 
 describe("usePixyHid", () => {
@@ -42,6 +45,7 @@ describe("usePixyHid", () => {
     mockedSetPixyGesture.mockReset();
     mockedSetPixyMirror.mockReset();
     mockedSendPixyPtzDirection.mockReset();
+    mockedSendPixyPtzVector.mockReset();
     mockedSetPixyTracking.mockReset();
   });
 
@@ -173,5 +177,33 @@ describe("usePixyHid", () => {
 
     expect(mockedSendPixyPtzDirection).toHaveBeenCalledWith("left");
     expect(result.current.lastCommand).toBe("ptz:left");
+  });
+
+  it("sends captured HID PTZ vector commands when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["ptz_vector"]
+    });
+    mockedSendPixyPtzVector.mockResolvedValue({
+      ok: true,
+      command: "ptz_vector",
+      value: "30,-30,0",
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendPtzVector({ x: 30, y: -30 });
+    });
+
+    expect(mockedSendPixyPtzVector).toHaveBeenCalledWith({ x: 30, y: -30 });
+    expect(result.current.lastCommand).toBe("ptz-vector:30,-30,0");
   });
 });

@@ -8,6 +8,7 @@ import type {
   PixyHidCommandResult,
   PixyHidStatus,
   PtzDirection,
+  PtzVector,
   TrackingMode,
   V4L2Control,
   VideoFormatOption
@@ -125,6 +126,13 @@ export async function sendPixyPtzDirection(direction: PtzDirection): Promise<Pix
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-direction", {
     method: "PATCH",
     body: JSON.stringify({ direction })
+  });
+}
+
+export async function sendPixyPtzVector(vector: PtzVector): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-vector", {
+    method: "PATCH",
+    body: JSON.stringify({ z: 0, ...vector })
   });
 }
 

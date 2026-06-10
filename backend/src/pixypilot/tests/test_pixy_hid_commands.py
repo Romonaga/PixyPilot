@@ -7,6 +7,7 @@ from pixypilot.domains.pixy_hid.commands import (
     gesture_reports,
     mirror_reports,
     ptz_direction_reports,
+    ptz_vector_reports,
     tracking_reports,
 )
 
@@ -88,4 +89,14 @@ def test_ptz_direction_reports_match_capture_21() -> None:
     )
     assert ptz_direction_reports("down")[0][:13] == bytes(
         [0x09, 0x63, 0x01, 0x19, 0x00, 0x05, 0x00, 0x05, 0x02, 0x00, 0x00, 0x80, 0xBF]
+    )
+
+
+def test_ptz_vector_reports_match_capture_22_shape() -> None:
+    report = ptz_vector_reports(30.0, -30.0)[0]
+
+    assert report[:8] == bytes([0x09, 0x63, 0x01, 0x20, 0x00, 0x0C, 0x00, 0x0C])
+    assert report[8:20] == bytes.fromhex("0000f0410000f0c100000000")
+    assert ptz_vector_reports(0.0, 0.0)[0][:20] == bytes.fromhex(
+        "09630120000c000c000000000000000000000000"
     )

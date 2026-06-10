@@ -95,3 +95,10 @@ def ptz_direction_reports(direction: PtzDirection) -> list[bytes]:
     return [
         build_report([0x09, 0x63, 0x01, 0x19, 0x00, 0x05, 0x00, 0x05, axis, *delta_bytes]),
     ]
+
+
+def ptz_vector_reports(x: float, y: float, z: float = 0.0) -> list[bytes]:
+    vector_bytes = list(struct.pack("<fff", x, y, z))
+    return [
+        build_report([0x09, 0x63, 0x01, 0x20, 0x00, 0x0C, 0x00, 0x0C, *vector_bytes]),
+    ]
