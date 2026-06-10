@@ -23,11 +23,13 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     lastCommand: null,
     trackingMode: null,
     gestureEnabled: null,
+    autoRotateEnabled: null,
     audioMode: null,
     autoPrivacySeconds: null,
     refresh: vi.fn(),
     setTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
+    setAutoRotateEnabled: vi.fn(),
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     ...overrides
@@ -290,6 +292,33 @@ describe("SmartPixyPanel", () => {
     await user.click(screen.getByRole("button", { name: "Gesture Control" }));
 
     expect(setGestureEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it("toggles the captured auto rotate command", async () => {
+    const user = userEvent.setup();
+    const setAutoRotateEnabled = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["auto_rotate"]
+          },
+          setAutoRotateEnabled
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Auto Rotate" }));
+
+    expect(setAutoRotateEnabled).toHaveBeenCalledWith(true);
   });
 
   it("selects known audio DSP modes", async () => {

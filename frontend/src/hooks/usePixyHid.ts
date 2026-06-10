@@ -4,6 +4,7 @@ import {
   fetchPixyHidStatus,
   setPixyAudio,
   setPixyAutoPrivacy,
+  setPixyAutoRotate,
   setPixyGesture,
   setPixyTracking
 } from "../lib/apiClient";
@@ -17,11 +18,13 @@ export type UsePixyHidResult = {
   lastCommand: string | null;
   trackingMode: TrackingMode | null;
   gestureEnabled: boolean | null;
+  autoRotateEnabled: boolean | null;
   audioMode: AudioMode | null;
   autoPrivacySeconds: number | null;
   refresh: () => Promise<void>;
   setTrackingMode: (mode: TrackingMode) => Promise<void>;
   setGestureEnabled: (enabled: boolean) => Promise<void>;
+  setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
 };
@@ -34,6 +37,7 @@ export function usePixyHid(): UsePixyHidResult {
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [trackingMode, setTrackingModeState] = useState<TrackingMode | null>(null);
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
+  const [autoRotateEnabled, setAutoRotateEnabledState] = useState<boolean | null>(null);
   const [audioMode, setAudioModeState] = useState<AudioMode | null>(null);
   const [autoPrivacySeconds, setAutoPrivacySecondsState] = useState<number | null>(null);
 
@@ -87,6 +91,15 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const setAutoRotateEnabled = useCallback(
+    async (enabled: boolean) =>
+      runCommand(`auto-rotate:${enabled ? "on" : "off"}`, async () => {
+        await setPixyAutoRotate(enabled);
+        setAutoRotateEnabledState(enabled);
+      }),
+    [runCommand]
+  );
+
   const setAudioMode = useCallback(
     async (mode: AudioMode) =>
       runCommand(`audio:${mode}`, async () => {
@@ -113,11 +126,13 @@ export function usePixyHid(): UsePixyHidResult {
     lastCommand,
     trackingMode,
     gestureEnabled,
+    autoRotateEnabled,
     audioMode,
     autoPrivacySeconds,
     refresh,
     setTrackingMode,
     setGestureEnabled,
+    setAutoRotateEnabled,
     setAudioMode,
     setAutoPrivacySeconds
   };

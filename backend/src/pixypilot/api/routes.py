@@ -112,6 +112,19 @@ async def set_pixy_gesture(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
+@router.patch("/pixy-hid/auto-rotate", response_model=PixyHidCommandResult)
+async def set_pixy_auto_rotate(
+    request: GestureRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.set_auto_rotate(request.enabled)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.patch("/pixy-hid/audio", response_model=PixyHidCommandResult)
 async def set_pixy_audio(
     request: AudioModeRequest,

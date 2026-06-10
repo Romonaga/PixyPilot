@@ -2,6 +2,7 @@ from pixypilot.domains.pixy_hid.commands import (
     REPORT_SIZE,
     audio_reports,
     auto_privacy_reports,
+    auto_rotate_reports,
     build_report,
     gesture_reports,
     tracking_reports,
@@ -34,6 +35,14 @@ def test_gesture_reports_match_reverse_engineered_sequence() -> None:
 
     assert set_report[:10] == bytes([0x09, 0x04, 0x02, 0x00, 0x00, 0x02, 0x00, 0x02, 0x02, 0x01])
     assert ack_report[:9] == bytes([0x09, 0x04, 0x02, 0x01, 0x00, 0x01, 0x00, 0x01, 0x02])
+
+
+def test_auto_rotate_reports_match_captured_sequence() -> None:
+    set_report, query_report = auto_rotate_reports(True)
+
+    assert set_report[:10] == bytes([0x09, 0x04, 0x00, 0x08, 0x00, 0x02, 0x00, 0x02, 0x04, 0x01])
+    assert query_report[:9] == bytes([0x09, 0x04, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, 0x04])
+    assert auto_rotate_reports(False)[0][9] == 0x00
 
 
 def test_audio_reports_match_reverse_engineered_sequence() -> None:

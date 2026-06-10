@@ -6,6 +6,7 @@ from pathlib import Path
 from pixypilot.domains.pixy_hid.commands import (
     audio_reports,
     auto_privacy_reports,
+    auto_rotate_reports,
     gesture_reports,
     tracking_reports,
 )
@@ -18,7 +19,7 @@ from pixypilot.domains.pixy_hid.models import (
 
 PIXY_VENDOR_ID = "0000328F"
 PIXY_PRODUCT_ID = "000000C0"
-KNOWN_CONTROLS = ["tracking", "privacy", "gesture", "auto_privacy", "audio_mode"]
+KNOWN_CONTROLS = ["tracking", "privacy", "gesture", "auto_rotate", "auto_privacy", "audio_mode"]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
 
 
@@ -72,6 +73,11 @@ class PixyHidService:
         path = await self._require_writable_path()
         await self._write_reports(path, gesture_reports(enabled))
         return PixyHidCommandResult(ok=True, command="gesture", value=enabled, path=path)
+
+    async def set_auto_rotate(self, enabled: bool) -> PixyHidCommandResult:
+        path = await self._require_writable_path()
+        await self._write_reports(path, auto_rotate_reports(enabled))
+        return PixyHidCommandResult(ok=True, command="auto_rotate", value=enabled, path=path)
 
     async def set_audio_mode(self, mode: AudioMode) -> PixyHidCommandResult:
         path = await self._require_writable_path()

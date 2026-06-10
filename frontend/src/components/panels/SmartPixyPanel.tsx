@@ -145,6 +145,22 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
           </button>
         </div>
 
+        <div className="smart-control smart-toggle-row">
+          <div className="smart-label">
+            <ScanFace size={16} />
+            <span>Auto Rotate</span>
+          </div>
+          <button
+            className={`toggle-switch ${pixyHid.autoRotateEnabled ? "is-on" : ""}`}
+            disabled={disabled}
+            aria-pressed={pixyHid.autoRotateEnabled === true}
+            aria-label="Auto Rotate"
+            onClick={() => void pixyHid.setAutoRotateEnabled(!(pixyHid.autoRotateEnabled ?? false))}
+          >
+            <span />
+          </button>
+        </div>
+
         <div className="smart-control">
           <div className="smart-label">
             <Volume2 size={16} />

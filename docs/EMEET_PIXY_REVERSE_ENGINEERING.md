@@ -176,6 +176,45 @@ Follow-up/query-like command:
 09 04 02 01 00 01 00 01 02
 ```
 
+### Auto Rotate When Upside Down
+
+Capture analyzed:
+
+```text
+pcaps/12-on off gesture and rotate.pcapng
+```
+
+Set command:
+
+```text
+09 04 00 08 00 02 00 02 04 XX
+```
+
+Known values for `XX`:
+
+- `00`: off
+- `01`: on
+
+Status/query-like command:
+
+```text
+09 04 00 07 00 01 00 01 04
+```
+
+The device response mirrors the state:
+
+```text
+09 04 00 07 00 02 00 02 04 XX
+```
+
+An additional input report was observed after both on and off transitions:
+
+```text
+09 63 02 01 00 02 00 02 01 20
+```
+
+Current interpretation: auto-rotate is a group `0x04` feature with feature id `0x04`. The `09 63...` report is likely an async notification or acknowledgement, but its exact meaning is not decoded.
+
 ### Audio DSP Mode
 
 Set command:

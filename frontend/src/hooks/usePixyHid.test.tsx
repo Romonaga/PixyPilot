@@ -5,6 +5,7 @@ import {
   fetchPixyHidStatus,
   setPixyAudio,
   setPixyAutoPrivacy,
+  setPixyAutoRotate,
   setPixyGesture,
   setPixyTracking
 } from "../lib/apiClient";
@@ -14,6 +15,7 @@ vi.mock("../lib/apiClient", () => ({
   fetchPixyHidStatus: vi.fn(),
   setPixyAudio: vi.fn(),
   setPixyAutoPrivacy: vi.fn(),
+  setPixyAutoRotate: vi.fn(),
   setPixyGesture: vi.fn(),
   setPixyTracking: vi.fn()
 }));
@@ -21,6 +23,7 @@ vi.mock("../lib/apiClient", () => ({
 const mockedFetchPixyHidStatus = vi.mocked(fetchPixyHidStatus);
 const mockedSetPixyAudio = vi.mocked(setPixyAudio);
 const mockedSetPixyAutoPrivacy = vi.mocked(setPixyAutoPrivacy);
+const mockedSetPixyAutoRotate = vi.mocked(setPixyAutoRotate);
 const mockedSetPixyGesture = vi.mocked(setPixyGesture);
 const mockedSetPixyTracking = vi.mocked(setPixyTracking);
 
@@ -29,6 +32,7 @@ describe("usePixyHid", () => {
     mockedFetchPixyHidStatus.mockReset();
     mockedSetPixyAudio.mockReset();
     mockedSetPixyAutoPrivacy.mockReset();
+    mockedSetPixyAutoRotate.mockReset();
     mockedSetPixyGesture.mockReset();
     mockedSetPixyTracking.mockReset();
   });
@@ -77,5 +81,33 @@ describe("usePixyHid", () => {
 
     expect(mockedSetPixyTracking).toHaveBeenCalledWith("privacy");
     expect(result.current.trackingMode).toBe("privacy");
+  });
+
+  it("sends auto rotate commands when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["auto_rotate"]
+    });
+    mockedSetPixyAutoRotate.mockResolvedValue({
+      ok: true,
+      command: "auto_rotate",
+      value: true,
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setAutoRotateEnabled(true);
+    });
+
+    expect(mockedSetPixyAutoRotate).toHaveBeenCalledWith(true);
+    expect(result.current.autoRotateEnabled).toBe(true);
   });
 });

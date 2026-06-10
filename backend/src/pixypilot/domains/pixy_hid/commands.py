@@ -41,6 +41,14 @@ def gesture_reports(enabled: bool) -> list[bytes]:
     ]
 
 
+def auto_rotate_reports(enabled: bool) -> list[bytes]:
+    value = 0x01 if enabled else 0x00
+    return [
+        build_report([0x09, 0x04, 0x00, 0x08, 0x00, 0x02, 0x00, 0x02, 0x04, value]),
+        build_report([0x09, 0x04, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, 0x04]),
+    ]
+
+
 def audio_reports(mode: AudioMode) -> list[bytes]:
     value = AUDIO_VALUES[mode]
     return [

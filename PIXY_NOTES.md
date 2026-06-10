@@ -422,6 +422,31 @@ Windows EMEET Studio Auto Privacy / Auto-entry Privacy mapping:
   - The earlier single-byte interpretation was incomplete; values above 255 seconds require the full 4-byte field.
   - This configures the automatic privacy timer. Explicit privacy mode still uses group 0x01 value 02.
 
+Windows EMEET Studio Gesture + Auto Rotate mapping:
+- Capture file analyzed locally:
+  - pcaps/12-on off gesture and rotate.pcapng
+- User action order:
+  - Gesture Control on
+  - Gesture Control off
+  - Auto Rotate When Upside Down on
+  - Auto Rotate When Upside Down off
+- Gesture reconfirmed known command:
+  - Set on: 09 04 02 00 00 02 00 02 02 01
+  - Set off: 09 04 02 00 00 02 00 02 02 00
+  - Query/status: 09 04 02 01 00 01 00 01 02
+- Auto Rotate When Upside Down command:
+  - Set on: 09 04 00 08 00 02 00 02 04 01
+  - Set off: 09 04 00 08 00 02 00 02 04 00
+  - Query/status: 09 04 00 07 00 01 00 01 04
+  - Device response mirrors state:
+    09 04 00 07 00 02 00 02 04 XX
+- Additional report observed after auto-rotate on and off:
+  - 09 63 02 01 00 02 00 02 01 20
+  - Inference: likely async notification or acknowledgement; exact meaning unknown.
+- Current conclusion:
+  - Auto Rotate When Upside Down is safe to expose as a named HID toggle.
+  - It is a group 0x04 feature with feature id 0x04.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

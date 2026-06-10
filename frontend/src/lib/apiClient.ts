@@ -73,6 +73,13 @@ export async function setPixyGesture(enabled: boolean): Promise<PixyHidCommandRe
   });
 }
 
+export async function setPixyAutoRotate(enabled: boolean): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/auto-rotate", {
+    method: "PATCH",
+    body: JSON.stringify({ enabled })
+  });
+}
+
 export async function setPixyAudio(mode: AudioMode): Promise<PixyHidCommandResult> {
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/audio", {
     method: "PATCH",
