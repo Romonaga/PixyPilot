@@ -615,6 +615,21 @@ Windows EMEET Studio monitor / mic listen mapping:
   - Current inference: that slider is likely local EMEET Studio monitor/playback volume on the Windows machine, not a persisted camera-side control.
   - PixyPilot already controls the camera microphone capture path through ALSA mute/volume. A monitor/listen feature would be an application playback feature, not a camera hardware feature.
 
+Windows EMEET Studio follow-mode capture attempt:
+- Capture file analyzed locally:
+  - pcaps/19.pcapng
+- User action reported:
+  - Turned follow mode on, then off, from a recording-related UI location.
+- Capture facts:
+  - Only 38 packets over 7.832984 seconds.
+  - PIXY device 2.3.0 / USB ID 328f:00c0 appears only during descriptor/configuration enumeration.
+  - No PIXY HID reports, UVC control writes, UVC extension writes, or USB Audio control writes were present after enumeration.
+  - The only action-like packets were HCI vendor commands on device 2.2.0 / USB ID 8087:0029, which is the Intel Bluetooth adapter, not the PIXY.
+- Current conclusion:
+  - Capture 19 does not map a PIXY camera feature.
+  - Either the wrong USB activity was captured, the UI action did not reach the camera, or this recording-area "follow mode" is an application-side feature.
+  - Re-capture is needed if this is expected to affect the PIXY.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:
