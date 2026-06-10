@@ -22,3 +22,6 @@ pcaps/
 
 # Local camera recordings can be large and private.
 recordings/
+
+# User-created camera control presets.
+config/presets.yaml

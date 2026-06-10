@@ -4,14 +4,17 @@ import { boolOptionLabels, controlDisplayLabel, inactiveReason } from "../../dom
 import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/effects";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
+import type { UseControlPresetsResult } from "../../hooks/useControlPresets";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { FocusMeteringMode, MirrorMode, V4L2Control } from "../../types/api";
+import { ControlPresetToolbar } from "./ControlPresetToolbar";
 
 type Props = {
   group: ControlGroup;
   controls: UseControlsResult;
   pixyHid: UsePixyHidResult;
+  controlPresets: UseControlPresetsResult;
 };
 
 const GROUP_ORDER: Partial<Record<ControlGroup["id"], string[]>> = {
@@ -44,7 +47,7 @@ const FOCUS_METERING_OPTIONS: { value: FocusMeteringMode; label: string }[] = [
   { value: "selected_area", label: "Position" }
 ];
 
-export function CompactControlPanel({ group, controls, pixyHid }: Props) {
+export function CompactControlPanel({ group, controls, pixyHid, controlPresets }: Props) {
   const Icon = group.icon;
   const orderedControls = orderControls(group.controls, GROUP_ORDER[group.id] ?? []);
   const mirrorDisabled = pixyHid.status?.writable !== true || pixyHid.pendingCommand !== null;
@@ -59,6 +62,7 @@ export function CompactControlPanel({ group, controls, pixyHid }: Props) {
         <Icon size={18} />
         <h2>{group.title}</h2>
       </div>
+      <ControlPresetToolbar group={group} controls={controls} controlPresets={controlPresets} />
       {group.id === "image" && (
         <div className="image-preset-tools">
           <div className="effect-preset-strip" aria-label="Image effects">

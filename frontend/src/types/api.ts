@@ -46,6 +46,27 @@ export type VideoRecordingStatus = {
   reason: string | null;
 };
 
+export type ControlPresetScope = "image" | "focus" | "exposure";
+
+export type ControlPreset = {
+  id: string;
+  name: string;
+  scope: ControlPresetScope;
+  values: Record<string, number>;
+  created_at: string;
+};
+
+export type ControlPresetCreateRequest = {
+  name: string;
+  scope: ControlPresetScope;
+  values: Record<string, number>;
+};
+
+export type ControlPresetDeleteResult = {
+  ok: boolean;
+  id: string;
+};
+
 export type PixyHidStatus = {
   available: boolean;
   path: string | null;

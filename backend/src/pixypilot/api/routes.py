@@ -3,6 +3,13 @@ from fastapi.responses import StreamingResponse
 
 from pixypilot.domains.audio.models import AudioCommandResult, AudioMuteRequest, AudioStatus
 from pixypilot.domains.audio.service import AudioService, get_audio_service
+from pixypilot.domains.control_presets.models import (
+    ControlPreset,
+    ControlPresetCreateRequest,
+    ControlPresetDeleteResult,
+    ControlPresetScope,
+)
+from pixypilot.domains.control_presets.service import ControlPresetService, get_control_preset_service
 from pixypilot.domains.devices.models import Device
 from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
@@ -45,6 +52,36 @@ async def get_settings(
         return await service.get_settings()
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/control-presets", response_model=list[ControlPreset])
+async def list_control_presets(
+    scope: ControlPresetScope | None = Query(default=None),
+    service: ControlPresetService = Depends(get_control_preset_service),
+) -> list[ControlPreset]:
+    try:
+        return await service.list_presets(scope)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/control-presets", response_model=ControlPreset)
+async def create_control_preset(
+    request: ControlPresetCreateRequest,
+    service: ControlPresetService = Depends(get_control_preset_service),
+) -> ControlPreset:
+    return await service.create_preset(request)
+
+
+@router.delete("/control-presets/{preset_id}", response_model=ControlPresetDeleteResult)
+async def delete_control_preset(
+    preset_id: str,
+    service: ControlPresetService = Depends(get_control_preset_service),
+) -> ControlPresetDeleteResult:
+    try:
+        return await service.delete_preset(preset_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/devices", response_model=list[Device])

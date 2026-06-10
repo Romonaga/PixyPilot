@@ -1,5 +1,6 @@
 import { AppShell } from "../components/layout/AppShell";
 import { useAudio } from "../hooks/useAudio";
+import { useControlPresets } from "../hooks/useControlPresets";
 import { useControls } from "../hooks/useControls";
 import { useDevices } from "../hooks/useDevices";
 import { usePixyHid } from "../hooks/usePixyHid";
@@ -15,6 +16,7 @@ export function App() {
   const pixyHid = usePixyHid();
   const audio = useAudio();
   const privacySafety = usePrivacySafety(pixyHid, audio);
+  const controlPresets = useControlPresets();
 
   return (
     <AppShell
@@ -25,6 +27,7 @@ export function App() {
       pixyHid={pixyHid}
       audio={audio}
       privacySafety={privacySafety}
+      controlPresets={controlPresets}
     />
   );
 }

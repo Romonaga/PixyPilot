@@ -2,6 +2,7 @@ import { RefreshCw, Radar, RadioTower } from "lucide-react";
 
 import { countActiveControls } from "../../domains/controls/grouping";
 import type { UseAudioResult } from "../../hooks/useAudio";
+import type { UseControlPresetsResult } from "../../hooks/useControlPresets";
 import type { UseControlsResult } from "../../hooks/useControls";
 import type { UseDevicesResult } from "../../hooks/useDevices";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -23,9 +24,19 @@ type Props = {
   pixyHid: UsePixyHidResult;
   audio: UseAudioResult;
   privacySafety: UsePrivacySafetyResult;
+  controlPresets: UseControlPresetsResult;
 };
 
-export function AppShell({ devices, controls, videoFormats, videoCapture, pixyHid, audio, privacySafety }: Props) {
+export function AppShell({
+  devices,
+  controls,
+  videoFormats,
+  videoCapture,
+  pixyHid,
+  audio,
+  privacySafety,
+  controlPresets
+}: Props) {
   const activeControls = countActiveControls(controls.controls);
 
   return (
@@ -58,6 +69,7 @@ export function AppShell({ devices, controls, videoFormats, videoCapture, pixyHi
         <div className="main-console">
           {controls.error && <div className="error-strip">{controls.error}</div>}
           {devices.error && <div className="error-strip">{devices.error}</div>}
+          {controlPresets.error && <div className="error-strip">{controlPresets.error}</div>}
           <VideoMonitor
             deviceName={devices.selectedDeviceName}
             videoFormats={videoFormats}
@@ -65,7 +77,13 @@ export function AppShell({ devices, controls, videoFormats, videoCapture, pixyHi
           />
           <div className="control-grid">
             {controls.groups.map((group) => (
-              <ControlGroupPanel key={group.id} group={group} controls={controls} pixyHid={pixyHid} />
+              <ControlGroupPanel
+                key={group.id}
+                group={group}
+                controls={controls}
+                pixyHid={pixyHid}
+                controlPresets={controlPresets}
+              />
             ))}
           </div>
         </div>

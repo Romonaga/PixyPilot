@@ -3,6 +3,9 @@ import type {
   AudioStatus,
   AudioMode,
   AppSettings,
+  ControlPreset,
+  ControlPresetCreateRequest,
+  ControlPresetDeleteResult,
   Device,
   FocusMeteringMode,
   MirrorMode,
@@ -42,6 +45,23 @@ export async function fetchDevices(): Promise<Device[]> {
 
 export async function fetchSettings(): Promise<AppSettings> {
   return requestJson<AppSettings>("/api/settings");
+}
+
+export async function fetchControlPresets(): Promise<ControlPreset[]> {
+  return requestJson<ControlPreset[]>("/api/control-presets");
+}
+
+export async function createControlPreset(request: ControlPresetCreateRequest): Promise<ControlPreset> {
+  return requestJson<ControlPreset>("/api/control-presets", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
+}
+
+export async function deleteControlPreset(presetId: string): Promise<ControlPresetDeleteResult> {
+  return requestJson<ControlPresetDeleteResult>(`/api/control-presets/${encodeURIComponent(presetId)}`, {
+    method: "DELETE"
+  });
 }
 
 export async function fetchControls(deviceName: string): Promise<V4L2Control[]> {

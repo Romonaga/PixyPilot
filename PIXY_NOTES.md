@@ -862,6 +862,7 @@ Project direction:
   - Enumerate V4L2 devices and controls.
   - Return controls as JSON.
   - Validate V4L2 controls and set standard control values through native Linux V4L2 ioctls.
+  - Store user-created Image/Focus/Exposure presets in YAML.
   - Expose Pixy HID controls through a separate provider.
   - Later expose UVC extension selectors as named capabilities only after they are decoded.
 - Frontend responsibilities:
@@ -881,6 +882,7 @@ Implemented app status:
 - V4L2 device and control enumeration is live through FastAPI.
 - V4L2 control writes are live for exposed controls and now use native `VIDIOC_S_CTRL` writes rather than spawning `v4l2-ctl`.
 - `v4l2-ctl` remains in use for enumeration and video format switching.
+- Image/Focus/Exposure preset save/apply/delete is live and stored in `config/presets.yaml`.
 - Live preview is available through an ffmpeg-backed MJPEG stream endpoint.
 - Recording is available through an ffmpeg-backed backend process and writes to `recordings/` unless `PIXYPILOT_RECORDINGS_DIR` is set.
 - Focus Control includes standard UVC AF/manual focus and captured HID Focus/Metering target modes.

@@ -640,6 +640,70 @@ h2 {
   display: grid;
 }
 
+.control-preset-toolbar {
+  display: grid;
+  grid-template-columns: minmax(132px, 1fr) 32px 32px minmax(124px, 0.9fr) minmax(78px, auto);
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.preset-select,
+.preset-name-input {
+  min-width: 0;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: #f3efe2;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.preset-select {
+  padding: 0 8px;
+}
+
+.preset-name-input {
+  padding: 0 9px;
+}
+
+.preset-icon-button,
+.preset-save-button {
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 4px;
+  color: #efeade;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(255, 255, 255, 0.035);
+}
+
+.preset-icon-button {
+  display: grid;
+  place-items: center;
+}
+
+.preset-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: #ffe08b;
+  border-color: rgba(255, 212, 94, 0.28);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.preset-icon-button:disabled,
+.preset-save-button:disabled,
+.preset-select:disabled,
+.preset-name-input:disabled {
+  opacity: 0.45;
+}
+
 .image-preset-tools {
   display: grid;
   gap: 8px;

@@ -38,6 +38,16 @@ The frontend expects the API at `http://127.0.0.1:8000` during development.
 
 Standard camera control writes use native Linux V4L2 ioctls. `v4l2-ctl` is still used for device/control/format enumeration and format switching while those paths remain discovery-heavy.
 
+## Control Presets
+
+Image, focus, and exposure panels can save named local presets. Presets are stored in `config/presets.yaml`, which is ignored by git because those values are user/workspace specific.
+
+Override the preset file with:
+
+```bash
+export PIXYPILOT_PRESETS_PATH=/path/to/presets.yaml
+```
+
 ## Video Preview And Recording
 
 PixyPilot uses `ffmpeg` for V4L2 preview and recording. The live monitor streams MJPEG through the backend, and recordings are written under `recordings/` by default. That directory is ignored by git because camera recordings are large and private.
