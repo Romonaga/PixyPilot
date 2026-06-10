@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Radio, ScanFace, Shield, Sparkles, Volume2 } from "lucide-react";
+import { ScanFace, Shield, Sparkles, Volume2 } from "lucide-react";
 
 import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
@@ -88,22 +88,6 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
           >
             <span />
           </button>
-        </div>
-
-        <div className="smart-control smart-toggle-row">
-          <div className="smart-label">
-            <ScanFace size={16} />
-            <span>Auto Framing</span>
-          </div>
-          <span className="capture-needed">Capture needed</span>
-        </div>
-
-        <div className="smart-control smart-toggle-row">
-          <div className="smart-label">
-            <Radio size={16} />
-            <span>Speaker Tracking</span>
-          </div>
-          <span className="capture-needed">Capture needed</span>
         </div>
 
         <div className="smart-control">

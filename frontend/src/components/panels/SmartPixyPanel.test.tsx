@@ -101,10 +101,9 @@ describe("SmartPixyPanel", () => {
 
     expect(screen.getByText("HID ready")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto Follow" })).toBeEnabled();
-    expect(screen.getByText("Auto Framing")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Privacy" })).toBeEnabled();
-    expect(screen.getByText("Speaker Tracking")).toBeInTheDocument();
-    expect(screen.getAllByText("Capture needed")).toHaveLength(2);
+    expect(screen.queryByText("Speaker Tracking")).not.toBeInTheDocument();
+    expect(screen.queryByText("Capture needed")).not.toBeInTheDocument();
   });
 
   it("toggles the proven auto follow tracking command", async () => {

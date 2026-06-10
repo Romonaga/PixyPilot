@@ -385,7 +385,7 @@ Useful findings from this baseline:
 - The HID descriptor confirms report ID `0x09` with 31-byte input and output payloads.
 - Windows issued `SET_CUR` twice for Processing Unit selector `0x05`, value `2`, which sets Power Line Frequency to 60 Hz.
 
-The baseline does not include official EMEET Studio user actions, so it does not reveal the meaning of Auto Framing, Speaker Tracking, presets, or vendor image modes.
+The baseline does not include official EMEET Studio user actions, so it does not reveal the meaning of presets or vendor image modes.
 
 ## EMEET Studio Launch Idle Capture
 
@@ -440,7 +440,7 @@ HID startup/status traffic observed:
 
 Current conclusion from launch-idle:
 
-- EMEET Studio startup gives us useful status queries, but not feature-toggle commands for Auto Framing or Speaker Tracking.
+- EMEET Studio startup gives us useful status queries, but not user-action commands.
 - No clear UVC Extension Unit selector writes were observed during idle startup.
 - The next captures must isolate one user action at a time so these startup queries can be separated from real feature commands.
 
@@ -474,8 +474,7 @@ Current conclusion:
 
 - This capture maps AF off/on to standard UVC `Focus, Auto`, not to HID.
 - Turning the control off also made EMEET Studio write `Focus Absolute = 512`.
-- This is not the Smart Pixy Auto Framing command.
-- Smart Pixy Auto Framing still needs its own one-action capture.
+- This is not a separate Smart Pixy tracking command. It maps to standard UVC autofocus.
 - PixyPilot already exposes this behavior through Focus Control as `focus_automatic_continuous` plus `focus_absolute`.
 
 ## Focus/Metering And Control Captures
@@ -714,8 +713,6 @@ Current interpretation: HID command `18` restores the native preset PTZ position
 
 These features are not fully decoded yet:
 
-- Auto Framing as a distinct feature from Auto Follow
-- Speaker Tracking
 - Recording-area follow toggle write, if it ever proves distinct from standard tracking
 - Official-app preset delete/default behavior
 - Native UVC relative zoom behavior, if the official app exposes a separate continuous zoom gesture
@@ -739,14 +736,12 @@ To decode missing behavior, capture one official-app action at a time. Start USB
 Recommended sequence:
 
 1. Launch EMEET Studio and make no setting changes.
-2. Toggle Auto Framing off/on.
-3. Toggle Auto Follow off/on.
-4. Toggle Speaker Tracking off/on.
-5. Toggle Privacy off/on.
-6. Toggle Gesture Control off/on.
-7. Change each audio DSP mode once.
-8. Capture any literal AF trigger or focus-lock action only if the official app exposes one separately from Focus/Metering.
-9. Change one image-control preset or value at a time.
-10. Change one video format, resolution, or FPS option at a time.
+2. Toggle Auto Follow off/on.
+3. Toggle Privacy off/on.
+4. Toggle Gesture Control off/on.
+5. Change each audio DSP mode once.
+6. Capture any literal AF trigger or focus-lock action only if the official app exposes one separately from Focus/Metering.
+7. Change one image-control preset or value at a time.
+8. Change one video format, resolution, or FPS option at a time.
 
 Local packet captures are intentionally ignored by git. Record findings in markdown, but keep raw captures private unless there is a clear reason to publish them.

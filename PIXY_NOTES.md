@@ -204,13 +204,11 @@ Windows USBPcap baseline:
   - Windows issued SET_CUR twice for Processing Unit selector 0x05, value 2. This sets Power Line Frequency to 60 Hz.
 - What the baseline does not tell us:
   - It does not name the 10 vendor Extension Unit selectors.
-  - It does not exercise Auto Framing, Speaker Tracking, AI modes, or vendor presets.
+  - It does not exercise AI modes or vendor presets.
   - It does not include official EMEET Studio user actions, so it is a map of advertised capability, not a behavior map.
 - Next action captures needed:
   - Launch EMEET Studio with no setting changes.
-  - Toggle Auto Framing off/on.
   - Toggle Auto Follow off/on.
-  - Toggle Speaker Tracking off/on.
   - Toggle Privacy off/on.
   - Toggle Gesture Control off/on.
   - Change each audio mode once.
@@ -279,7 +277,7 @@ Windows EMEET Studio launch-idle capture:
     Response contains one-byte value 0x20.
     Inference: unknown group 0x03 status.
 - Current conclusion:
-  - Launching EMEET Studio does not reveal Auto Framing or Speaker Tracking command values by itself.
+  - Launching EMEET Studio does not reveal additional smart-feature command values by itself.
   - Studio's startup traffic gives us a menu of status/capability queries to compare against one-action captures.
   - No clear UVC Extension Unit selector writes were observed during idle startup; the missing smart features are still more likely HID or HID plus vendor extension status.
 
@@ -310,8 +308,7 @@ Windows EMEET Studio AF toggle capture:
   - Studio read back Focus Absolute 512 and Focus, Auto 1.
 - Current conclusion:
   - This capture maps AF off/on to standard UVC Focus, Auto, not to HID and not to the vendor UVC Extension Unit.
-  - This is not the Smart Pixy Auto Framing command.
-  - Smart Pixy Auto Framing still needs a separate one-action capture.
+  - This is not a separate Smart Pixy tracking command. It maps to standard UVC autofocus.
   - In PixyPilot terms, this behavior is already covered by the Focus Control auto/manual switch backed by V4L2 focus_automatic_continuous.
 
 Windows EMEET Studio Focus/Metering and Control captures:
@@ -860,9 +857,8 @@ Implemented app status:
 - UVC extension remains read-only in the UI until selectors are correlated with known behavior.
 - Smart Pixy UI now mirrors the official-app vocabulary:
   - Auto Follow uses the known HID tracking mode on/off path.
-  - Auto Framing is visible but marked capture-needed until a separate command is confirmed.
   - Gesture Control uses the known HID gesture path.
-  - Speaker Tracking is visible but marked capture-needed until a separate command is confirmed.
+  - Sound-following / Speaker Tracking is not shown because we have not found it exposed in EMEET Studio.
 
 Open investigation:
 - Verify the gist HID commands locally after solving /dev/hidraw14 permissions.
