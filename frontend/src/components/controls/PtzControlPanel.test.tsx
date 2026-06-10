@@ -58,6 +58,7 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     sendPtzDirection: vi.fn(),
     sendPtzVector: vi.fn(),
     savePtzPreset: vi.fn(),
+    loadPtzPreset: vi.fn(),
     ...overrides
   };
 }
@@ -156,6 +157,32 @@ describe("PtzControlPanel", () => {
     await user.click(screen.getByRole("button", { name: "Save PTZ preset" }));
 
     expect(savePtzPreset).toHaveBeenCalledWith(2);
+  });
+
+  it("uses the captured HID load command when native preset loading is available", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const loadPtzPreset = vi.fn().mockResolvedValue(undefined);
+    renderPanel(
+      setValue,
+      pixyHid({
+        status: {
+          available: true,
+          path: "/dev/hidraw14",
+          readable: true,
+          writable: true,
+          reason: null,
+          known_controls: ["ptz_preset_load"]
+        },
+        loadPtzPreset
+      })
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preset 3" }));
+    await user.click(screen.getByRole("button", { name: "Goto PTZ preset" }));
+
+    expect(loadPtzPreset).toHaveBeenCalledWith(3);
+    expect(setValue).not.toHaveBeenCalled();
   });
 
   it("allows speed selection for PTZ jog controls", async () => {

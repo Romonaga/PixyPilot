@@ -8,6 +8,7 @@ import {
   setPixyAutoRotate,
   setPixyGesture,
   setPixyMirror,
+  loadPixyPtzPreset,
   savePixyPtzPreset,
   sendPixyPtzDirection,
   sendPixyPtzVector,
@@ -22,6 +23,7 @@ vi.mock("../lib/apiClient", () => ({
   setPixyAutoRotate: vi.fn(),
   setPixyGesture: vi.fn(),
   setPixyMirror: vi.fn(),
+  loadPixyPtzPreset: vi.fn(),
   savePixyPtzPreset: vi.fn(),
   sendPixyPtzDirection: vi.fn(),
   sendPixyPtzVector: vi.fn(),
@@ -34,6 +36,7 @@ const mockedSetPixyAutoPrivacy = vi.mocked(setPixyAutoPrivacy);
 const mockedSetPixyAutoRotate = vi.mocked(setPixyAutoRotate);
 const mockedSetPixyGesture = vi.mocked(setPixyGesture);
 const mockedSetPixyMirror = vi.mocked(setPixyMirror);
+const mockedLoadPixyPtzPreset = vi.mocked(loadPixyPtzPreset);
 const mockedSavePixyPtzPreset = vi.mocked(savePixyPtzPreset);
 const mockedSendPixyPtzDirection = vi.mocked(sendPixyPtzDirection);
 const mockedSendPixyPtzVector = vi.mocked(sendPixyPtzVector);
@@ -47,6 +50,7 @@ describe("usePixyHid", () => {
     mockedSetPixyAutoRotate.mockReset();
     mockedSetPixyGesture.mockReset();
     mockedSetPixyMirror.mockReset();
+    mockedLoadPixyPtzPreset.mockReset();
     mockedSavePixyPtzPreset.mockReset();
     mockedSendPixyPtzDirection.mockReset();
     mockedSendPixyPtzVector.mockReset();
@@ -237,5 +241,33 @@ describe("usePixyHid", () => {
 
     expect(mockedSavePixyPtzPreset).toHaveBeenCalledWith(2);
     expect(result.current.lastCommand).toBe("ptz-preset-save:2");
+  });
+
+  it("sends captured HID PTZ preset load commands when requested", async () => {
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["ptz_preset_load"]
+    });
+    mockedLoadPixyPtzPreset.mockResolvedValue({
+      ok: true,
+      command: "ptz_preset_load",
+      value: 3,
+      path: "/dev/hidraw14"
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.loadPtzPreset(3);
+    });
+
+    expect(mockedLoadPixyPtzPreset).toHaveBeenCalledWith(3);
+    expect(result.current.lastCommand).toBe("ptz-preset-load:3");
   });
 });

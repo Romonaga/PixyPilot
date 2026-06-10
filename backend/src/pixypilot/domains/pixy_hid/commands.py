@@ -111,3 +111,11 @@ def ptz_preset_save_reports(slot: int) -> list[bytes]:
         build_report([0x09, 0x03, 0x01, 0x15, 0x00, 0x02, 0x00, 0x02, slot, 0x01]),
         build_report([0x09, 0x03, 0x01, 0x16, 0x00, 0x01, 0x00, 0x01, slot]),
     ]
+
+
+def ptz_preset_load_reports(slot: int) -> list[bytes]:
+    if slot < 1 or slot > 3:
+        raise ValueError("PTZ preset slot must be in range 1..3")
+    return [
+        build_report([0x09, 0x03, 0x01, 0x18, 0x00, 0x01, 0x00, 0x01, slot]),
+    ]

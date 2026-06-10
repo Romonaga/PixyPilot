@@ -675,6 +675,38 @@ Observed query responses:
 
 Current interpretation: the response body is `slot`, `saved/enabled`, then three little-endian float32 values. The first two floats appear to represent the stored PTZ position. The third float stayed `0.0` in this capture.
 
+## PTZ Preset Load
+
+Capture `pcaps/25.pcapng` tested loading presets. The user selected default first, then slots 1, 2, and 3. The capture only showed distinct camera-side preset-load commands for slots 1, 2, and 3.
+
+Loading a slot uses this HID report:
+
+```text
+09 03 01 18 00 01 00 01 SS ...
+```
+
+Observed slot loads:
+
+| Slot | Host report |
+| ---: | --- |
+| 1 | `09 03 01 18 00 01 00 01 01` |
+| 2 | `09 03 01 18 00 01 00 01 02` |
+| 3 | `09 03 01 18 00 01 00 01 03` |
+
+Observed acknowledgement:
+
+```text
+09 03 01 18 00 01 00 01 20 ...
+```
+
+After each HID slot-load report, EMEET Studio also sent a standard UVC `Zoom Absolute` write with value `100`:
+
+```text
+64 00
+```
+
+Current interpretation: HID command `18` restores the native preset PTZ position, while zoom is restored separately through the standard UVC `zoom_absolute` control. In capture 25 all loaded slots used zoom value `100`, likely because that was the stored zoom value from the preceding save capture.
+
 ## Known Gaps
 
 These features are not fully decoded yet:
@@ -682,7 +714,7 @@ These features are not fully decoded yet:
 - Auto Framing as a distinct feature from Auto Follow
 - Speaker Tracking
 - Recording-area follow toggle write, if it ever proves distinct from standard tracking
-- Official-app preset goto/delete behavior
+- Official-app preset delete/default behavior
 - Native AF trigger and AF lock behavior
 - Native UVC relative zoom behavior, if the official app exposes a separate continuous zoom gesture
 - Names and payloads for UVC extension selectors `1..10`
@@ -695,6 +727,8 @@ Capture `pcaps/20.pcapng` tested manual 90-degree rotate-left, 90-degree rotate-
 Capture `pcaps/23.pcapng` tested zoom far to near and back to far. The only control writes after streaming began were standard UVC `SET_CUR` writes to Camera Terminal entity `0x01`, selector `0x0b` (`Zoom Absolute`): value `150` for near and value `100` for far. No HID reports were present.
 
 Capture `pcaps/24.pcapng` tested saving official app PTZ presets to slots 1, 2, and 3. It confirmed HID group `03`, command `15` saves a 1-based slot and command `16` queries that slot's saved state. PixyPilot implements native preset save from this capture. Native preset goto still needs a separate isolated capture.
+
+Capture `pcaps/25.pcapng` tested loading presets. Slots 1, 2, and 3 used HID group `03`, command `18` with the 1-based slot number. EMEET Studio then wrote standard UVC Zoom Absolute value `100` after each load. PixyPilot implements native HID preset load and restores zoom from the local app preset when available.
 
 ## Capture Plan
 

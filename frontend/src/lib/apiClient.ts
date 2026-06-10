@@ -144,6 +144,13 @@ export async function savePixyPtzPreset(slot: PtzPresetSlot): Promise<PixyHidCom
   });
 }
 
+export async function loadPixyPtzPreset(slot: PtzPresetSlot): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-preset/load", {
+    method: "PATCH",
+    body: JSON.stringify({ slot })
+  });
+}
+
 export async function fetchAudioStatus(): Promise<AudioStatus> {
   return requestJson<AudioStatus>("/api/audio/status");
 }

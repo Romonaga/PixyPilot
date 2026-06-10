@@ -142,8 +142,10 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
   const hidPresetSaveReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_preset_save");
+  const hidPresetLoadReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_preset_load");
   const hidPtzPending = pixyHid.pendingCommand?.startsWith("ptz:") ?? false;
-  const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-save:") ?? false;
+  const hidPresetPending = pixyHid.pendingCommand?.startsWith("ptz-preset-") ?? false;
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
     if (hidPtzReady) {
@@ -181,7 +183,17 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
 
   const gotoPreset = async () => {
     const preset = presets[selectedPreset];
-    if (!preset || controls.pendingControl !== null) {
+    if ((!preset && !hidPresetLoadReady) || controls.pendingControl !== null) {
+      return;
+    }
+    if (hidPresetLoadReady) {
+      await pixyHid.loadPtzPreset((selectedPreset + 1) as PtzPresetSlot);
+      if (preset && zoom && !zoom.flags.includes("inactive")) {
+        await controls.setValue(zoom.name, clamp(preset.zoom, zoom));
+      }
+      return;
+    }
+    if (!preset) {
       return;
     }
     if (pan && !pan.flags.includes("inactive")) {
@@ -307,7 +319,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
             </button>
             <button
               className="secondary-button"
-              disabled={disabled || !presets[selectedPreset]}
+              disabled={disabled || hidPresetPending || (!hidPresetLoadReady && !presets[selectedPreset])}
               onClick={() => void gotoPreset()}
               aria-label="Goto PTZ preset"
               title="Goto PTZ preset"

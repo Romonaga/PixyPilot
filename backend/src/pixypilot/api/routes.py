@@ -241,3 +241,16 @@ async def save_pixy_ptz_preset(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-preset/load", response_model=PixyHidCommandResult)
+async def load_pixy_ptz_preset(
+    request: PtzPresetSlotRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.load_ptz_preset(request.slot)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc

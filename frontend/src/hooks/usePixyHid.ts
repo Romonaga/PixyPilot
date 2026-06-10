@@ -7,6 +7,7 @@ import {
   setPixyAutoRotate,
   setPixyGesture,
   setPixyMirror,
+  loadPixyPtzPreset,
   sendPixyPtzDirection,
   sendPixyPtzVector,
   savePixyPtzPreset,
@@ -44,6 +45,7 @@ export type UsePixyHidResult = {
   sendPtzDirection: (direction: PtzDirection) => Promise<void>;
   sendPtzVector: (vector: PtzVector) => Promise<void>;
   savePtzPreset: (slot: PtzPresetSlot) => Promise<void>;
+  loadPtzPreset: (slot: PtzPresetSlot) => Promise<void>;
 };
 
 export function usePixyHid(): UsePixyHidResult {
@@ -169,6 +171,14 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const loadPtzPreset = useCallback(
+    async (slot: PtzPresetSlot) =>
+      runCommand(`ptz-preset-load:${slot}`, async () => {
+        await loadPixyPtzPreset(slot);
+      }),
+    [runCommand]
+  );
+
   return {
     status,
     isLoading,
@@ -190,6 +200,7 @@ export function usePixyHid(): UsePixyHidResult {
     setAutoPrivacySeconds,
     sendPtzDirection,
     sendPtzVector,
-    savePtzPreset
+    savePtzPreset,
+    loadPtzPreset
   };
 }

@@ -780,7 +780,30 @@ Capture 24 - PTZ preset save:
   - Native PTZ preset save is HID group 03 command 15.
   - Query/readback is HID group 03 command 16.
   - The response shape appears to be slot, saved/enabled byte, then three float32 values.
-  - Native PTZ preset goto still needs its own capture before implementation.
+  - Native PTZ preset goto/load is covered by capture 25.
+
+Capture 25 - PTZ preset load:
+- File:
+  - pcaps/25.pcapng
+- User action:
+  - Load default first, then slots 1, 2, and 3.
+- Capture summary:
+  - 2750 packets over 21.608643 seconds.
+  - HID reports were present for slots 1, 2, and 3.
+  - The default selection did not produce a distinct decoded camera-side command in this capture.
+- Host load reports:
+  - Slot 1: 09 03 01 18 00 01 00 01 01
+  - Slot 2: 09 03 01 18 00 01 00 01 02
+  - Slot 3: 09 03 01 18 00 01 00 01 03
+- Device acknowledgement:
+  - 09 03 01 18 00 01 00 01 20
+- Additional UVC behavior:
+  - After each HID slot-load command, EMEET Studio wrote UVC Camera Terminal Zoom Absolute value 100.
+  - The UVC payload was 64 00.
+- Conclusion:
+  - Native PTZ preset load is HID group 03 command 18.
+  - Zoom restore is separate from the HID load command and uses standard UVC `zoom_absolute`.
+  - PixyPilot can load the native slot through HID and restore local saved zoom when the app has a matching local preset value.
 
 Project direction:
 - Build a local FastAPI + React web UI.
@@ -812,7 +835,8 @@ Implemented app status:
   - pan, tilt, and zoom precision sliders
   - auxiliary PTZ controls, including zoom_continuous when exposed
   - native HID PTZ preset save when hidraw is writable
-  - app-local PTZ preset goto until native preset goto is captured
+  - native HID PTZ preset load when hidraw is writable
+  - local saved zoom restore after native preset load when PixyPilot has the saved slot value
   - zoom_continuous is hidden in the UI when it is exposed as min=0 max=0, because that makes it a no-op on this camera
 - Pixy HID provider is wired as a separate domain:
   - status endpoint detects the hidraw path
