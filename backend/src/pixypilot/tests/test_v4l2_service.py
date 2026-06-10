@@ -1,7 +1,7 @@
 import pytest
 
 from pixypilot.domains.v4l2.models import MenuOption, V4L2Control, VideoFormatOption
-from pixypilot.domains.v4l2.service import V4L2Service, _device_caps_include_video_capture
+from pixypilot.domains.v4l2.service import V4L2Service
 
 
 class FakeControlWriter:
@@ -98,30 +98,6 @@ def test_rejects_inactive_control() -> None:
 
     with pytest.raises(ValueError, match="inactive"):
         service._validate_control_value(make_control(flags=["inactive"]), 10)
-
-
-def test_device_caps_use_device_specific_capture_block() -> None:
-    metadata_only = """
-Capabilities     : 0x84a00001
-\tVideo Capture
-\tMetadata Capture
-Device Caps      : 0x04a00000
-\tMetadata Capture
-\tStreaming
-Media Driver Info:
-"""
-    capture = """
-Capabilities     : 0x84a00001
-\tVideo Capture
-\tMetadata Capture
-Device Caps      : 0x04200001
-\tVideo Capture
-\tStreaming
-Media Driver Info:
-"""
-
-    assert _device_caps_include_video_capture(capture)
-    assert not _device_caps_include_video_capture(metadata_only)
 
 
 async def test_set_control_uses_native_writer_and_returns_updated_value() -> None:

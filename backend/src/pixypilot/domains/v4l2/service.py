@@ -118,36 +118,5 @@ class V4L2Service:
         if control.step and control.min is not None and (value - control.min) % control.step != 0:
             raise ValueError(f"{control.name} must align to step {control.step}")
 
-
-def _parse_info_fields(output: str) -> dict[str, str]:
-    fields: dict[str, str] = {}
-    for line in output.splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        key = key.strip()
-        value = value.strip()
-        if key and value:
-            fields[key] = value
-    return fields
-
-
-def _device_caps_include_video_capture(output: str) -> bool:
-    lines = output.splitlines()
-    in_device_caps = False
-    device_caps_lines: list[str] = []
-
-    for line in lines:
-        if line.strip().startswith("Device Caps"):
-            in_device_caps = True
-            continue
-        if in_device_caps and line and not line.startswith("\t"):
-            break
-        if in_device_caps:
-            device_caps_lines.append(line.strip())
-
-    return "Video Capture" in device_caps_lines
-
-
 def get_v4l2_service() -> V4L2Service:
     return V4L2Service()
