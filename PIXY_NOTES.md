@@ -804,6 +804,23 @@ Capture 25 - PTZ preset load:
   - Zoom restore is separate from the HID load command and uses standard UVC `zoom_absolute`.
   - PixyPilot can load the native slot through HID and restore local saved zoom when the app has a matching local preset value.
 
+Capture 26 - 1x to 2x app control:
+- File:
+  - pcaps/26.pcapng
+- User action:
+  - Unknown official-app control was adjusted from 1x to 2x, then back down.
+- Capture summary:
+  - 2540 packets over 20.167045 seconds.
+  - No HID reports were present.
+  - No PIXY UVC control writes occurred after enumeration.
+  - No UVC Extension Unit writes were present.
+  - No USB Audio control changes were present.
+  - After enumeration, the only sustained PIXY traffic was video streaming.
+- Conclusion:
+  - This looks like app-local preview/software scaling or crop inside EMEET Studio.
+  - It is not the same as the real camera zoom from capture 23, which used UVC `zoom_absolute` values 100..150.
+  - No PixyPilot device command is needed unless a later capture shows a camera-side write for a different 1x/2x control.
+
 Project direction:
 - Build a local FastAPI + React web UI.
 - Backend responsibilities:

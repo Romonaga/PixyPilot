@@ -709,6 +709,20 @@ After each HID slot-load report, EMEET Studio also sent a standard UVC `Zoom Abs
 
 Current interpretation: HID command `18` restores the native preset PTZ position, while zoom is restored separately through the standard UVC `zoom_absolute` control. In capture 25 all loaded slots used zoom value `100`, likely because that was the stored zoom value from the preceding save capture.
 
+## 1x To 2x App Zoom
+
+Capture `pcaps/26.pcapng` tested an unknown official-app control that moved from `1x` to `2x`, then back down.
+
+Observed USB behavior:
+
+- No HID interrupt reports were present.
+- No PIXY UVC `SET_CUR` writes occurred after initial enumeration.
+- No UVC Extension Unit writes were present.
+- No USB Audio control changes were present.
+- The only sustained PIXY traffic after startup was video streaming.
+
+Current interpretation: this official-app `1x..2x` control is likely local preview/software scaling or crop in EMEET Studio, not a camera-side USB command. This is separate from the real camera zoom control captured in `pcaps/23.pcapng`, which uses standard UVC `Zoom Absolute` values `100..150`.
+
 ## Known Gaps
 
 These features are not fully decoded yet:
@@ -728,6 +742,8 @@ Capture `pcaps/23.pcapng` tested zoom far to near and back to far. The only cont
 Capture `pcaps/24.pcapng` tested saving official app PTZ presets to slots 1, 2, and 3. It confirmed HID group `03`, command `15` saves a 1-based slot and command `16` queries that slot's saved state. PixyPilot implements native preset save from this capture. Native preset goto still needs a separate isolated capture.
 
 Capture `pcaps/25.pcapng` tested loading presets. Slots 1, 2, and 3 used HID group `03`, command `18` with the 1-based slot number. EMEET Studio then wrote standard UVC Zoom Absolute value `100` after each load. PixyPilot implements native HID preset load and restores zoom from the local app preset when available.
+
+Capture `pcaps/26.pcapng` tested an official-app `1x` to `2x` control. No HID reports, UVC writes, UVC extension writes, or audio controls occurred after enumeration. Current conclusion: that control is app-local preview/software scaling, not a camera-side command.
 
 ## Capture Plan
 
