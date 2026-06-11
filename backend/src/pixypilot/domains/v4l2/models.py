@@ -41,6 +41,7 @@ class VideoFormatOption(BaseModel):
     width: int
     height: int
     fps: float
+    frame_interval_100ns: int | None = None
     label: str
 
 
@@ -49,3 +50,4 @@ class VideoFormatSetRequest(BaseModel):
     width: int
     height: int
     fps: float
+    frame_interval_100ns: int | None = None

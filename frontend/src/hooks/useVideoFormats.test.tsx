@@ -19,6 +19,7 @@ const formats = [
     width: 3840,
     height: 2160,
     fps: 30,
+    frame_interval_100ns: 333333,
     label: "MJPG 3840x2160 30fps"
   },
   {
@@ -26,7 +27,8 @@ const formats = [
     description: "Motion-JPEG, compressed",
     width: 1920,
     height: 1080,
-    fps: 60,
+    fps: 60.00024000096,
+    frame_interval_100ns: 166666,
     label: "MJPG 1920x1080 60fps"
   },
   {
@@ -35,6 +37,7 @@ const formats = [
     width: 1280,
     height: 720,
     fps: 30,
+    frame_interval_100ns: 333333,
     label: "MJPG 1280x720 30fps"
   }
 ];
@@ -47,7 +50,7 @@ describe("useVideoFormats", () => {
 
   it("loads formats and sets a selected format tuple", async () => {
     mockedFetchVideoFormats.mockResolvedValue(formats);
-    mockedSetVideoFormat.mockResolvedValue({ ...formats[1], fps: 59.999, label: "MJPG 1920x1080 59.999fps" });
+    mockedSetVideoFormat.mockResolvedValue({ ...formats[1], fps: 60.00024000096, label: "MJPG 1920x1080 60fps" });
 
     const { result } = renderHook(() => useVideoFormats("video0"));
 

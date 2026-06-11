@@ -224,6 +224,7 @@ def build_record_command(device_path: str, settings: VideoStreamSettings, output
 
 
 def build_input_args(device_path: str, settings: VideoStreamSettings) -> list[str]:
+    fps = 10_000_000 / settings.frame_interval_100ns if settings.frame_interval_100ns else settings.fps
     return [
         "ffmpeg",
         "-hide_banner",
@@ -232,7 +233,7 @@ def build_input_args(device_path: str, settings: VideoStreamSettings) -> list[st
         "-f",
         "v4l2",
         "-framerate",
-        _format_fps(settings.fps),
+        _format_fps(fps),
         "-video_size",
         f"{settings.width}x{settings.height}",
         "-input_format",

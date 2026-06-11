@@ -38,8 +38,10 @@ Raw packet captures are local working files and are not committed to git. The im
 | `pcaps/26.pcapng` | Unknown official app control `1x -> 2x -> 1x` | No camera-side command; likely app-local preview scaling/crop. |
 | `pcaps/27.pcapng` | Custom image controls: brightness, contrast, EV, ISO, sharpness, saturation, tone, AWB, WB | Standard UVC image/exposure controls only; no HID or UVC Extension Unit command. |
 | `pcaps/28.pcapng` | Privacy-related settings scattered through EMEET Studio | Reconfirmed auto-privacy delay writes and explicit group `01` tracking/privacy writes. After a 10s delay write, no later immediate privacy write was observed before the next delay write. Also observed group `02` status responses `09 02 00 02 ... 03` while privacy was active and `... 00` after returning to tracking/off; meaning is not confirmed. |
+| `pcaps/imports/2026-06-11T174057Z-2aa35af79bbc-31.pcapng` | Assistance tab Focus/Metering modes | Reconfirmed group `04` Focus/Metering mode values: Human Face `01`, Center `00`, Selected Area `02`. Selecting Selected Area without a preview click sent coordinates `00 00`; clicked points still use explicit X/Y coordinates. |
 | `pcaps/29.pcapng` | Control tab dropdown: Tracking Mode, Privacy Mode, Standard Mode | Cleanly confirmed the official dropdown maps to group `01`: Standard `00`, Tracking `01`, Privacy `02`. Also repeated group `02` status responses `... 03` after Privacy and `... 00` after Standard. |
 | `pcaps/30.pcapng` | Standard Mode, Assistance tab Auto-Enter Privacy enabled, delay set to 10s, then waited | Only the group `02` 10-second delay write/readback was observed. No group `01` privacy command and no `09 02 00 02` status transition appeared during the 42-second capture; the camera did not enter privacy. |
+| `pcaps/imports/2026-06-11T185619Z-c0ac17cbf7c0-32.pcapng` | Resolution changes: 4K, 2K, 1080p60, 1080p30, 720p30 | Reconfirmed standard UVC Probe/Commit only. No vendor HID or UVC Extension Unit command was observed for the resolution picker. |
 
 ## HID Report Layouts
 
@@ -83,7 +85,15 @@ The web UI exposes the same flow in the `HID Diagnostics` panel:
 - `Download` saves the current snapshot through the browser.
 - `ASCII` shows a printable response preview. Binary/control bytes are rendered as `.` so text fragments such as device/build identifiers stand out.
 
-`diagnostics/` is intentionally gitignored because snapshots can include device state and identifiers.
+PixyPilot also appends a rolling HID trace to:
+
+```text
+diagnostics/hid/pixypilot-hid-trace.jsonl
+```
+
+Each line is one JSON event. Command writes include the operation name, hidraw path, report index, and request hex. Query events include the operation/query name, request hex, response hex, raw value, raw bit indexes, and ASCII previews when available. This file is intended for decoding ambiguous states such as unknown tracking bitfields because it keeps the exact command sequence and readbacks together in timestamp order.
+
+`diagnostics/` is intentionally gitignored because snapshots and traces can include device state and identifiers.
 
 ## Cross-Check: RoseWaveStudio/PixyBar
 
@@ -205,10 +215,12 @@ Important readback caveat: the command values above are confirmed for host-to-ca
 
 | Readback value | Current interpretation |
 | --- | --- |
+| `00` | Standard / idle |
+| `01` | Tracking |
 | `02` | Privacy |
 | `03` | Non-privacy; Standard vs Tracking unknown |
 
-PixyPilot therefore verifies Privacy from device readback, but treats Standard and Tracking as last-commanded UI state until a separate readback signal is found.
+PixyPilot decodes `00`, `01`, and `02` directly. Value `03` remains intentionally undecoded because it appears to be a combined or secondary status value rather than a clean Standard/Tracking/Privacy enum.
 
 ### Group `04`: Target Tracking
 
@@ -236,6 +248,15 @@ Known mode values:
 | `03` | Full-body |
 
 The three float32 little-endian values are normalized target parameters. PixyBar uses `0.5`, `0.5`, and `1.0`, which PixyPilot uses as defaults.
+
+Focused Linux test on 2026-06-11:
+
+| User action | Sent mode | Readback result |
+| --- | --- | --- |
+| Tracking Target Off | `00` | Tracking readback became Standard `00`; target readback became Off `00`. In the UI this should be represented by Control Mode Standard, not as a separate target button. |
+| Control Mode Tracking | group `01` Tracking `01` | Tracking readback became `01`; target readback returned Face `01`, suggesting Face is the device/default target when tracking is enabled. |
+| Tracking Target Half | `02` | Target readback became Half-body `02`. |
+| Tracking Target Full | `03` | Target readback returned Face `01` on two attempts. Full-body is therefore not confirmed on the current Linux HID path/firmware. |
 
 ### Group `02`: Auto Privacy Delay
 
@@ -395,6 +416,16 @@ Known mode values:
 
 For selected area, `XX` and `YY` are the focus point coordinates in an observed `00..7f` range with origin at top-left. The final two bytes were always observed as `7f 7f`; their exact meaning is not yet decoded.
 
+The imported 2026-06-11 Focus/Metering capture reconfirmed the mode writes from the official Assistance tab:
+
+| Official UI action | SET payload | Status payload |
+| --- | --- | --- |
+| Human Face | `01 00 00 7f 7f` | `01 00 00 7f 7f` |
+| Center Area | `00 00 00 7f 7f` | `00 00 00 7f 7f` |
+| Selected Area, no clicked point | `02 00 00 7f 7f` | `02 00 00 7f 7f` |
+
+This means `00 00` can be either the top-left selected-area point or the default payload emitted when Selected Area is chosen before the user clicks a point in the preview.
+
 Known selected-area points:
 
 | Preview point | Payload |
@@ -504,6 +535,20 @@ These official-app behaviors were captured and confirmed not to need HID command
 | Monitor/listen | USB Audio streaming setup plus app-local playback; no decoded camera-side command. |
 | Manual 90-degree rotate | No camera-side command observed; likely app-local transform. |
 | `1x..2x` unknown control | No camera-side command observed; likely app-local preview scaling/crop. |
+
+Focused resolution capture `pcaps/imports/2026-06-11T185619Z-c0ac17cbf7c0-32.pcapng` reconfirmed these official-app labels:
+
+| EMEET Studio label | UVC format index | UVC frame index | Frame interval | Linux format |
+| --- | ---: | ---: | ---: | --- |
+| 4K | `1` | `1` | `333333` | `MJPG 3840x2160@30` |
+| 2K | `1` | `2` | `333333` | `MJPG 2560x1440@30` |
+| 1080P 60FPS | `1` | `3` | `166666` | `MJPG 1920x1080@60` |
+| 1080P 30FPS | `1` | `3` | `333333` | `MJPG 1920x1080@30` |
+| 720P 30FPS | `1` | `5` | `333333` | `MJPG 1280x720@30` |
+
+Each resolution change stopped streaming on VideoStreaming interface alternate setting `0`, performed Probe/Commit, then restarted streaming on alternate setting `11`.
+
+PixyPilot handles this through Linux V4L2 rather than raw userspace USB. The `uvcvideo` kernel driver translates `VIDIOC_S_FMT` and `VIDIOC_S_PARM` calls on `/dev/videoN` into the UVC Probe/Commit USB control flow. PixyPilot preserves the enumerated frame interval in 100 ns units, uses that exact interval when setting preview/recording formats, and returns the driver's `VIDIOC_G_FMT`/`VIDIOC_G_PARM` readback after a format change.
 
 ## Still Unknown
 

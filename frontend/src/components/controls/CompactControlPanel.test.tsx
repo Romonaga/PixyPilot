@@ -465,4 +465,51 @@ describe("CompactControlPanel", () => {
       { controlName: "gain", value: 12 }
     ]);
   });
+
+  it("shows the currently selected image preset name", async () => {
+    const user = userEvent.setup();
+    const group: ControlGroup = {
+      id: "image",
+      title: "Image Control",
+      accent: "lime",
+      icon: SlidersHorizontal,
+      controls: [control({ name: "brightness", label: "Brightness", kind: "int", value: 90, min: 0, max: 255, step: 1 })]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue: vi.fn(),
+      setValues: vi.fn()
+    };
+
+    render(
+      <CompactControlPanel
+        group={group}
+        controls={controls}
+        pixyHid={pixyHid()}
+        controlPresets={controlPresets({
+          presetsForScope: vi.fn().mockReturnValue([
+            {
+              id: "desk",
+              name: "Desk",
+              scope: "image",
+              values: { brightness: 90 },
+              created_at: "2026-06-10T00:00:00+00:00"
+            }
+          ])
+        })}
+      />
+    );
+
+    expect(screen.getByText("No preset selected")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Image Control preset"), "desk");
+
+    expect(screen.getByText("Selected")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Selected preset: Desk" })).toBeInTheDocument();
+  });
 });

@@ -74,9 +74,12 @@ KNOWN_CONTROLS = [
 ]
 DEFAULT_REPORT_GAP_SECONDS = 0.025
 DEFAULT_QUERY_TIMEOUT_SECONDS = 0.5
+TARGET_TRACKING_REPORT_GAP_SECONDS = 0.05
 _HIDRAW_PATH_CACHE: str | None = None
 _HID_IO_LOCK = asyncio.Lock()
 TRACKING_RESPONSE_VALUES: dict[int, TrackingMode] = {
+    0x00: "off",
+    0x01: "tracking",
     0x02: "privacy",
 }
 TARGET_TRACKING_RESPONSE_VALUES: dict[int, TargetTrackingMode] = {
@@ -189,9 +192,9 @@ class PixyHidService:
     async def set_tracking(self, mode: TrackingMode) -> PixyHidCommandResult:
         path = await self._require_writable_path()
         if mode == "tracking" and await self._tracking_readback_is_privacy(path):
-            await self._write_reports(path, tracking_reports("off"))
+            await self._write_reports(path, tracking_reports("off"), operation="tracking:off:privacy-exit")
             await asyncio.sleep(max(self.report_gap_seconds, 0.15))
-        await self._write_reports(path, tracking_reports(mode))
+        await self._write_reports(path, tracking_reports(mode), operation=f"tracking:{mode}")
         return PixyHidCommandResult(ok=True, command="tracking", value=mode, path=path)
 
     async def set_target_tracking(
@@ -202,7 +205,12 @@ class PixyHidService:
         scale: float = 1.0,
     ) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, target_tracking_reports(mode, x, y, scale))
+        await self._write_reports(
+            path,
+            target_tracking_reports(mode, x, y, scale),
+            operation=f"target_tracking:{mode}",
+            report_gap_seconds=max(self.report_gap_seconds, TARGET_TRACKING_REPORT_GAP_SECONDS),
+        )
         return PixyHidCommandResult(ok=True, command="target_tracking", value=mode, path=path)
 
     async def _tracking_readback_is_privacy(self, path: str) -> bool:
@@ -275,17 +283,17 @@ class PixyHidService:
 
     async def set_gesture(self, enabled: bool) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, gesture_reports(enabled))
+        await self._write_reports(path, gesture_reports(enabled), operation=f"gesture:{enabled}")
         return PixyHidCommandResult(ok=True, command="gesture", value=enabled, path=path)
 
     async def set_auto_rotate(self, enabled: bool) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, auto_rotate_reports(enabled))
+        await self._write_reports(path, auto_rotate_reports(enabled), operation=f"auto_rotate:{enabled}")
         return PixyHidCommandResult(ok=True, command="auto_rotate", value=enabled, path=path)
 
     async def set_mirror(self, horizontal: bool, vertical: bool) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, mirror_reports(horizontal, vertical))
+        await self._write_reports(path, mirror_reports(horizontal, vertical), operation=f"mirror:{horizontal}:{vertical}")
         value = _mirror_value(horizontal, vertical)
         return PixyHidCommandResult(ok=True, command="mirror", value=value, path=path)
 
@@ -296,17 +304,17 @@ class PixyHidService:
         y: int | None = None,
     ) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, focus_metering_reports(mode, x, y))
+        await self._write_reports(path, focus_metering_reports(mode, x, y), operation=f"focus_metering:{mode}")
         return PixyHidCommandResult(ok=True, command="focus_metering", value=mode, path=path)
 
     async def set_audio_mode(self, mode: AudioMode) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, audio_reports(mode))
+        await self._write_reports(path, audio_reports(mode), operation=f"audio_mode:{mode}")
         return PixyHidCommandResult(ok=True, command="audio_mode", value=mode, path=path)
 
     async def set_auto_privacy(self, timeout_seconds: int) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, auto_privacy_reports(timeout_seconds))
+        await self._write_reports(path, auto_privacy_reports(timeout_seconds), operation=f"auto_privacy:{timeout_seconds}")
         return PixyHidCommandResult(
             ok=True,
             command="auto_privacy",
@@ -316,37 +324,37 @@ class PixyHidService:
 
     async def send_ptz_direction(self, direction: PtzDirection) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_direction_reports(direction))
+        await self._write_reports(path, ptz_direction_reports(direction), operation=f"ptz_direction:{direction}")
         return PixyHidCommandResult(ok=True, command="ptz_direction", value=direction, path=path)
 
     async def send_ptz_relative(self, direction: PtzDirection, degrees: float = 3.0) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_relative_reports(direction, degrees))
+        await self._write_reports(path, ptz_relative_reports(direction, degrees), operation=f"ptz_relative:{direction}:{degrees:g}")
         return PixyHidCommandResult(ok=True, command="ptz_relative", value=f"{direction}:{degrees:g}", path=path)
 
     async def send_ptz_absolute(self, pan: float, tilt: float) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_absolute_reports(pan, tilt))
+        await self._write_reports(path, ptz_absolute_reports(pan, tilt), operation=f"ptz_absolute:{pan:g}:{tilt:g}")
         return PixyHidCommandResult(ok=True, command="ptz_absolute", value=f"{pan:g},{tilt:g}", path=path)
 
     async def recenter_ptz(self) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_recenter_reports())
+        await self._write_reports(path, ptz_recenter_reports(), operation="ptz_recenter")
         return PixyHidCommandResult(ok=True, command="ptz_recenter", value="0,0", path=path)
 
     async def send_ptz_vector(self, x: float, y: float, z: float = 0.0) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_vector_reports(x, y, z))
+        await self._write_reports(path, ptz_vector_reports(x, y, z), operation=f"ptz_vector:{x}:{y}:{z}")
         return PixyHidCommandResult(ok=True, command="ptz_vector", value=f"{x},{y},{z}", path=path)
 
     async def save_ptz_preset(self, slot: int) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_preset_save_reports(slot))
+        await self._write_reports(path, ptz_preset_save_reports(slot), operation=f"ptz_preset_save:{slot}")
         return PixyHidCommandResult(ok=True, command="ptz_preset_save", value=slot, path=path)
 
     async def load_ptz_preset(self, slot: int) -> PixyHidCommandResult:
         path = await self._require_writable_path()
-        await self._write_reports(path, ptz_preset_load_reports(slot))
+        await self._write_reports(path, ptz_preset_load_reports(slot), operation=f"ptz_preset_load:{slot}")
         return PixyHidCommandResult(ok=True, command="ptz_preset_load", value=slot, path=path)
 
     async def _require_writable_path(self) -> str:
@@ -357,16 +365,39 @@ class PixyHidService:
             raise PermissionError(status.reason or "Pixy HID device is not writable")
         return status.path
 
-    async def _write_reports(self, path: str, reports: list[bytes]) -> None:
+    async def _write_reports(
+        self,
+        path: str,
+        reports: list[bytes],
+        operation: str | None = None,
+        report_gap_seconds: float | None = None,
+    ) -> None:
         async with _HID_IO_LOCK:
-            await asyncio.to_thread(self._write_reports_sync, path, reports)
+            await asyncio.to_thread(self._write_reports_sync, path, reports, operation, report_gap_seconds)
 
-    def _write_reports_sync(self, path: str, reports: list[bytes]) -> None:
+    def _write_reports_sync(
+        self,
+        path: str,
+        reports: list[bytes],
+        operation: str | None = None,
+        report_gap_seconds: float | None = None,
+    ) -> None:
+        gap_seconds = self.report_gap_seconds if report_gap_seconds is None else report_gap_seconds
         with open(path, "wb", buffering=0) as hidraw:
             for index, report in enumerate(reports):
                 hidraw.write(report)
-                if index < len(reports) - 1 and self.report_gap_seconds > 0:
-                    time.sleep(self.report_gap_seconds)
+                _append_hid_trace_event(
+                    {
+                        "event": "write",
+                        "operation": operation,
+                        "path": path,
+                        "report_index": index,
+                        "report_count": len(reports),
+                        "request_hex": _bytes_to_hex(report),
+                    }
+                )
+                if index < len(reports) - 1 and gap_seconds > 0:
+                    time.sleep(gap_seconds)
 
     def _write_report(self, path: str, report: bytes) -> None:
         # Kept for direct tests and one-off diagnostics.
@@ -381,7 +412,7 @@ class PixyHidService:
         spec = QUERY_SPECS[name]
         response = await self._send_recv_report(path, spec.report)
         raw_value = _response_byte(response, spec.value_index) if spec.value_index is not None else None
-        return PixyHidRawQueryResult(
+        result = PixyHidRawQueryResult(
             name=spec.name,
             request_hex=_bytes_to_hex(spec.report),
             response_hex=_bytes_to_hex(response),
@@ -392,6 +423,21 @@ class PixyHidService:
             ascii_preview=_ascii_preview(response),
             path=path,
         )
+        _append_hid_trace_event(
+            {
+                "event": "query",
+                "operation": spec.name,
+                "path": path,
+                "request_hex": result.request_hex,
+                "response_hex": result.response_hex,
+                "value_index": result.value_index,
+                "raw_value": result.raw_value,
+                "raw_bits": result.raw_bits,
+                "ascii_value": result.ascii_value,
+                "ascii_preview": result.ascii_preview,
+            }
+        )
+        return result
 
     def _send_recv_report_sync(self, path: str, report: bytes) -> bytes | None:
         fd = os.open(path, os.O_RDWR | os.O_NONBLOCK)
@@ -501,6 +547,21 @@ def _hex_to_bytes(value: str | None) -> bytes | None:
     if value is None:
         return None
     return bytes.fromhex(value)
+
+
+def _append_hid_trace_event(event: dict) -> None:
+    output_dir = project_root() / "diagnostics" / "hid"
+    payload = {
+        "captured_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+        **event,
+    }
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with (output_dir / "pixypilot-hid-trace.jsonl").open("a", encoding="utf-8") as trace_file:
+            trace_file.write(json.dumps(payload, sort_keys=True) + "\n")
+    except OSError:
+        # Tracing must never break camera control.
+        return
 
 
 def _set_bit_indexes(value: int | None) -> list[int]:

@@ -6,6 +6,7 @@ class VideoStreamSettings(BaseModel):
     width: int = Field(default=1280, ge=1)
     height: int = Field(default=720, ge=1)
     fps: float = Field(default=30, gt=0)
+    frame_interval_100ns: int | None = Field(default=None, gt=0)
 
 
 class VideoRecordingRequest(VideoStreamSettings):

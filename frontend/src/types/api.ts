@@ -35,6 +35,7 @@ export type VideoFormatOption = {
   width: number;
   height: number;
   fps: number;
+  frame_interval_100ns: number | null;
   label: string;
 };
 

@@ -32,7 +32,7 @@ import type {
   TrackingMode
 } from "../types/api";
 
-export type DeviceTrackingState = "privacy" | "non_privacy" | "unknown";
+export type DeviceTrackingState = "standard" | "tracking" | "privacy" | "non_privacy" | "unknown";
 
 const NON_PRIVACY_READBACK_RETRIES = 4;
 const NON_PRIVACY_READBACK_RETRY_MS = 250;
@@ -125,7 +125,17 @@ export function usePixyHid(): UsePixyHidResult {
         setDeviceTrackingRawBits(deviceState.tracking_raw_bits);
         setTargetTrackingModeState(deviceState.target_tracking_mode);
         setTargetTrackingRawValue(deviceState.target_tracking_raw_value);
-        if (rawValue === 2) {
+        if (rawValue === 0 || deviceState.tracking_mode === "off") {
+          setDeviceTrackingState("standard");
+          setTrackingModeState("off");
+          return;
+        }
+        if (rawValue === 1 || deviceState.tracking_mode === "tracking") {
+          setDeviceTrackingState("tracking");
+          setTrackingModeState("tracking");
+          return;
+        }
+        if (rawValue === 2 || deviceState.tracking_mode === "privacy") {
           setDeviceTrackingState("privacy");
           setTrackingModeState("privacy");
           return;

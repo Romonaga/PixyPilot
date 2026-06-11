@@ -55,7 +55,7 @@ export function ControlPresetToolbar({ group, controls, controlPresets }: Props)
   };
 
   return (
-    <div className="control-preset-toolbar">
+    <div className={`control-preset-toolbar ${selectedPreset ? "has-selected-preset" : ""}`}>
       <select
         className="preset-select"
         value={selectedId}
@@ -70,6 +70,20 @@ export function ControlPresetToolbar({ group, controls, controlPresets }: Props)
           </option>
         ))}
       </select>
+      <div
+        className="preset-selected-indicator"
+        role="status"
+        aria-label={selectedPreset ? `Selected preset: ${selectedPreset.name}` : "No preset selected"}
+      >
+        {selectedPreset ? (
+          <>
+            <span>Selected</span>
+            <strong>{selectedPreset.name}</strong>
+          </>
+        ) : (
+          <span>No preset selected</span>
+        )}
+      </div>
       <button
         className="preset-icon-button"
         disabled={busy || !selectedPreset}

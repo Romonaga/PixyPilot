@@ -714,7 +714,7 @@ h2 {
 
 .control-preset-toolbar {
   display: grid;
-  grid-template-columns: minmax(132px, 1fr) 32px 32px minmax(124px, 0.9fr) minmax(78px, auto);
+  grid-template-columns: minmax(132px, 1fr) minmax(120px, 0.8fr) 32px 32px minmax(124px, 0.9fr) minmax(78px, auto);
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
@@ -734,6 +734,47 @@ h2 {
 
 .preset-select {
   padding: 0 8px;
+}
+
+.control-preset-toolbar.has-selected-preset .preset-select {
+  border-color: rgba(255, 212, 94, 0.58);
+  background:
+    linear-gradient(180deg, rgba(255, 212, 94, 0.14), rgba(255, 212, 94, 0.045)),
+    rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 0 0 1px rgba(255, 212, 94, 0.12), 0 0 12px rgba(255, 212, 94, 0.08);
+}
+
+.preset-selected-indicator {
+  min-width: 0;
+  height: 30px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(243, 239, 226, 0.58);
+  overflow: hidden;
+}
+
+.preset-selected-indicator span,
+.preset-selected-indicator strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-selected-indicator span {
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.preset-selected-indicator strong {
+  color: #ffd45e;
+  font-size: 11px;
 }
 
 .preset-name-input {
@@ -2149,6 +2190,16 @@ h2 {
   background: rgba(255, 92, 200, 0.08);
 }
 
+.device-mode-readback.state-standard {
+  border-color: rgba(131, 255, 156, 0.2);
+  background: rgba(131, 255, 156, 0.055);
+}
+
+.device-mode-readback.state-tracking {
+  border-color: rgba(60, 220, 255, 0.32);
+  background: rgba(60, 220, 255, 0.08);
+}
+
 .device-mode-readback.state-non_privacy {
   border-color: rgba(131, 255, 156, 0.22);
   background: rgba(131, 255, 156, 0.06);
@@ -2156,7 +2207,7 @@ h2 {
 
 .privacy-mode-row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -2182,6 +2233,10 @@ h2 {
 .privacy-help {
   line-height: 1.35;
   text-transform: none;
+}
+
+.target-tracking-command.is-inactive {
+  opacity: 0.55;
 }
 
 .mic-mute-row {

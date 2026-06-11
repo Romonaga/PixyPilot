@@ -106,7 +106,7 @@ export async function fetchVideoFormats(deviceName: string): Promise<VideoFormat
 
 export async function setVideoFormat(
   deviceName: string,
-  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps" | "frame_interval_100ns">
 ): Promise<VideoFormatOption> {
   return requestJson<VideoFormatOption>(`/api/devices/${encodeURIComponent(deviceName)}/format`, {
     method: "PATCH",
@@ -164,7 +164,7 @@ export async function uploadPcapImport(
 
 export function videoStreamUrl(
   deviceName: string,
-  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">,
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps" | "frame_interval_100ns">,
   token = Date.now()
 ): string {
   const params = new URLSearchParams({
@@ -174,6 +174,9 @@ export function videoStreamUrl(
     fps: String(format.fps),
     t: String(token)
   });
+  if (format.frame_interval_100ns) {
+    params.set("frame_interval_100ns", String(format.frame_interval_100ns));
+  }
   return `${API_BASE}/api/devices/${encodeURIComponent(deviceName)}/stream?${params.toString()}`;
 }
 
@@ -189,7 +192,7 @@ export async function fetchVideoRecordingStatus(): Promise<VideoRecordingStatus>
 
 export async function startVideoRecording(
   deviceName: string,
-  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps" | "frame_interval_100ns">
 ): Promise<VideoRecordingStatus> {
   return requestJson<VideoRecordingStatus>(`/api/devices/${encodeURIComponent(deviceName)}/recording/start`, {
     method: "POST",

@@ -55,7 +55,11 @@ class NativeMjpegCapture:
                 VIDIOC_S_FMT,
                 build_format_buffer(self.settings.pixel_format, self.settings.width, self.settings.height),
             )
-            fcntl.ioctl(self.fd, VIDIOC_S_PARM, build_streamparm_buffer(self.settings.fps))
+            fcntl.ioctl(
+                self.fd,
+                VIDIOC_S_PARM,
+                build_streamparm_buffer(self.settings.fps, self.settings.frame_interval_100ns),
+            )
             self._request_buffers(self.buffer_count)
             self._map_and_queue_buffers()
             fcntl.ioctl(self.fd, VIDIOC_STREAMON, struct.pack("=I", V4L2_BUF_TYPE_VIDEO_CAPTURE))

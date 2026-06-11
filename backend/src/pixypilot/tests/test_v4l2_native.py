@@ -1,9 +1,13 @@
 import struct
+from fractions import Fraction
 
 import pytest
 
 from pixypilot.domains.v4l2.native import (
+    VIDIOC_G_FMT,
+    VIDIOC_G_PARM,
     VIDIOC_S_FMT,
+    VIDIOC_S_PARM,
     VIDIOC_QUERYCTRL,
     VIDIOC_QUERYMENU,
     V4L2_BUF_TYPE_VIDEO_CAPTURE,
@@ -23,7 +27,10 @@ def test_query_control_ioctl_numbers_match_linux_header_sizes() -> None:
     assert VIDIOC_QUERYCTRL == 0xC0445624
     assert VIDIOC_QUERYMENU == 0xC02C5625
     assert V4L2_FORMAT_SIZE == 208
+    assert VIDIOC_G_FMT == 0xC0D05604
     assert VIDIOC_S_FMT == 0xC0D05605
+    assert VIDIOC_G_PARM == 0xC0CC5615
+    assert VIDIOC_S_PARM == 0xC0CC5616
 
 
 def test_fourcc_encodes_v4l2_pixel_format() -> None:
@@ -52,3 +59,10 @@ def test_streamparm_buffer_encodes_timeperframe() -> None:
     assert struct.unpack_from("=I", buffer, 0)[0] == V4L2_BUF_TYPE_VIDEO_CAPTURE
     numerator, denominator = struct.unpack_from("=II", buffer, 12)
     assert (numerator, denominator) == (1, 30)
+
+
+def test_streamparm_buffer_preserves_uvc_frame_interval() -> None:
+    buffer = build_streamparm_buffer(60, frame_interval_100ns=166666)
+
+    numerator, denominator = struct.unpack_from("=II", buffer, 12)
+    assert Fraction(numerator, denominator) == Fraction(166666, 10_000_000)

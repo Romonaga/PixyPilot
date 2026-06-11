@@ -15,16 +15,18 @@ function videoFormats(): UseVideoFormatsResult {
         width: 1280,
         height: 720,
         fps: 30,
+        frame_interval_100ns: 333333,
         label: "MJPG 1280x720 30fps"
       }
     ],
-    selectedKey: "MJPG:1280:720:30",
+    selectedKey: "MJPG:1280:720:333333",
     selectedFormat: {
       pixel_format: "MJPG",
       description: "Motion-JPEG",
       width: 1280,
       height: 720,
       fps: 30,
+      frame_interval_100ns: 333333,
       label: "MJPG 1280x720 30fps"
     },
     isLoading: false,

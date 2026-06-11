@@ -32,6 +32,7 @@ const format: VideoFormatOption = {
   width: 1280,
   height: 720,
   fps: 30,
+  frame_interval_100ns: 333333,
   label: "MJPG 1280x720 30fps"
 };
 
@@ -40,7 +41,8 @@ const alternateFormat: VideoFormatOption = {
   description: "Motion-JPEG",
   width: 1920,
   height: 1080,
-  fps: 60,
+  fps: 60.00024000096,
+  frame_interval_100ns: 166666,
   label: "MJPG 1920x1080 60fps"
 };
 
@@ -129,7 +131,7 @@ describe("useVideoCapture", () => {
     expect(result.current.previewEnabled).toBe(true);
     expect(result.current.streamUrl).not.toBe(firstUrl);
     expect(result.current.streamUrl).toContain("width=1920");
-    expect(result.current.streamUrl).toContain("fps=60");
+    expect(result.current.streamUrl).toContain("frame_interval_100ns=166666");
   });
 
 

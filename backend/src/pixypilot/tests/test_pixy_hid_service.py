@@ -40,8 +40,8 @@ hid:
 
 
 def test_parse_tracking_response_values() -> None:
-    assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00])) is None
-    assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01])) is None
+    assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00])) == "off"
+    assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01])) == "tracking"
     assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x02])) == "privacy"
     assert _parse_tracking_response(bytes([0x09, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x01, 0x03])) is None
     assert _parse_tracking_response(bytes([0x09, 0x02, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x02])) is None
@@ -146,6 +146,46 @@ async def test_capture_diagnostics_can_save_snapshot(tmp_path, monkeypatch) -> N
 
 
 @pytest.mark.asyncio
+async def test_query_raw_appends_hid_trace_with_request_and_response(tmp_path, monkeypatch) -> None:
+    service = PixyHidService()
+
+    async def send_recv_report(path: str, report: bytes):
+        assert path == "/dev/hidraw14"
+        assert report[:4] == bytes([0x09, 0x01, 0x01, 0x01])
+        return bytes([0x09, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x01, 0x01])
+
+    service._send_recv_report = send_recv_report
+    monkeypatch.setattr("pixypilot.domains.pixy_hid.service.project_root", lambda: tmp_path)
+
+    result = await service._query_raw_with_path("/dev/hidraw14", "tracking_state")
+
+    trace_path = tmp_path / "diagnostics" / "hid" / "pixypilot-hid-trace.jsonl"
+    event = json.loads(trace_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert result.raw_value == 1
+    assert event["event"] == "query"
+    assert event["operation"] == "tracking_state"
+    assert event["request_hex"] == "09 01 01 01" + (" 00" * 28)
+    assert event["response_hex"] == "09 01 01 01 00 01 00 01 01"
+    assert event["raw_bits"] == [0]
+
+
+def test_write_reports_appends_hid_trace_with_operation(tmp_path, monkeypatch) -> None:
+    service = PixyHidService(report_gap_seconds=0)
+    hidraw_path = tmp_path / "hidraw-test"
+    report = bytes([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01])
+    monkeypatch.setattr("pixypilot.domains.pixy_hid.service.project_root", lambda: tmp_path)
+
+    service._write_reports_sync(str(hidraw_path), [report], operation="tracking:tracking")
+
+    trace_path = tmp_path / "diagnostics" / "hid" / "pixypilot-hid-trace.jsonl"
+    event = json.loads(trace_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert hidraw_path.read_bytes() == report
+    assert event["event"] == "write"
+    assert event["operation"] == "tracking:tracking"
+    assert event["request_hex"] == "09 01 01 00 00 01 00 01 01"
+
+
+@pytest.mark.asyncio
 async def test_tracking_from_privacy_sends_standard_before_tracking(monkeypatch) -> None:
     service = PixyHidService(report_gap_seconds=0)
     writes: list[list[bytes]] = []
@@ -167,8 +207,9 @@ async def test_tracking_from_privacy_sends_standard_before_tracking(monkeypatch)
             path=path,
         )
 
-    async def write_reports(path: str, reports: list[bytes]):
+    async def write_reports(path: str, reports: list[bytes], operation: str | None = None):
         assert path == "/dev/hidraw14"
+        assert operation is not None
         writes.append(reports)
 
     async def sleep(seconds: float):
@@ -185,3 +226,31 @@ async def test_tracking_from_privacy_sends_standard_before_tracking(monkeypatch)
     assert result.value == "tracking"
     assert [reports[0][8] for reports in writes] == [0x00, 0x01]
     assert sleeps == [0.15]
+
+
+@pytest.mark.asyncio
+async def test_target_tracking_uses_pixybar_compatible_report_gap(monkeypatch) -> None:
+    service = PixyHidService(report_gap_seconds=0.025)
+    writes: list[tuple[list[bytes], float | None]] = []
+
+    async def require_path():
+        return "/dev/hidraw14"
+
+    async def write_reports(
+        path: str,
+        reports: list[bytes],
+        operation: str | None = None,
+        report_gap_seconds: float | None = None,
+    ):
+        assert path == "/dev/hidraw14"
+        assert operation == "target_tracking:full_body"
+        writes.append((reports, report_gap_seconds))
+
+    service._require_writable_path = require_path
+    service._write_reports = write_reports
+
+    result = await service.set_target_tracking("full_body")
+
+    assert result.ok is True
+    assert writes[0][0][1][8] == 0x03
+    assert writes[0][1] == 0.05

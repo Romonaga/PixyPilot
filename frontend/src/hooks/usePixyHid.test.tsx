@@ -78,8 +78,9 @@ describe("usePixyHid", () => {
   });
 
   function mockDeviceState(rawValue: number | null = 3, rawBits: number[] = [0, 1]) {
+    const trackingMode = rawValue === 0 ? "off" : rawValue === 1 ? "tracking" : rawValue === 2 ? "privacy" : null;
     mockedFetchPixyHidState.mockResolvedValue({
-      tracking_mode: rawValue === 2 ? "privacy" : null,
+      tracking_mode: trackingMode,
       tracking_raw_value: rawValue,
       tracking_raw_bits: rawBits,
       target_tracking_mode: rawValue === 2 ? null : "face",
@@ -114,6 +115,46 @@ describe("usePixyHid", () => {
     expect(result.current.status?.writable).toBe(true);
     expect(mockedSetPixyTracking).not.toHaveBeenCalled();
     expect(result.current.deviceTrackingState).toBe("non_privacy");
+  });
+
+  it("uses clean tracking readback to restore highlighted mode and target on startup", async () => {
+    mockDeviceState(1, [0]);
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["tracking", "target_tracking"]
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.trackingMode).toBe("tracking");
+    expect(result.current.deviceTrackingState).toBe("tracking");
+    expect(result.current.targetTrackingMode).toBe("face");
+  });
+
+  it("uses clean standard readback to restore standard mode on startup", async () => {
+    mockDeviceState(0, []);
+    mockedFetchPixyHidStatus.mockResolvedValue({
+      available: true,
+      path: "/dev/hidraw14",
+      readable: true,
+      writable: true,
+      reason: null,
+      known_controls: ["tracking", "target_tracking"]
+    });
+
+    const { result } = renderHook(() => usePixyHid());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.trackingMode).toBe("off");
+    expect(result.current.deviceTrackingState).toBe("standard");
+    expect(result.current.targetTrackingMode).toBe("face");
   });
 
   it("sends tracking commands when requested", async () => {

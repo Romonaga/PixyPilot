@@ -65,6 +65,7 @@ class V4L2Service:
         width: int,
         height: int,
         fps: float,
+        frame_interval_100ns: int | None = None,
     ) -> VideoFormatOption:
         self._validate_device_path(device_path)
         formats = await self.list_formats(device_path)
@@ -83,10 +84,17 @@ class V4L2Service:
             raise ValueError(f"Unsupported format: {pixel_format} {width}x{height}@{fps}")
 
         try:
-            await self.format_writer.set_format(device_path, pixel_format, width, height, fps)
+            accepted = await self.format_writer.set_format(
+                device_path,
+                pixel_format,
+                width,
+                height,
+                fps,
+                frame_interval_100ns or selected.frame_interval_100ns,
+            )
         except NativeV4L2Error as exc:
             raise ValueError(str(exc)) from exc
-        return selected
+        return next((item for item in formats if _formats_match(item, accepted)), accepted)
 
     async def set_control(self, device_path: str, control_name: str, value: int) -> V4L2Control:
         self._validate_device_path(device_path)
@@ -138,6 +146,15 @@ class V4L2Service:
             raise ValueError(f"{control.name} must be <= {control.max}")
         if control.step and control.min is not None and (value - control.min) % control.step != 0:
             raise ValueError(f"{control.name} must align to step {control.step}")
+
+
+def _formats_match(left: VideoFormatOption, right: VideoFormatOption) -> bool:
+    if left.pixel_format != right.pixel_format or left.width != right.width or left.height != right.height:
+        return False
+    if left.frame_interval_100ns is not None and right.frame_interval_100ns is not None:
+        return abs(left.frame_interval_100ns - right.frame_interval_100ns) <= 1
+    return abs(left.fps - right.fps) < 0.001
+
 
 def get_v4l2_service() -> V4L2Service:
     return V4L2Service()

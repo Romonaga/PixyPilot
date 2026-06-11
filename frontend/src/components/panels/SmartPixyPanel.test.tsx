@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -178,6 +178,95 @@ describe("SmartPixyPanel", () => {
     expect(screen.getByRole("button", { name: "Tracking" })).toHaveClass("is-selected");
   });
 
+  it("highlights tracking mode and target from device readback", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "target_tracking"]
+          },
+          trackingMode: "tracking",
+          deviceTrackingState: "tracking",
+          deviceTrackingRawValue: 1,
+          deviceTrackingRawBits: [0],
+          targetTrackingMode: "face",
+          targetTrackingRawValue: 1
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    const targetRow = screen.getByText("Tracking Target").closest(".privacy-mode-row");
+    expect(targetRow).not.toBeNull();
+    expect(screen.getByText("Tracking raw 1 bits 0")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tracking" })).toHaveClass("is-selected");
+    expect(within(targetRow as HTMLElement).getByRole("button", { name: "Face" })).toHaveClass("is-selected");
+    expect(within(targetRow as HTMLElement).queryByRole("button", { name: "Off" })).not.toBeInTheDocument();
+  });
+
+  it("keeps target controls inactive while standard mode is selected", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "target_tracking"]
+          },
+          trackingMode: "off",
+          deviceTrackingState: "standard",
+          deviceTrackingRawValue: 0,
+          targetTrackingMode: "off",
+          targetTrackingRawValue: 0
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    const targetRow = screen.getByText("Tracking Target").closest(".privacy-mode-row");
+    expect(targetRow).not.toBeNull();
+    expect(screen.getByText("Standard raw 0")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Standard" })).toHaveClass("is-selected");
+    expect(within(targetRow as HTMLElement).getByRole("button", { name: "Face" })).toBeDisabled();
+  });
+
+  it("warns when target readback does not match the requested target", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "target_tracking"]
+          },
+          trackingMode: "tracking",
+          deviceTrackingState: "tracking",
+          deviceTrackingRawValue: 1,
+          targetTrackingMode: "face",
+          targetTrackingRawValue: 1,
+          lastCommand: "target-tracking:full_body"
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    expect(screen.getByText("Device returned Face after Full was requested.")).toBeInTheDocument();
+  });
+
   it("selects the proven tracking control mode", async () => {
     const user = userEvent.setup();
     const setTrackingMode = vi.fn().mockResolvedValue(undefined);
@@ -203,6 +292,36 @@ describe("SmartPixyPanel", () => {
     await user.click(screen.getByRole("button", { name: "Tracking" }));
 
     expect(setTrackingMode).toHaveBeenCalledWith("tracking");
+  });
+
+  it("does not force target Face when Tracking mode is selected", async () => {
+    const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
+    const setTargetTrackingMode = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "target_tracking"]
+          },
+          setTrackingMode,
+          setTargetTrackingMode
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Tracking" }));
+
+    expect(setTrackingMode).toHaveBeenCalledWith("tracking");
+    expect(setTargetTrackingMode).not.toHaveBeenCalled();
   });
 
   it("shows privacy as the selected control mode after PixyPilot sends it", () => {

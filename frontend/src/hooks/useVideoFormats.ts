@@ -14,8 +14,10 @@ export type UseVideoFormatsResult = {
   setSelectedKey: (key: string) => Promise<void>;
 };
 
-export function formatKey(format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">): string {
-  return `${format.pixel_format}:${format.width}:${format.height}:${format.fps}`;
+export function formatKey(
+  format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps" | "frame_interval_100ns">
+): string {
+  return `${format.pixel_format}:${format.width}:${format.height}:${format.frame_interval_100ns ?? format.fps}`;
 }
 
 export function defaultPreviewFormat(formats: VideoFormatOption[]): VideoFormatOption | null {
@@ -99,8 +101,9 @@ export function useVideoFormats(deviceName: string | null): UseVideoFormatsResul
       setPending(true);
       setError(null);
       try {
-        await setVideoFormat(deviceName, selected);
-        setSelectedKeyState(key);
+        const accepted = await setVideoFormat(deviceName, selected);
+        const acceptedMatch = formats.find((format) => formatsMatch(format, accepted));
+        setSelectedKeyState(acceptedMatch ? formatKey(acceptedMatch) : key);
       } catch (err) {
         setSelectedKeyState(previousKey);
         setError(err instanceof Error ? err.message : "Unable to set video format");
@@ -121,4 +124,14 @@ export function useVideoFormats(deviceName: string | null): UseVideoFormatsResul
     refresh,
     setSelectedKey
   };
+}
+
+function formatsMatch(left: VideoFormatOption, right: VideoFormatOption): boolean {
+  if (left.pixel_format !== right.pixel_format || left.width !== right.width || left.height !== right.height) {
+    return false;
+  }
+  if (left.frame_interval_100ns != null && right.frame_interval_100ns != null) {
+    return Math.abs(left.frame_interval_100ns - right.frame_interval_100ns) <= 1;
+  }
+  return Math.abs(left.fps - right.fps) < 0.001;
 }

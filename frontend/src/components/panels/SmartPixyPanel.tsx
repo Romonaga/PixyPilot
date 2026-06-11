@@ -32,12 +32,15 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
   const privacyEnabled = pixyHid.deviceTrackingState === "privacy" || pixyHid.trackingMode === "privacy";
+  const trackingEnabled = pixyHid.deviceTrackingState === "tracking" || pixyHid.trackingMode === "tracking";
   const targetTrackingReady = pixyHid.status?.known_controls.includes("target_tracking") ?? false;
   const deviceTrackingText = deviceTrackingStateText(
     pixyHid.deviceTrackingState,
     pixyHid.deviceTrackingRawValue,
     pixyHid.deviceTrackingRawBits
   );
+  const privacyHelp = privacyHelpText(pixyHid, privacyEnabled, trackingEnabled);
+  const targetMismatch = targetTrackingMismatchText(pixyHid);
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -71,10 +74,6 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
       } else {
         void privacySafety.leavePrivacy();
       }
-      return;
-    }
-    if (targetTrackingReady) {
-      void pixyHid.setTargetTrackingMode("face");
       return;
     }
     void pixyHid.setTrackingMode(mode);
@@ -163,30 +162,27 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
               <span>sec</span>
             </div>
             <small className="privacy-help">
-              {privacyEnabled
-                ? "Device readback or last command indicates privacy. Auto entry is only used after privacy is off."
-                : pixyHid.targetTrackingMode && pixyHid.targetTrackingMode !== "off"
-                  ? `Target tracking: ${targetTrackingLabel(pixyHid.targetTrackingMode)}. It visibly follows while a video stream is open.`
-                  : pixyHid.deviceTrackingState === "non_privacy"
-                    ? "Device confirms non-privacy. Standard vs Tracking is shown from the last command until a better readback is found."
-                    : "Device mode is unknown after refresh. Select Privacy to send privacy mode now."}
+              {privacyHelp}
             </small>
             {targetTrackingReady && (
-              <div className="privacy-mode-row">
-                <span>Target</span>
-                <div className="segmented target-tracking-command">
-                  {targetTrackingModes.map((mode) => (
-                    <button
-                      key={mode.value}
-                      className={pixyHid.targetTrackingMode === mode.value ? "is-selected" : ""}
-                      disabled={disabled || privacyEnabled}
-                      onClick={() => void pixyHid.setTargetTrackingMode(mode.value)}
-                    >
-                      {mode.label}
-                    </button>
-                  ))}
+              <>
+                <div className="privacy-mode-row">
+                  <span>Tracking Target</span>
+                  <div className={`segmented target-tracking-command ${trackingEnabled ? "" : "is-inactive"}`}>
+                    {targetTrackingModes.map((mode) => (
+                      <button
+                        key={mode.value}
+                        className={pixyHid.targetTrackingMode === mode.value ? "is-selected" : ""}
+                        disabled={disabled || privacyEnabled || !trackingEnabled}
+                        onClick={() => void pixyHid.setTargetTrackingMode(mode.value)}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                {targetMismatch && <div className="mini-warning">{targetMismatch}</div>}
+              </>
             )}
           </div>
         </div>
@@ -274,15 +270,21 @@ const controlModes: { value: TrackingMode; label: string }[] = [
   { value: "privacy", label: "Privacy" }
 ];
 
-const targetTrackingModes: { value: TargetTrackingMode; label: string }[] = [
-  { value: "off", label: "Off" },
+const targetTrackingLabels: Record<TargetTrackingMode, string> = {
+  off: "Off",
+  face: "Face",
+  half_body: "Half",
+  full_body: "Full"
+};
+
+const targetTrackingModes: { value: Exclude<TargetTrackingMode, "off">; label: string }[] = [
   { value: "face", label: "Face" },
   { value: "half_body", label: "Half" },
   { value: "full_body", label: "Full" }
 ];
 
 function targetTrackingLabel(mode: TargetTrackingMode) {
-  return targetTrackingModes.find((option) => option.value === mode)?.label ?? mode;
+  return targetTrackingLabels[mode] ?? mode;
 }
 
 function privacySafetyText(privacySafety: UsePrivacySafetyResult) {
@@ -304,8 +306,44 @@ function privacySafetyText(privacySafety: UsePrivacySafetyResult) {
   return "Loading startup privacy setting";
 }
 
+function privacyHelpText(pixyHid: UsePixyHidResult, privacyEnabled: boolean, trackingEnabled: boolean) {
+  if (privacyEnabled) {
+    return "Device readback or last command indicates privacy. Auto entry is only used after privacy is off.";
+  }
+  if (trackingEnabled && pixyHid.targetTrackingMode && pixyHid.targetTrackingMode !== "off") {
+    return `Target tracking: ${targetTrackingLabel(pixyHid.targetTrackingMode)}. It visibly follows while a video stream is open.`;
+  }
+  if (trackingEnabled) {
+    return "Tracking mode is active. Select Face, Half, or Full to choose the tracking target.";
+  }
+  if (pixyHid.deviceTrackingState === "standard") {
+    return "Device reports Standard mode. Tracking targets are inactive until Tracking is selected.";
+  }
+  if (pixyHid.deviceTrackingState === "non_privacy") {
+    return "Device confirms non-privacy, but this raw state is still unresolved.";
+  }
+  return "Device mode is unknown after refresh. Select Privacy to send privacy mode now.";
+}
+
+function targetTrackingMismatchText(pixyHid: UsePixyHidResult) {
+  const requested = pixyHid.lastCommand?.startsWith("target-tracking:")
+    ? (pixyHid.lastCommand.replace("target-tracking:", "") as TargetTrackingMode)
+    : null;
+  const reported = pixyHid.targetTrackingMode;
+  if (!requested || requested === "off" || !reported || requested === reported) {
+    return null;
+  }
+  return `Device returned ${targetTrackingLabel(reported)} after ${targetTrackingLabel(requested)} was requested.`;
+}
+
 function deviceTrackingStateText(state: UsePixyHidResult["deviceTrackingState"], rawValue: number | null, rawBits: number[]) {
   const raw = rawValue === null ? "" : ` raw ${rawValue}${rawBits.length ? ` bits ${rawBits.join(",")}` : ""}`;
+  if (state === "standard") {
+    return `Standard${raw}`;
+  }
+  if (state === "tracking") {
+    return `Tracking${raw}`;
+  }
   if (state === "privacy") {
     return `Privacy${raw}`;
   }

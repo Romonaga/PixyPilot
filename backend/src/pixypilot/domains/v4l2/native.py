@@ -36,7 +36,9 @@ VIDIOC_QUERYCTRL = 0xC0445624
 VIDIOC_QUERYMENU = 0xC02C5625
 VIDIOC_ENUM_FRAMESIZES = 0xC02C564A
 VIDIOC_ENUM_FRAMEINTERVALS = 0xC034564B
+VIDIOC_G_FMT = 0xC0D05604
 VIDIOC_S_FMT = 0xC0D05605
+VIDIOC_G_PARM = 0xC0CC5615
 VIDIOC_S_PARM = 0xC0CC5616
 V4L2_CAPABILITY_SIZE = 104
 V4L2_FMTDESC_SIZE = 64
@@ -78,8 +80,17 @@ class NativeFormatWriter:
         width: int,
         height: int,
         fps: float,
-    ) -> None:
-        await asyncio.to_thread(_set_format_sync, device_path, pixel_format, width, height, fps)
+        frame_interval_100ns: int | None = None,
+    ) -> VideoFormatOption:
+        return await asyncio.to_thread(
+            _set_format_sync,
+            device_path,
+            pixel_format,
+            width,
+            height,
+            fps,
+            frame_interval_100ns,
+        )
 
 
 def control_with_value(control: V4L2Control, value: int) -> V4L2Control:
@@ -107,11 +118,19 @@ def _set_control_sync(device_path: str, control_id: int, value: int) -> None:
         os.close(fd)
 
 
-def _set_format_sync(device_path: str, pixel_format: str, width: int, height: int, fps: float) -> None:
+def _set_format_sync(
+    device_path: str,
+    pixel_format: str,
+    width: int,
+    height: int,
+    fps: float,
+    frame_interval_100ns: int | None = None,
+) -> VideoFormatOption:
     fd = _open_video_device(device_path)
     try:
         fcntl.ioctl(fd, VIDIOC_S_FMT, build_format_buffer(pixel_format, width, height))
-        fcntl.ioctl(fd, VIDIOC_S_PARM, build_streamparm_buffer(fps))
+        fcntl.ioctl(fd, VIDIOC_S_PARM, build_streamparm_buffer(fps, frame_interval_100ns))
+        return _read_current_format(fd)
     except OSError as exc:
         raise NativeV4L2Error(f"Unable to set V4L2 format on {device_path}: {exc}") from exc
     finally:
@@ -140,10 +159,15 @@ def build_format_buffer(pixel_format: str, width: int, height: int) -> bytes:
     )
 
 
-def build_streamparm_buffer(fps: float) -> bytes:
-    if fps <= 0:
-        raise ValueError("fps must be greater than 0")
-    timeperframe = Fraction(1, 1) / Fraction(str(fps)).limit_denominator(1_000_000)
+def build_streamparm_buffer(fps: float, frame_interval_100ns: int | None = None) -> bytes:
+    if frame_interval_100ns is not None:
+        if frame_interval_100ns <= 0:
+            raise ValueError("frame interval must be greater than 0")
+        timeperframe = Fraction(frame_interval_100ns, 10_000_000)
+    else:
+        if fps <= 0:
+            raise ValueError("fps must be greater than 0")
+        timeperframe = Fraction(1, 1) / Fraction(str(fps)).limit_denominator(1_000_000)
     capture_parm = struct.pack(
         "=IIIIII4I",
         0,
@@ -160,6 +184,40 @@ def build_streamparm_buffer(fps: float) -> bytes:
     return struct.pack("=I", V4L2_BUF_TYPE_VIDEO_CAPTURE) + capture_parm + bytes(
         V4L2_STREAMPARM_SIZE - 4 - V4L2_CAPTUREPARM_SIZE
     )
+
+
+def _read_current_format(fd: int) -> VideoFormatOption:
+    format_buffer = bytearray(V4L2_FORMAT_SIZE)
+    struct.pack_into("=I", format_buffer, 0, V4L2_BUF_TYPE_VIDEO_CAPTURE)
+    fcntl.ioctl(fd, VIDIOC_G_FMT, format_buffer, True)
+    width, height, pixel_format = struct.unpack_from("=III", format_buffer, 4)
+
+    frame_interval_100ns = _read_current_frame_interval_100ns(fd)
+    fps = 10_000_000 / frame_interval_100ns if frame_interval_100ns is not None else 0.0
+    pixel_format_text = fourcc_text(pixel_format)
+    label_fps = _format_fps_label(fps) if fps > 0 else "unknown"
+    return VideoFormatOption(
+        pixel_format=pixel_format_text,
+        description="Current device format",
+        width=width,
+        height=height,
+        fps=fps,
+        frame_interval_100ns=frame_interval_100ns,
+        label=f"{pixel_format_text} {width}x{height} {label_fps}fps",
+    )
+
+
+def _read_current_frame_interval_100ns(fd: int) -> int | None:
+    streamparm_buffer = bytearray(V4L2_STREAMPARM_SIZE)
+    struct.pack_into("=I", streamparm_buffer, 0, V4L2_BUF_TYPE_VIDEO_CAPTURE)
+    try:
+        fcntl.ioctl(fd, VIDIOC_G_PARM, streamparm_buffer, True)
+    except OSError:
+        return None
+    numerator, denominator = struct.unpack_from("=II", streamparm_buffer, 12)
+    if numerator <= 0 or denominator <= 0:
+        return None
+    return round((numerator / denominator) * 10_000_000)
 
 
 def fourcc(pixel_format: str) -> int:
@@ -286,7 +344,7 @@ def _list_formats_sync(device_path: str) -> list[VideoFormatOption]:
             pixel_format = struct.unpack_from("=I", fmt_buffer, 44)[0]
             pixel_format_text = fourcc_text(pixel_format)
             for width, height in _frame_sizes(fd, pixel_format):
-                for fps in _frame_rates(fd, pixel_format, width, height):
+                for fps, frame_interval_100ns in _frame_rates(fd, pixel_format, width, height):
                     label = f"{pixel_format_text} {width}x{height} {_format_fps_label(fps)}fps"
                     options.append(
                         VideoFormatOption(
@@ -295,6 +353,7 @@ def _list_formats_sync(device_path: str) -> list[VideoFormatOption]:
                             width=width,
                             height=height,
                             fps=fps,
+                            frame_interval_100ns=frame_interval_100ns,
                             label=label,
                         )
                     )
@@ -369,8 +428,8 @@ def _frame_sizes(fd: int, pixel_format: int) -> list[tuple[int, int]]:
     return sizes
 
 
-def _frame_rates(fd: int, pixel_format: int, width: int, height: int) -> list[float]:
-    rates: list[float] = []
+def _frame_rates(fd: int, pixel_format: int, width: int, height: int) -> list[tuple[float, int]]:
+    rates: list[tuple[float, int]] = []
     index = 0
     while True:
         buffer = bytearray(V4L2_FRMIVALENUM_SIZE)
@@ -384,8 +443,10 @@ def _frame_rates(fd: int, pixel_format: int, width: int, height: int) -> list[fl
         frame_interval_type = struct.unpack_from("=I", buffer, 16)[0]
         if frame_interval_type == V4L2_FRMIVAL_TYPE_DISCRETE:
             numerator, denominator = struct.unpack_from("=II", buffer, 20)
-            if numerator > 0:
-                rates.append(denominator / numerator)
+            if numerator > 0 and denominator > 0:
+                fps = denominator / numerator
+                frame_interval_100ns = round((numerator / denominator) * 10_000_000)
+                rates.append((fps, frame_interval_100ns))
         index += 1
     return rates
 

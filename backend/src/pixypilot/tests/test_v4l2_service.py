@@ -14,7 +14,7 @@ class FakeControlWriter:
 
 class FakeFormatWriter:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, str, int, int, float]] = []
+        self.calls: list[tuple[str, str, int, int, float, int | None]] = []
 
     async def set_format(
         self,
@@ -23,8 +23,19 @@ class FakeFormatWriter:
         width: int,
         height: int,
         fps: float,
-    ) -> None:
-        self.calls.append((device_path, pixel_format, width, height, fps))
+        frame_interval_100ns: int | None = None,
+    ) -> VideoFormatOption:
+        self.calls.append((device_path, pixel_format, width, height, fps, frame_interval_100ns))
+        accepted_fps = 10_000_000 / frame_interval_100ns if frame_interval_100ns else fps
+        return VideoFormatOption(
+            pixel_format=pixel_format,
+            description="Current device format",
+            width=width,
+            height=height,
+            fps=accepted_fps,
+            frame_interval_100ns=frame_interval_100ns,
+            label=f"{pixel_format} {width}x{height} {accepted_fps:g}fps",
+        )
 
 
 class StaticControlService(V4L2Service):
@@ -181,12 +192,13 @@ async def test_set_format_uses_native_writer_after_validating_format() -> None:
         description="Motion-JPEG",
         width=1920,
         height=1080,
-        fps=60,
+        fps=60.00024000096,
+        frame_interval_100ns=166666,
         label="MJPG 1920x1080 60fps",
     )
     service = StaticControlService([], control_writer, formats=[option], format_writer=format_writer)
 
-    selected = await service.set_format("/dev/video0", "MJPG", 1920, 1080, 60)
+    selected = await service.set_format("/dev/video0", "MJPG", 1920, 1080, 60.00024000096, 166666)
 
     assert selected == option
-    assert format_writer.calls == [("/dev/video0", "MJPG", 1920, 1080, 60)]
+    assert format_writer.calls == [("/dev/video0", "MJPG", 1920, 1080, 60.00024000096, 166666)]

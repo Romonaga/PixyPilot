@@ -189,6 +189,7 @@ async def set_format(
             request.width,
             request.height,
             request.fps,
+            request.frame_interval_100ns,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -256,12 +257,19 @@ async def stream_video(
     width: int = Query(default=1280, ge=1),
     height: int = Query(default=720, ge=1),
     fps: float = Query(default=30, gt=0),
+    frame_interval_100ns: int | None = Query(default=None, gt=0),
     v4l2_service: V4L2Service = Depends(get_v4l2_service),
     video_service: VideoService = Depends(get_video_service),
 ) -> StreamingResponse:
     try:
         device_path = v4l2_service.device_path_from_name(device_name)
-        settings = VideoStreamSettings(pixel_format=pixel_format, width=width, height=height, fps=fps)
+        settings = VideoStreamSettings(
+            pixel_format=pixel_format,
+            width=width,
+            height=height,
+            fps=fps,
+            frame_interval_100ns=frame_interval_100ns,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
