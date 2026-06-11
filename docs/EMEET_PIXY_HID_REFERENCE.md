@@ -238,25 +238,27 @@ Query target tracking:
 09 04 01 01
 ```
 
-Known mode values:
+Observed mode values from PixyBar and Linux HID probing:
 
-| `MM` | Meaning |
+| `MM` | Experimental label |
 | --- | --- |
 | `00` | Off |
 | `01` | Face |
 | `02` | Half-body |
 | `03` | Full-body |
 
-The three float32 little-endian values are normalized target parameters. PixyBar uses `0.5`, `0.5`, and `1.0`, which PixyPilot uses as defaults.
+The three float32 little-endian values are normalized target parameters. PixyBar uses `0.5`, `0.5`, and `1.0` as defaults. EMEET Studio does not expose Face/Half/Full controls with these names, so PixyPilot keeps this command family as diagnostic/reverse-engineering data instead of presenting it as a confirmed main UI feature.
 
 Focused Linux test on 2026-06-11:
 
 | User action | Sent mode | Readback result |
 | --- | --- | --- |
-| Tracking Target Off | `00` | Tracking readback became Standard `00`; target readback became Off `00`. In the UI this should be represented by Control Mode Standard, not as a separate target button. |
+| Experimental target Off | `00` | Tracking readback became Standard `00`; target readback became Off `00`. In the UI this should be represented by Control Mode Standard, not as a separate target button. |
 | Control Mode Tracking | group `01` Tracking `01` | Tracking readback became `01`; target readback returned Face `01`, suggesting Face is the device/default target when tracking is enabled. |
-| Tracking Target Half | `02` | Target readback became Half-body `02`. |
-| Tracking Target Full | `03` | Target readback returned Face `01` on two attempts. Full-body is therefore not confirmed on the current Linux HID path/firmware. |
+| Experimental target Half | `02` | Target readback became Half-body `02`. |
+| Experimental target Full | `03` | Target readback returned Face `01` on two attempts. Full-body is therefore not confirmed on the current Linux HID path/firmware. |
+
+For user-facing controls, PixyPilot maps the Windows Focus/Metering behavior to Focus Control: `Center`, `Face`, and `Region`. Region selection sends the confirmed selected-area focus command with X/Y coordinates and gives the preview a rectangular region overlay.
 
 ### Group `02`: Auto Privacy Delay
 

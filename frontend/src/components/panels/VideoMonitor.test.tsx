@@ -161,7 +161,7 @@ describe("VideoMonitor", () => {
     await waitFor(() =>
     expect(setFocusMeteringMode).toHaveBeenCalledWith("selected_area", { x: 64, y: 64 })
     );
-    expect(frame.querySelector(".focus-target-reticle")).not.toBeNull();
+    expect(frame.querySelector(".focus-target-region")).not.toBeNull();
   });
 
   it("restarts the preview stream after an image load error", async () => {

@@ -120,8 +120,11 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
             />
             {focusTarget && (
               <span
-                className="focus-target-reticle"
-                style={{ left: `${focusTarget.x}%`, top: `${focusTarget.y}%` }}
+                className="focus-target-region"
+                style={{
+                  left: `${clampFocusRegionPercent(focusTarget.x)}%`,
+                  top: `${clampFocusRegionPercent(focusTarget.y)}%`
+                }}
                 aria-hidden="true"
               />
             )}
@@ -151,4 +154,8 @@ export function VideoMonitor({ deviceName, videoFormats, videoCapture, pixyHid }
       {videoCapture.error && <div className="mini-error">{videoCapture.error}</div>}
     </section>
   );
+}
+
+function clampFocusRegionPercent(value: number) {
+  return Math.min(86, Math.max(14, value));
 }

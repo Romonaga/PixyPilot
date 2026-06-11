@@ -125,7 +125,7 @@ describe("CompactControlPanel", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Person" }));
+    await user.click(screen.getByRole("button", { name: "Face" }));
 
     expect(setFocusMeteringMode).toHaveBeenCalledWith("human_face");
   });

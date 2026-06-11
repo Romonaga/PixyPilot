@@ -266,16 +266,18 @@ PixyPilot has confirmed the app-command path through group `01` value `02`. Phys
 09 04 01 01
 ```
 
-Current mapping from that project, now exposed by PixyPilot:
+Current mapping from that project, retained by PixyPilot for diagnostics and future correlation:
 
-| Mode byte | Meaning |
+| Mode byte | Experimental label |
 | --- | --- |
 | `00` | Off |
 | `01` | Face |
 | `02` | Half-body |
 | `03` | Full-body |
 
-The three trailing values are little-endian float32 fields. PixyBar uses `0.5`, `0.5`, and `1.0` when enabling tracking. PixyPilot uses the same defaults and queries the readback through HID diagnostics.
+The three trailing values are little-endian float32 fields. PixyBar uses `0.5`, `0.5`, and `1.0` when enabling tracking. EMEET Studio does not expose Face/Half/Full labels, and local Linux testing saw Full-body read back as Face, so these values are not treated as confirmed user-facing controls.
+
+The Windows Focus/Metering UI maps better to the confirmed focus-metering command family: Center, Face, and selected Region. PixyPilot exposes those controls in Focus Control and uses preview clicks to send selected-area X/Y coordinates.
 
 ### Auto Privacy Delay
 

@@ -1,4 +1,5 @@
-import { RefreshCw, Radar, RadioTower } from "lucide-react";
+import { RefreshCw, Radar, SlidersHorizontal, FlaskConical } from "lucide-react";
+import { useState } from "react";
 
 import { countActiveControls } from "../../domains/controls/grouping";
 import type { UseAudioResult } from "../../hooks/useAudio";
@@ -9,16 +10,10 @@ import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import type { UseVideoCaptureResult } from "../../hooks/useVideoCapture";
 import type { UseVideoFormatsResult } from "../../hooks/useVideoFormats";
-import { ControlGroupPanel } from "../controls/ControlGroupPanel";
-import { CommandLogPanel } from "../panels/CommandLogPanel";
 import { DeviceRail } from "../panels/DeviceRail";
-import { ExperimentalPanel } from "../panels/ExperimentalPanel";
-import { HidDiagnosticsPanel } from "../panels/HidDiagnosticsPanel";
-import { PcapImportPanel } from "../panels/PcapImportPanel";
-import { RuntimeConfigPanel } from "../panels/RuntimeConfigPanel";
-import { SmartPixyPanel } from "../panels/SmartPixyPanel";
-import { VideoMonitor } from "../panels/VideoMonitor";
 import { StatusPill } from "../ui/StatusPill";
+import { ControlDeck } from "./ControlDeck";
+import { DiagnosticsDeck } from "./DiagnosticsDeck";
 
 type Props = {
   devices: UseDevicesResult;
@@ -42,6 +37,7 @@ export function AppShell({
   controlPresets
 }: Props) {
   const activeControls = countActiveControls(controls.controls);
+  const [view, setView] = useState<"control" | "diagnostics">("control");
 
   return (
     <main className="app-shell">
@@ -56,6 +52,24 @@ export function AppShell({
           </div>
         </div>
         <div className="topbar-actions">
+          <div className="view-switch" aria-label="Workspace view">
+            <button
+              className={view === "control" ? "is-selected" : ""}
+              onClick={() => setView("control")}
+              aria-pressed={view === "control"}
+            >
+              <SlidersHorizontal size={15} />
+              Control Deck
+            </button>
+            <button
+              className={view === "diagnostics" ? "is-selected" : ""}
+              onClick={() => setView("diagnostics")}
+              aria-pressed={view === "diagnostics"}
+            >
+              <FlaskConical size={15} />
+              Diagnostics
+            </button>
+          </div>
           <StatusPill
             tone={devices.selectedDevice ? "good" : "warn"}
             label={devices.selectedDevice ? "Device linked" : "No device"}
@@ -67,57 +81,36 @@ export function AppShell({
         </div>
       </header>
 
-      <section className="command-grid">
+      <section className={`command-grid ${view === "diagnostics" ? "is-diagnostics" : "is-control"}`}>
         <DeviceRail devices={devices} controls={controls} videoFormats={videoFormats} pixyHid={pixyHid} />
 
         <div className="main-console">
           {controls.error && <div className="error-strip">{controls.error}</div>}
           {devices.error && <div className="error-strip">{devices.error}</div>}
           {controlPresets.error && <div className="error-strip">{controlPresets.error}</div>}
-          <VideoMonitor
-            deviceName={devices.selectedDeviceName}
-            videoFormats={videoFormats}
-            videoCapture={videoCapture}
-            pixyHid={pixyHid}
-          />
-          <div className="control-grid">
-            {controls.groups.map((group) => (
-              <ControlGroupPanel
-                key={group.id}
-                group={group}
-                controls={controls}
-                pixyHid={pixyHid}
-                controlPresets={controlPresets}
-              />
-            ))}
-          </div>
+          {view === "control" ? (
+            <ControlDeck
+              deviceName={devices.selectedDeviceName}
+              controls={controls}
+              videoFormats={videoFormats}
+              videoCapture={videoCapture}
+              pixyHid={pixyHid}
+              audio={audio}
+              privacySafety={privacySafety}
+              controlPresets={controlPresets}
+            />
+          ) : (
+            <DiagnosticsDeck
+              deviceName={devices.selectedDeviceName}
+              controls={controls}
+              videoFormats={videoFormats}
+              videoCapture={videoCapture}
+              pixyHid={pixyHid}
+              audio={audio}
+              privacySafety={privacySafety}
+            />
+          )}
         </div>
-
-        <aside className="right-console">
-          <div className="signal-panel">
-            <div className="panel-title-row">
-              <RadioTower size={18} />
-              <h2>Signal</h2>
-            </div>
-            <div className="telemetry-stack">
-              <span>V4L2 online</span>
-              <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
-            </div>
-          </div>
-          <HidDiagnosticsPanel />
-          <ExperimentalPanel deviceName={devices.selectedDeviceName} />
-          <PcapImportPanel />
-          <CommandLogPanel
-            controls={controls}
-            videoFormats={videoFormats}
-            videoCapture={videoCapture}
-            pixyHid={pixyHid}
-            audio={audio}
-            privacySafety={privacySafety}
-          />
-          <SmartPixyPanel pixyHid={pixyHid} audio={audio} privacySafety={privacySafety} />
-          <RuntimeConfigPanel privacySafety={privacySafety} />
-        </aside>
       </section>
     </main>
   );

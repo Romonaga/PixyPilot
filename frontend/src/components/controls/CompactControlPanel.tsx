@@ -43,8 +43,8 @@ const MIRROR_OPTIONS: { value: MirrorMode; label: string }[] = [
 
 const FOCUS_METERING_OPTIONS: { value: FocusMeteringMode; label: string }[] = [
   { value: "center", label: "Center" },
-  { value: "human_face", label: "Person" },
-  { value: "selected_area", label: "Position" }
+  { value: "human_face", label: "Face" },
+  { value: "selected_area", label: "Region" }
 ];
 
 export function CompactControlPanel({ group, controls, pixyHid, controlPresets }: Props) {

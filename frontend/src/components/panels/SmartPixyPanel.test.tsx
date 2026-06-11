@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -178,7 +178,7 @@ describe("SmartPixyPanel", () => {
     expect(screen.getByRole("button", { name: "Tracking" })).toHaveClass("is-selected");
   });
 
-  it("highlights tracking mode and target from device readback", () => {
+  it("keeps experimental target-tracking modes out of the main control panel", () => {
     render(
       <SmartPixyPanel
         pixyHid={makePixyHid({
@@ -202,15 +202,16 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    const targetRow = screen.getByText("Tracking Target").closest(".privacy-mode-row");
-    expect(targetRow).not.toBeNull();
     expect(screen.getByText("Tracking raw 1 bits 0")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tracking" })).toHaveClass("is-selected");
-    expect(within(targetRow as HTMLElement).getByRole("button", { name: "Face" })).toHaveClass("is-selected");
-    expect(within(targetRow as HTMLElement).queryByRole("button", { name: "Off" })).not.toBeInTheDocument();
+    expect(screen.getByText("Tracking mode is active. Focus target selection is handled in Focus Control: Center, Face, or Region.")).toBeInTheDocument();
+    expect(screen.queryByText("Tracking Target")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Face" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Half" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Full" })).not.toBeInTheDocument();
   });
 
-  it("keeps target controls inactive while standard mode is selected", () => {
+  it("describes focus targeting separately while standard mode is selected", () => {
     render(
       <SmartPixyPanel
         pixyHid={makePixyHid({
@@ -233,38 +234,10 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    const targetRow = screen.getByText("Tracking Target").closest(".privacy-mode-row");
-    expect(targetRow).not.toBeNull();
     expect(screen.getByText("Standard raw 0")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Standard" })).toHaveClass("is-selected");
-    expect(within(targetRow as HTMLElement).getByRole("button", { name: "Face" })).toBeDisabled();
-  });
-
-  it("warns when target readback does not match the requested target", () => {
-    render(
-      <SmartPixyPanel
-        pixyHid={makePixyHid({
-          status: {
-            available: true,
-            path: "/dev/hidraw14",
-            readable: true,
-            writable: true,
-            reason: null,
-            known_controls: ["tracking", "target_tracking"]
-          },
-          trackingMode: "tracking",
-          deviceTrackingState: "tracking",
-          deviceTrackingRawValue: 1,
-          targetTrackingMode: "face",
-          targetTrackingRawValue: 1,
-          lastCommand: "target-tracking:full_body"
-        })}
-        audio={makeAudio()}
-        privacySafety={makePrivacySafety()}
-      />
-    );
-
-    expect(screen.getByText("Device returned Face after Full was requested.")).toBeInTheDocument();
+    expect(screen.getByText("Device reports Standard mode. Select Tracking for auto follow, or use Focus Control for Center, Face, or Region metering.")).toBeInTheDocument();
+    expect(screen.queryByText("Tracking Target")).not.toBeInTheDocument();
   });
 
   it("selects the proven tracking control mode", async () => {
@@ -405,6 +378,7 @@ describe("SmartPixyPanel", () => {
 
   it("sends standard mode when privacy mode is cleared", async () => {
     const user = userEvent.setup();
+    const setTrackingMode = vi.fn().mockResolvedValue(undefined);
     const leavePrivacy = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -419,6 +393,7 @@ describe("SmartPixyPanel", () => {
             known_controls: ["privacy"]
           },
           trackingMode: "privacy",
+          setTrackingMode
         })}
         audio={makeAudio()}
         privacySafety={makePrivacySafety({ leavePrivacy })}
@@ -427,7 +402,8 @@ describe("SmartPixyPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Standard" }));
 
-    expect(leavePrivacy).toHaveBeenCalledTimes(1);
+    expect(setTrackingMode).toHaveBeenCalledWith("off");
+    expect(leavePrivacy).not.toHaveBeenCalled();
   });
 
   it("commits auto privacy on blur instead of every keystroke", async () => {
