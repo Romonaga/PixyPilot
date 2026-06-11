@@ -1,5 +1,11 @@
 import type { V4L2Control } from "../../types/api";
 
+export type ControlDependencyAction = {
+  parentName: string;
+  value: number;
+  label: string;
+};
+
 const LABEL_OVERRIDES: Record<string, string> = {
   auto_exposure: "AE Mode",
   exposure_time_absolute: "Exposure",
@@ -44,6 +50,24 @@ export function dependencyHint(control: V4L2Control, controls: V4L2Control[]): s
   return inactiveReason(control);
 }
 
+export function dependencyAction(control: V4L2Control, controls: V4L2Control[]): ControlDependencyAction | null {
+  if (!control.flags.includes("inactive")) {
+    return null;
+  }
+
+  if (control.name === "white_balance_temperature" && hasControl(controls, "white_balance_automatic")) {
+    return { parentName: "white_balance_automatic", value: 0, label: "Lock WB" };
+  }
+  if (control.name === "exposure_time_absolute" && hasControl(controls, "auto_exposure")) {
+    return { parentName: "auto_exposure", value: 1, label: "Manual AE" };
+  }
+  if (control.name === "focus_absolute" && hasControl(controls, "focus_automatic_continuous")) {
+    return { parentName: "focus_automatic_continuous", value: 0, label: "Manual Focus" };
+  }
+
+  return null;
+}
+
 export function boolOptionLabels(control: V4L2Control): { value: number; label: string }[] {
   if (control.name === "white_balance_automatic") {
     return [
@@ -67,6 +91,10 @@ export function boolOptionLabels(control: V4L2Control): { value: number; label: 
     { value: 0, label: "Off" },
     { value: 1, label: "On" }
   ];
+}
+
+function hasControl(controls: V4L2Control[], name: string): boolean {
+  return controls.some((control) => control.name === name);
 }
 
 function statefulHint(controls: V4L2Control[], parentName: string, parentLabel: string, targetLabel: string): string {

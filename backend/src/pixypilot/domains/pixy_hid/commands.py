@@ -1,7 +1,7 @@
 import struct
 from collections.abc import Sequence
 
-from pixypilot.domains.pixy_hid.models import AudioMode, FocusMeteringMode, PtzDirection, TrackingMode
+from pixypilot.domains.pixy_hid.models import AudioMode, FocusMeteringMode, PtzDirection, TargetTrackingMode, TrackingMode
 
 REPORT_SIZE = 32
 
@@ -9,6 +9,12 @@ TRACKING_VALUES: dict[TrackingMode, int] = {
     "off": 0x00,
     "tracking": 0x01,
     "privacy": 0x02,
+}
+TARGET_TRACKING_VALUES: dict[TargetTrackingMode, int] = {
+    "off": 0x00,
+    "face": 0x01,
+    "half_body": 0x02,
+    "full_body": 0x03,
 }
 
 AUDIO_VALUES: dict[AudioMode, int] = {
@@ -49,12 +55,61 @@ def tracking_reports(mode: TrackingMode) -> list[bytes]:
     ]
 
 
+def tracking_query_report() -> bytes:
+    return build_report([0x09, 0x01, 0x01, 0x01])
+
+
+def target_tracking_reports(mode: TargetTrackingMode, x: float = 0.5, y: float = 0.5, scale: float = 1.0) -> list[bytes]:
+    if not 0.0 <= x <= 1.0 or not 0.0 <= y <= 1.0:
+        raise ValueError("target tracking coordinates must be in range 0.0..1.0")
+    if not 0.0 <= scale <= 4.0:
+        raise ValueError("target tracking scale must be in range 0.0..4.0")
+    value = TARGET_TRACKING_VALUES[mode]
+    tracking_value = TRACKING_VALUES["off" if mode == "off" else "tracking"]
+    payload = [value, *struct.pack("<fff", x, y, scale)]
+    return [
+        build_report([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, tracking_value]),
+        build_report([0x09, 0x04, 0x01, 0x00, 0x00, 0x0D, 0x00, 0x0D, *payload]),
+        build_report([0x09, 0x04, 0x01, 0x01]),
+    ]
+
+
+def target_tracking_query_report() -> bytes:
+    return build_report([0x09, 0x04, 0x01, 0x01])
+
+
+def tracking_probe_report(subcommand: int) -> bytes:
+    if subcommand < 0 or subcommand > 0xFF:
+        raise ValueError("tracking probe subcommand must be in range 0..255")
+    return build_report([0x09, 0x01, 0x01, subcommand])
+
+
+def tracking_capability_query_report() -> bytes:
+    return build_report([0x09, 0x01, 0x00, 0x04])
+
+
+def device_info_query_report() -> bytes:
+    return build_report([0x09, 0x01, 0x00, 0x03])
+
+
 def gesture_reports(enabled: bool) -> list[bytes]:
     value = 0x01 if enabled else 0x00
     return [
         build_report([0x09, 0x04, 0x02, 0x00, 0x00, 0x02, 0x00, 0x02, 0x02, value]),
         build_report([0x09, 0x04, 0x02, 0x01, 0x00, 0x01, 0x00, 0x01, 0x02]),
     ]
+
+
+def gesture_query_report() -> bytes:
+    return build_report([0x09, 0x04, 0x02, 0x01, 0x00, 0x01, 0x00, 0x01, 0x02])
+
+
+def focus_metering_query_report() -> bytes:
+    return build_report([0x09, 0x04, 0x00, 0x02])
+
+
+def feature_query_report(feature_id: int) -> bytes:
+    return build_report([0x09, 0x04, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, feature_id])
 
 
 def feature_toggle_reports(feature_id: int, enabled: bool) -> list[bytes]:
@@ -96,6 +151,14 @@ def audio_reports(mode: AudioMode) -> list[bytes]:
     ]
 
 
+def audio_query_report() -> bytes:
+    return build_report([0x09, 0x05, 0x00, 0x04])
+
+
+def auto_privacy_query_report() -> bytes:
+    return build_report([0x09, 0x02, 0x01, 0x01])
+
+
 def auto_privacy_reports(timeout_seconds: int) -> list[bytes]:
     if timeout_seconds < 0 or timeout_seconds > 0xFFFFFFFF:
         raise ValueError("auto-privacy timeout must be in range 0..4294967295")
@@ -112,6 +175,31 @@ def ptz_direction_reports(direction: PtzDirection) -> list[bytes]:
     return [
         build_report([0x09, 0x63, 0x01, 0x19, 0x00, 0x05, 0x00, 0x05, axis, *delta_bytes]),
     ]
+
+
+def ptz_relative_reports(direction: PtzDirection, degrees: float = 3.0) -> list[bytes]:
+    if degrees <= 0.0 or degrees > 30.0:
+        raise ValueError("PTZ relative degrees must be in range 0..30")
+    axis, sign = _ptz_motor_axis_and_sign(direction)
+    value = sign * degrees
+    return [
+        build_report([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, TRACKING_VALUES["off"]]),
+        build_report([0x09, 0x03, 0x01, 0x19, 0x00, 0x05, 0x00, 0x05, axis, *struct.pack("<f", value)]),
+    ]
+
+
+def ptz_absolute_reports(pan: float, tilt: float) -> list[bytes]:
+    if not -90.0 <= pan <= 90.0 or not -90.0 <= tilt <= 90.0:
+        raise ValueError("PTZ absolute pan and tilt must be in range -90..90")
+    return [
+        build_report([0x09, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, TRACKING_VALUES["off"]]),
+        build_report([0x09, 0x03, 0x01, 0x18, 0x00, 0x05, 0x00, 0x05, 0x01, *struct.pack("<f", pan)]),
+        build_report([0x09, 0x03, 0x01, 0x18, 0x00, 0x05, 0x00, 0x05, 0x02, *struct.pack("<f", tilt)]),
+    ]
+
+
+def ptz_recenter_reports() -> list[bytes]:
+    return ptz_absolute_reports(0.0, 0.0)
 
 
 def ptz_vector_reports(x: float, y: float, z: float = 0.0) -> list[bytes]:
@@ -143,3 +231,13 @@ def _focus_coordinate(value: int | None, default: int) -> int:
     if resolved < 0 or resolved > 0x7F:
         raise ValueError("focus metering coordinates must be in range 0..127")
     return resolved
+
+
+def _ptz_motor_axis_and_sign(direction: PtzDirection) -> tuple[int, float]:
+    if direction == "left":
+        return 0x01, -1.0
+    if direction == "right":
+        return 0x01, 1.0
+    if direction == "up":
+        return 0x02, 1.0
+    return 0x02, -1.0

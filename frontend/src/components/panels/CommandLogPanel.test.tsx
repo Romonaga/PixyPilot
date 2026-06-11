@@ -102,6 +102,11 @@ function pixyHid(): UsePixyHidResult {
     error: null,
     lastCommand: "tracking:privacy",
     trackingMode: "privacy",
+    deviceTrackingState: "unknown",
+    deviceTrackingRawValue: null,
+    deviceTrackingRawBits: [],
+    targetTrackingMode: null,
+    targetTrackingRawValue: null,
     gestureEnabled: null,
     autoRotateEnabled: null,
     mirrorMode: null,
@@ -112,6 +117,7 @@ function pixyHid(): UsePixyHidResult {
     refresh: vi.fn(),
     refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
+    setTargetTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
     setMirrorMode: vi.fn(),
@@ -119,7 +125,10 @@ function pixyHid(): UsePixyHidResult {
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
+    sendPtzRelative: vi.fn(),
+    sendPtzAbsolute: vi.fn(),
     sendPtzVector: vi.fn(),
+    recenterPtz: vi.fn(),
     savePtzPreset: vi.fn(),
     loadPtzPreset: vi.fn()
   };
@@ -149,6 +158,10 @@ function privacySafety(): UsePrivacySafetyResult {
     settingsLoaded: true,
     startupPrivacyEnabled: true,
     startupPrivacyState: "sent",
+    settingsError: null,
+    settingsPending: false,
+    refreshSettings: vi.fn(),
+    saveSettings: vi.fn(),
     enterPrivacy: vi.fn(),
     leavePrivacy: vi.fn()
   };

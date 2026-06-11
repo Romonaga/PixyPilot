@@ -43,6 +43,114 @@ Raw packet captures are local working files and are not committed to git. The im
 
 ## HID Report Layouts
 
+## Cross-Check: LarsArtmann/emeet-pixyd
+
+On 2026-06-10 we reviewed the public `LarsArtmann/emeet-pixyd` repository:
+
+https://github.com/LarsArtmann/emeet-pixyd
+
+Relevant findings:
+
+- It independently confirms the same core HID groups PixyPilot already uses for tracking/privacy (`01`), gesture (`04`), and audio DSP mode (`05`).
+- It uses the same 9-byte config reports and 4-byte commit/query reports that PixyPilot captured from EMEET Studio.
+- It waits roughly `200ms` between the config report and commit report for the core tracking/audio/gesture commands. PixyPilot currently keeps the HID report gap configurable through `hid.report_gap_ms` and defaults to a lower-latency value.
+- It implements HID state queries and response parsing for tracking, audio, and gesture. PixyPilot now has a backend state-query endpoint based on the same query reports.
+- It does not appear to include the later PixyPilot-specific captures for focus/metering selected area, mirror/flip, auto-rotate, auto-privacy delay, HID PTZ vector movement, or native PTZ preset save/load.
+
+Live PixyPilot check on the connected camera:
+
+- Audio query `09 05 00 04` decoded successfully.
+- Gesture query `09 04 02 01 00 01 00 01 02` decoded successfully.
+- Tracking query `09 01 01 01` returned group `01` value `03`, which remains unresolved. PixyPilot intentionally does not map `03` to Standard, Tracking, or Privacy until a capture proves the meaning.
+
+PixyPilot endpoint:
+
+```text
+GET /api/pixy-hid/state
+GET /api/pixy-hid/queries
+GET /api/pixy-hid/query/{query_name}
+POST /api/pixy-hid/diagnostics/capture?save=false
+POST /api/pixy-hid/diagnostics/capture?save=true
+```
+
+These endpoints are read-only and return decoded fields when the camera response is known. They also return raw value bytes, set-bit indexes, full request/response hex, and an ASCII preview so unresolved responses can be documented without guessing.
+
+The web UI exposes the same flow in the `HID Diagnostics` panel:
+
+- `Capture` reads the current whitelisted queries and displays them in the page.
+- `Save` reads the same queries and writes a timestamped JSON snapshot under `diagnostics/hid/`.
+- `Copy` copies the current snapshot JSON for sharing.
+- `Download` saves the current snapshot through the browser.
+- `ASCII` shows a printable response preview. Binary/control bytes are rendered as `.` so text fragments such as device/build identifiers stand out.
+
+`diagnostics/` is intentionally gitignored because snapshots can include device state and identifiers.
+
+## Cross-Check: RoseWaveStudio/PixyBar
+
+On 2026-06-11 we reviewed the public `RoseWaveStudio/PixyBar` repository:
+
+https://github.com/RoseWaveStudio/PixyBar
+
+Relevant findings:
+
+- It independently controls the PIXY over macOS IOKit HID, with no EMEET binaries.
+- It identifies the PIXY USB ID as VID `0x328f`, PID `0x00c0`.
+- It prefers the HID interface whose usage page and usage are both `0x83`. PixyPilot now prefers Linux hidraw nodes whose report descriptor advertises the same usage pair.
+- It masks the response group byte with `0x1f` before matching HID responses. PixyPilot now does the same in decoded response parsing.
+- It documents target-tracking modes through group `04`, command `01`: off, face, half-body, and full-body.
+- It documents degree-based PTZ relative and absolute motor commands through group `03`, commands `19` and `18`.
+- Its README notes that AI tracking visibly follows only while another app has the camera video stream open.
+
+PixyPilot keeps the EMEET Studio preset-load command separate from PixyBar's absolute motor command. Both use header `09 03 01 18`, but the payload length differs: one-byte slot loads use `00 01 00 01 SS`, while absolute motor positioning uses `00 05 00 05 AX` plus a float32 degree value.
+
+## Cross-Check: nick0413/Emeet_pixy_for_linux
+
+On 2026-06-11 we reviewed the public `nick0413/Emeet_pixy_for_linux` repository:
+
+https://github.com/nick0413/Emeet_pixy_for_linux
+
+Relevant findings:
+
+- It is a small Tkinter UI plus shell helper that wraps `v4l2-ctl` and direct hidraw writes.
+- It independently confirms the same HID tracking/privacy, gesture, audio mode, and auto-privacy command families already implemented by PixyPilot.
+- It uses standard V4L2 controls for PTZ, zoom, image controls, focus, exposure, and anti-flicker.
+- It does not include decoded vendor UVC Extension Unit selectors.
+- Its UI makes auto/manual parent controls prominent beside dependent sliders. PixyPilot now mirrors that lesson by showing explicit unlock actions for inactive exposure, white-balance, and focus controls.
+
+Whitelisted diagnostic query names:
+
+| Query name | HID query report | Current purpose |
+| --- | --- | --- |
+| `tracking_state` | `09 01 01 01` | Tracking/privacy status. |
+| `target_tracking_state` | `09 04 01 01` | Target-tracking mode and normalized float payload. |
+| `tracking_capability` | `09 01 00 04` | Unknown group 1 capability/status response. |
+| `tracking_probe_0100` | `09 01 01 00` | Experimental group 1 read probe for Standard/Tracking correlation. |
+| `tracking_probe_0102` | `09 01 01 02` | Experimental group 1 read probe for Standard/Tracking correlation. |
+| `tracking_probe_0103` | `09 01 01 03` | Experimental group 1 read probe for Standard/Tracking correlation. |
+| `tracking_probe_0104` | `09 01 01 04` | Experimental group 1 read probe for Standard/Tracking correlation. |
+| `device_info` | `09 01 00 03` | ASCII device/build identifier. |
+| `audio_state` | `09 05 00 04` | Audio DSP mode status. |
+| `gesture_state` | `09 04 02 01 00 01 00 01 02` | Gesture-control status. |
+| `auto_privacy_state` | `09 02 01 01` | Auto-privacy delay/status. |
+| `focus_metering_state` | `09 04 00 02` | Focus/metering mode and selected-area coordinates. |
+| `mirror_horizontal_state` | `09 04 00 07 00 01 00 01 01` | Horizontal mirror state. |
+| `mirror_vertical_state` | `09 04 00 07 00 01 00 01 02` | Vertical mirror state. |
+| `auto_rotate_state` | `09 04 00 07 00 01 00 01 04` | Auto-rotate state. |
+
+Live check on 2026-06-10 after adding diagnostic locking:
+
+| Query | Response | Notes |
+| --- | --- | --- |
+| `tracking_state` | `09 01 01 01 00 01 00 01 03 ...` | Value `03`, set bits `[0, 1]`. Confirmed non-privacy, but not safely decoded as Standard or Tracking. |
+| `tracking_capability` | `09 01 00 04 00 02 00 02 04 20 ...` | Value `04`, set bits `[2]`; byte `09` was `20`. Meaning unknown. |
+| `device_info` | `09 01 00 03 00 0c 00 0c 32 35 30 35 32 34 36 30 31 30 31 33 ...` | ASCII payload `250524601013`. |
+| `audio_state` | `09 05 00 04 00 01 00 01 02 ...` | Value `02`, decoded as Live. |
+| `gesture_state` | `09 04 02 01 00 02 00 02 02 01 ...` | Value `01`, decoded as enabled. |
+| `auto_privacy_state` | `09 02 01 01 00 04 00 04 00 00 00 00 ...` | Timeout/status value `0` in this run. |
+| `focus_metering_state` | `09 04 00 02 00 05 00 05 00 38 38 7f 7f ...` | Mode byte `00`; selected-area default coordinates still visible in the response. |
+
+PixyPilot serializes HID read/write access and drains stale hidraw input before each diagnostic query. This is required because concurrent hidraw requests can otherwise read another request's response.
+
 ### Common Framing
 
 All known reports use this outer shape:
@@ -67,6 +175,8 @@ Known fields:
 
 Some query/status reports are shorter, such as `09 01 01 01` and `09 05 00 04`. PixyPilot still pads them to 32 bytes when writing to hidraw.
 
+Response matching caveat: some responses can set high bits in the group byte. PixyPilot compares response group as `response[1] & 0x1f` before decoding.
+
 ### Group `01`: Tracking And Privacy
 
 Set state:
@@ -90,6 +200,42 @@ Known state values:
 | `02` | Privacy |
 
 Capture `pcaps/29.pcapng` confirmed these labels directly from the EMEET Studio Control tab dropdown by cycling Tracking Mode -> Privacy Mode -> Standard Mode.
+
+Important readback caveat: the command values above are confirmed for host-to-camera SET reports. The readback query `09 01 01 01` is not a direct echo of those command values. Local snapshots confirmed:
+
+| Readback value | Current interpretation |
+| --- | --- |
+| `02` | Privacy |
+| `03` | Non-privacy; Standard vs Tracking unknown |
+
+PixyPilot therefore verifies Privacy from device readback, but treats Standard and Tracking as last-commanded UI state until a separate readback signal is found.
+
+### Group `04`: Target Tracking
+
+PixyBar identified a separate target-tracking family that sits under group `04`, command `01`. PixyPilot now exposes this as Target Tracking.
+
+Set target tracking:
+
+```text
+09 04 01 00 00 0d 00 0d MM XX XX XX XX YY YY YY YY SS SS SS SS
+```
+
+Query target tracking:
+
+```text
+09 04 01 01
+```
+
+Known mode values:
+
+| `MM` | Meaning |
+| --- | --- |
+| `00` | Off |
+| `01` | Face |
+| `02` | Half-body |
+| `03` | Full-body |
+
+The three float32 little-endian values are normalized target parameters. PixyBar uses `0.5`, `0.5`, and `1.0`, which PixyPilot uses as defaults.
 
 ### Group `02`: Auto Privacy Delay
 
@@ -142,6 +288,40 @@ Load slot:
 ```
 
 `SS` is a 1-based preset slot. PixyPilot currently supports slots `01`, `02`, and `03`, matching the official app captures.
+
+### Group `03`: Degree-Based PTZ Motors
+
+PixyBar identified direct motor movement commands that use degree float payloads.
+
+Relative movement:
+
+```text
+09 03 01 19 00 05 00 05 AX DD DD DD DD
+```
+
+Absolute movement:
+
+```text
+09 03 01 18 00 05 00 05 AX DD DD DD DD
+```
+
+Known axis values:
+
+| `AX` | Axis |
+| --- | --- |
+| `01` | Pan |
+| `02` | Tilt |
+
+For relative movement, PixyPilot uses the PixyBar sign mapping:
+
+| Direction | Axis | Float delta |
+| --- | --- | ---: |
+| Left | `01` | negative degrees |
+| Right | `01` | positive degrees |
+| Up | `02` | positive degrees |
+| Down | `02` | negative degrees |
+
+Recenter/Home is implemented as two absolute writes: pan `0.0`, then tilt `0.0`.
 
 Observed query response shape:
 

@@ -22,6 +22,11 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     error: null,
     lastCommand: null,
     trackingMode: null,
+    deviceTrackingState: "unknown",
+    deviceTrackingRawValue: null,
+    deviceTrackingRawBits: [],
+    targetTrackingMode: null,
+    targetTrackingRawValue: null,
     gestureEnabled: null,
     autoRotateEnabled: null,
     mirrorMode: null,
@@ -32,6 +37,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     refresh: vi.fn(),
     refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
+    setTargetTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
     setMirrorMode: vi.fn(),
@@ -39,7 +45,10 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
+    sendPtzRelative: vi.fn(),
+    sendPtzAbsolute: vi.fn(),
     sendPtzVector: vi.fn(),
+    recenterPtz: vi.fn(),
     savePtzPreset: vi.fn(),
     loadPtzPreset: vi.fn(),
     ...overrides
@@ -71,6 +80,10 @@ function makePrivacySafety(overrides: Partial<UsePrivacySafetyResult> = {}): Use
     settingsLoaded: true,
     startupPrivacyEnabled: true,
     startupPrivacyState: "sent",
+    settingsError: null,
+    settingsPending: false,
+    refreshSettings: vi.fn(),
+    saveSettings: vi.fn(),
     enterPrivacy: vi.fn().mockResolvedValue(undefined),
     leavePrivacy: vi.fn().mockResolvedValue(undefined),
     ...overrides
@@ -134,8 +147,35 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    expect(screen.getByText("Camera state is unknown after refresh. Select Privacy to send privacy mode now.")).toBeInTheDocument();
+    expect(screen.getByText("Device mode is unknown after refresh. Select Privacy to send privacy mode now.")).toBeInTheDocument();
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Privacy" })).not.toHaveClass("is-selected");
+  });
+
+  it("shows non-privacy readback separately from the last commanded mode", () => {
+    render(
+      <SmartPixyPanel
+        pixyHid={makePixyHid({
+          status: {
+            available: true,
+            path: "/dev/hidraw14",
+            readable: true,
+            writable: true,
+            reason: null,
+            known_controls: ["tracking", "privacy"]
+          },
+          trackingMode: "tracking",
+          deviceTrackingState: "non_privacy",
+          deviceTrackingRawValue: 3,
+          deviceTrackingRawBits: [0, 1]
+        })}
+        audio={makeAudio()}
+        privacySafety={makePrivacySafety()}
+      />
+    );
+
+    expect(screen.getByText("Non-privacy raw 3 bits 0,1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tracking" })).toHaveClass("is-selected");
   });
 
   it("selects the proven tracking control mode", async () => {
@@ -351,9 +391,7 @@ describe("SmartPixyPanel", () => {
       />
     );
 
-    expect(
-      screen.getByText("Timer is captured only: EMEET Studio writes this value, but tests did not trigger privacy.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Device mode is unknown after refresh. Select Privacy to send privacy mode now.")).toBeInTheDocument();
   });
 
   it("toggles the known gesture command", async () => {

@@ -37,6 +37,13 @@ type PtzPreset = {
 
 const SPEEDS = [1, 2, 3, 4, 5];
 const PTZ_VECTOR_SPEED_STEP = 2;
+const PTZ_RELATIVE_DEGREES_BY_SPEED: Record<number, number> = {
+  1: 1,
+  2: 3,
+  3: 5,
+  4: 10,
+  5: 15
+};
 const PTZ_JOG_INITIAL_REPEAT_MS = 260;
 const PTZ_JOG_REPEAT_MS_BY_SPEED: Record<number, number> = {
   1: 360,
@@ -172,6 +179,10 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
   const vectorMotionActiveRef = useRef(false);
   const hidPtzReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_direction");
+  const hidPtzRelativeReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_relative");
+  const hidPtzRecenterReady =
+    pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_recenter");
   const hidPtzVectorReady =
     pixyHid.status?.writable === true && pixyHid.status.known_controls.includes("ptz_vector");
   const hidPresetSaveReady =
@@ -182,6 +193,10 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
 
   const moveAxis = async (control: V4L2Control | undefined, direction: number, hidDirection: PtzDirection) => {
     if (trackingLocksPtz) {
+      return;
+    }
+    if (hidPtzRelativeReady) {
+      await pixyHid.sendPtzRelative(hidDirection, PTZ_RELATIVE_DEGREES_BY_SPEED[speed] ?? 3);
       return;
     }
     if (hidPtzReady) {
@@ -269,6 +284,13 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
     }
     cancelJogTimers();
     await stopPtzVector();
+    if (hidPtzRecenterReady) {
+      await pixyHid.recenterPtz();
+      if (zoom && !zoom.flags.includes("inactive")) {
+        await controls.setValue(zoom.name, clamp(zoom.default ?? zoom.min ?? 0, zoom));
+      }
+      return;
+    }
     const centerable = [pan, tilt].filter((control): control is V4L2Control => Boolean(control));
     for (const control of centerable) {
       if (!control.flags.includes("inactive")) {
@@ -387,8 +409,11 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
 
   const disabled = controls.pendingControl !== null;
   const directionBlocked = (control: V4L2Control | undefined) =>
-    trackingLocksPtz || (hidPtzVectorReady || hidPtzReady ? disabled && !jogActiveRef.current : isBlocked(control, controls.pendingControl));
-  const vectorPadDisabled = trackingLocksPtz || disabled || (!hidPtzVectorReady && !pan && !tilt);
+    trackingLocksPtz ||
+    (hidPtzRelativeReady || hidPtzVectorReady || hidPtzReady
+      ? disabled && !jogActiveRef.current
+      : isBlocked(control, controls.pendingControl));
+  const vectorPadDisabled = trackingLocksPtz || disabled || (!hidPtzRecenterReady && !hidPtzVectorReady && !pan && !tilt);
   const activeVectorPosition = activeVector ? vectorPadPosition(activeVector) : null;
 
   return (
@@ -574,7 +599,7 @@ export function PtzControlPanel({ group, controls, pixyHid }: Props) {
         </div>
         <button
           className="secondary-button ptz-home-button"
-          disabled={trackingLocksPtz || disabled || (!pan && !tilt)}
+          disabled={trackingLocksPtz || disabled || (!hidPtzRecenterReady && !pan && !tilt)}
           onClick={() => void centerPtz()}
           aria-label="Home PTZ"
           title="Home PTZ"

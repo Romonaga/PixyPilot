@@ -28,6 +28,23 @@ The PIXY currently exposes several useful control paths.
 | Vendor HID | Partially decoded | Smart features, focus metering, mirror/rotate, PTZ jog/vector movement, native PTZ presets, privacy, gesture, and audio DSP modes |
 | UVC Extension Unit | Present, not decoded | Ten vendor selectors exposed through UVC, names still unknown |
 
+## Related Linux Work
+
+PixyPilot has been cross-checked against these public EMEET PIXY references:
+
+- `rm1138` gist: early HID/V4L2 notes that helped identify the device's two main Linux control paths.
+- `LarsArtmann/emeet-pixyd`: a Go daemon focused on automatic call detection, tracking/privacy automation, audio switching, and an HTMX web UI.
+- `RoseWaveStudio/PixyBar`: a macOS menu-bar app and C `pixyctl` helper that controls the PIXY through IOKit HID.
+- `nick0413/Emeet_pixy_for_linux`: a Tkinter and shell-script Linux UI using `v4l2-ctl` plus direct hidraw writes.
+
+`emeet-pixyd` independently validates the same core tracking/privacy, gesture, and audio HID command families that PixyPilot uses. Its most useful additional lesson is operational rather than new command coverage: it queries HID state and waits about `200ms` between core HID config and commit reports. PixyPilot now exposes a read-only HID state query endpoint and keeps the report gap configurable through YAML.
+
+The project did not reveal additional decoded smart-camera commands beyond PixyPilot's current capture set. PixyPilot currently has broader decoded coverage for focus/metering, mirror/flip, auto-rotate, auto-privacy delay, HID PTZ vector movement, and native PTZ preset save/load.
+
+`PixyBar` added useful independent coverage outside the Windows captures. It confirms that target tracking has a separate group `04`, command `01` family with off/face/half-body/full-body modes, and that PTZ can be driven with group `03` degree-based relative and absolute motor commands. It also masks HID response group bytes with `0x1f`, which PixyPilot now mirrors when parsing responses. PixyBar's README also matches local testing: AI tracking visibly follows only while another app has the video stream open.
+
+`Emeet_pixy_for_linux` did not reveal new UVC extension selector mappings. It independently confirms the standard V4L2 plus vendor HID split and uses the same core HID commands for tracking/privacy, gesture, audio mode, and auto-privacy. Its main product lesson is UI clarity: dependent controls should make the auto/manual parent obvious. PixyPilot exposes dependency hints and one-click unlock actions for inactive exposure, white-balance, and focus sliders.
+
 ## PixyPilot Implementation Status
 
 Current implementation status:
@@ -38,6 +55,7 @@ Current implementation status:
 - Recording still uses `ffmpeg`.
 - ALSA microphone mute/status currently uses `arecord`/`amixer`.
 - Vendor HID smart controls are written directly to `/dev/hidrawN`.
+- Vendor HID tracking/target-tracking/audio/gesture state can be queried through `GET /api/pixy-hid/state`; unknown response values are left as `null` rather than guessed.
 - UVC extension selectors are documented as raw investigation data only and are not exposed as normal controls.
 
 Validated MJPG preview formats:
@@ -239,6 +257,26 @@ Vendor-facing EMEET material describes Privacy Mode as reachable three ways:
 
 PixyPilot has confirmed the app-command path through group `01` value `02`. Physical tilt is documented by EMEET, but it is not a host command. Timer-based privacy remains unconfirmed as working behavior. Privacy mode has been observed to darken the camera image. It appears to be an explicit camera state, not just a delayed timer. The auto-privacy delay is separate.
 
+### Target Tracking
+
+`RoseWaveStudio/PixyBar` identifies a separate target-tracking command family:
+
+```text
+09 04 01 00 00 0d 00 0d MM XX XX XX XX YY YY YY YY SS SS SS SS
+09 04 01 01
+```
+
+Current mapping from that project, now exposed by PixyPilot:
+
+| Mode byte | Meaning |
+| --- | --- |
+| `00` | Off |
+| `01` | Face |
+| `02` | Half-body |
+| `03` | Full-body |
+
+The three trailing values are little-endian float32 fields. PixyBar uses `0.5`, `0.5`, and `1.0` when enabling tracking. PixyPilot uses the same defaults and queries the readback through HID diagnostics.
+
 ### Auto Privacy Delay
 
 Set command:
@@ -427,6 +465,22 @@ Observed selector metadata:
 
 Until those controls are mapped, PixyPilot treats UVC extension selectors as investigation data, not normal UI controls.
 
+PixyPilot exposes a read-only probe for these selectors:
+
+```text
+GET /api/devices/{videoN}/uvc-extension/selectors
+POST /api/devices/{videoN}/uvc-extension/capture?save=false
+POST /api/devices/{videoN}/uvc-extension/capture?save=true
+```
+
+The web UI exposes the same flow in `Future Deck -> UVC Extension`. `Probe` reads unit `2`, selectors `1..10`, and displays `GET_LEN`, `GET_INFO`, `GET_CUR`, `GET_MIN`, `GET_MAX`, `GET_RES`, and `GET_DEF` results when the device returns them. `Save` writes timestamped JSON snapshots under `diagnostics/uvc/`.
+
+Saved snapshots are compared with the latest prior saved snapshot for the same device. The UI and JSON mark `changed_selectors`, `changed_since_previous`, and `changed_fields`, which makes official-app packet captures easier to correlate with Linux-side state.
+
+These probes do not issue `SET_CUR`. Unknown selector writes remain disabled until a selector has a safe, reversible meaning.
+
+The repeatable workflow is documented in [UVC_EXTENSION_CORRELATION.md](UVC_EXTENSION_CORRELATION.md).
+
 ## Windows USBPcap Baseline
 
 Baseline capture analyzed:
@@ -494,7 +548,7 @@ HID startup/status traffic observed:
 | `09 04 00 07 ... 01/02/04` | responses echo `01`, `02`, or `04` | Possible per-feature status reads inside group 4 |
 | `09 04 00 0e`, `09 04 00 0a`, `09 04 00 0c` | one-byte value `00` | Unknown group 4 status reads |
 | `09 02 01 01` | `09 02 01 01 00 04 00 04 00...` | Auto-privacy delay/status query; value was `0` in this run |
-| `09 01 01 01` | values `03` and `00` seen at different times | Tracking/privacy state query; value `03` still unknown |
+| `09 01 01 01` | values `03`, `02`, and `00` seen at different times | Tracking/privacy state query; value `02` maps to Privacy, while value `03` remains unknown/non-privacy |
 | `09 03 01 16 ... 01/02/03` | 14-byte responses echoing sub-value | Unknown group 3 structured status/config |
 | `09 03 01 14` | 13-byte zero payload | Unknown group 3 status |
 | `09 41 00 04`, `09 61 00 04` | short two-byte values ending in `20` | Unknown capability or version queries |
@@ -506,6 +560,8 @@ Current conclusion from launch-idle:
 - EMEET Studio startup gives us useful status queries, but not user-action commands.
 - No clear UVC Extension Unit selector writes were observed during idle startup.
 - The next captures must isolate one user action at a time so these startup queries can be separated from real feature commands.
+
+Follow-up live checks on 2026-06-10 showed `09 01 01 01` returning value `03` after both Standard and Tracking commands, while Privacy returned value `02`. PixyPilot now decodes only `02` as verified Privacy. Value `03` is treated as verified non-privacy with set bits `[0, 1]`, but it is not proven to distinguish Standard from Tracking. The UI therefore shows device readback separately from the last commanded Standard/Tracking mode.
 
 ## AF Toggle Capture
 
@@ -707,6 +763,26 @@ Observed device responses looked like status/ack packets:
 ```text
 09 63 01 20 00 01 00 01 20 ...
 ```
+
+## Degree-Based PTZ Motor Commands
+
+`RoseWaveStudio/PixyBar` identifies an additional, more deterministic PTZ path than the captured EMEET Studio vector controls.
+
+Relative movement:
+
+```text
+09 03 01 19 00 05 00 05 AX DD DD DD DD
+```
+
+Absolute movement:
+
+```text
+09 03 01 18 00 05 00 05 AX DD DD DD DD
+```
+
+`AX` is `01` for pan and `02` for tilt. `DD DD DD DD` is a little-endian float32 degree value. Recenter/Home is implemented as absolute pan `0.0`, then absolute tilt `0.0`.
+
+Important caveat: the absolute movement header `09 03 01 18` is shared with the EMEET Studio preset-load command, but the payload shape is different. Preset load uses a one-byte slot payload: `09 03 01 18 00 01 00 01 SS`. Absolute motor movement uses a five-byte payload: axis plus float32.
 
 ## PTZ Preset Save
 

@@ -926,8 +926,40 @@ Implemented app status:
   - readable=true after installing deploy/udev/70-pixypilot-hid.rules
   - writable=true after installing deploy/udev/70-pixypilot-hid.rules
   - tracking off/idle command returned ok through the REST API
+- Cross-check with https://github.com/LarsArtmann/emeet-pixyd:
+  - Confirms the same core group 01 tracking/privacy, group 04 gesture, and group 05 audio DSP command families.
+  - Uses about 200ms between config and commit writes for those core HID commands; PixyPilot keeps this configurable with `hid.report_gap_ms`.
+  - Implements read-only HID state queries. PixyPilot added `GET /api/pixy-hid/state` based on the same query reports.
+  - PixyPilot also added whitelisted raw diagnostics:
+    - `GET /api/pixy-hid/queries`
+    - `GET /api/pixy-hid/query/{query_name}`
+    - `POST /api/pixy-hid/diagnostics/capture?save=true`
+  - Diagnostic responses include request hex, response hex, the selected raw value byte, and set-bit indexes. HID I/O is serialized and stale hidraw input is drained before each query so parallel API calls do not consume each other's responses.
+  - The web UI has a HID Diagnostics panel. Saved snapshots go to `diagnostics/hid/` and are gitignored.
+  - Live PixyPilot query decoded audio=`live` and gesture=`true` from the connected camera.
+  - Live group 01 tracking query returned raw value `03`, with set bits `[0, 1]`.
+  - Privacy returned raw value `02`.
+  - Standard and Tracking both returned `03` in local testing, so PixyPilot intentionally does not map `03` to either mode yet.
+  - Current hypothesis: `03` may be a bit field or a broader non-privacy status.
+  - UI now separates device readback from last-commanded mode:
+    - `02` readback = verified Privacy
+    - `03` readback = verified non-privacy, Standard/Tracking unknown
+    - Standard/Tracking buttons remain last-commanded state until a separate readback is found
+  - HID diagnostics now include extra group 01 probes: `09 01 01 00`, `09 01 01 02`, `09 01 01 03`, and `09 01 01 04`.
+  - No additional decoded smart commands were found there beyond PixyPilot's current capture set; PixyPilot has broader decoded coverage for focus/metering, mirror/flip, auto-rotate, auto-privacy delay, HID PTZ vector movement, and native PTZ presets.
 - UI now exposes Smart Pixy controls and enables them when hidraw is writable.
 - UVC extension remains read-only in the UI until selectors are correlated with known behavior.
+- Future Deck now includes a read-only UVC Extension probe:
+  - probes unit 2 selectors 1..10 with native `UVCIOC_CTRL_QUERY`
+  - reads GET_LEN, GET_INFO, GET_CUR, GET_MIN, GET_MAX, GET_RES, and GET_DEF when available
+  - saves snapshots to `diagnostics/uvc/`
+  - compares snapshots with the latest saved baseline for that video device
+  - marks `changed_selectors`, `changed_since_previous`, and `changed_fields` to speed Windows pcap correlation
+  - does not issue SET_CUR writes
+- Windows Capture Inbox now accepts `.pcap` and `.pcapng` uploads from the web UI:
+  - stores files under `pcaps/imports/`
+  - writes sidecar JSON with action, notes, source, SHA-256, size, and upload time
+  - supports opening PixyPilot from Windows when the server is bound to the LAN address
 - Smart Pixy UI now mirrors the official-app vocabulary:
   - Auto Follow uses the known HID tracking mode on/off path.
   - Gesture Control uses the known HID gesture path.

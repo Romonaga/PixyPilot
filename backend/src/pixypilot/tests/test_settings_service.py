@@ -1,3 +1,4 @@
+from pixypilot.domains.settings.models import AppSettingsUpdate
 from pixypilot.domains.settings.service import SettingsService
 
 
@@ -56,3 +57,55 @@ hid:
     assert settings.hid.path == "/dev/hidraw9"
     assert settings.hid.report_gap_ms == 40
     assert settings.config.path == str(settings_path)
+
+
+async def test_settings_update_patches_yaml_without_dropping_existing_values(tmp_path) -> None:
+    settings_path = tmp_path / "pixypilot.yaml"
+    settings_path.write_text(
+        """
+server:
+  host: 127.0.0.1
+  port: 8000
+frontend:
+  dev_server:
+    host: 127.0.0.1
+    port: 5173
+hid:
+  report_gap_ms: 25
+""",
+        encoding="utf-8",
+    )
+    service = SettingsService(settings_path)
+
+    settings = await service.update_settings(
+        AppSettingsUpdate.model_validate(
+            {
+                "frontend": {"dev_server": {"port": 5174}},
+                "hid": {"path": "/dev/hidraw14"},
+            }
+        )
+    )
+
+    assert settings.frontend.dev_server_host == "127.0.0.1"
+    assert settings.frontend.dev_server_port == 5174
+    assert settings.hid.path == "/dev/hidraw14"
+    assert settings.hid.report_gap_ms == 25
+    assert "port: 8000" in settings_path.read_text(encoding="utf-8")
+
+
+async def test_empty_settings_update_does_not_rewrite_yaml(tmp_path) -> None:
+    settings_path = tmp_path / "pixypilot.yaml"
+    original_yaml = """
+safety:
+  start_in_privacy: true
+
+hid:
+  path:
+  report_gap_ms: 25
+"""
+    settings_path.write_text(original_yaml, encoding="utf-8")
+    service = SettingsService(settings_path)
+
+    await service.update_settings(AppSettingsUpdate())
+
+    assert settings_path.read_text(encoding="utf-8") == original_yaml

@@ -39,6 +39,45 @@ This file tracks useful product ideas that are not required for the core camera 
 - Decode official-app preset delete/default behavior.
 - Revisit UVC relative zoom if Linux exposes a useful path beyond the current no-op `zoom_continuous`.
 
+## Future Architecture
+
+These are valid scalability improvements, but they should wait until the PIXY control surface and reverse-engineering workflow are more stable.
+
+- Application service container:
+  - Replace scattered `get_xxx_service()` route factories with a central application container or service registry.
+  - Keep FastAPI dependencies thin and have them resolve services from the registry.
+  - Use the container to manage shared config, singleton service lifecycle, hotplug/video services, and test overrides.
+  - Suggested timing: before Home Assistant, multi-camera support, or long-lived background workflows.
+- Capability discovery:
+  - Replace static `KNOWN_CONTROLS` with runtime capability discovery.
+  - Add a camera capability model that can report availability, source, and confidence.
+  - Example shape:
+
+    ```json
+    {
+      "tracking": { "available": true, "source": "hid", "confirmed": true },
+      "ptz_vector": { "available": true, "source": "hid", "confirmed": true },
+      "zoom_absolute": { "available": true, "source": "v4l2", "confirmed": true },
+      "uvc_extension": { "available": true, "source": "uvc_xu", "confirmed": false }
+    }
+    ```
+
+  - Use discovered capabilities to drive UI visibility instead of hard-coded known control lists.
+  - Suggested timing: before provider abstraction, because providers should expose the same capability contract.
+- Camera provider abstraction:
+  - Keep PixyPilot PIXY-first while behavior is still being decoded.
+  - Later introduce a provider boundary:
+
+    ```text
+    CameraProvider
+      GenericUvcProvider
+      EmeetPixyProvider
+    ```
+
+  - Move generic V4L2/UVC streaming, controls, formats, preview, and recording into a generic provider path.
+  - Keep EMEET PIXY HID, decoded smart controls, UVC extension diagnostics, and packet-capture correlation in the PIXY provider.
+  - Suggested timing: after capability discovery and after the confirmed PIXY behavior is stable.
+
 ## Packaging And Distribution
 
 - Add systemd user service examples for the backend.

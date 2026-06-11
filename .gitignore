@@ -22,5 +22,8 @@ pcaps/
 # Local camera recordings can be large and private.
 recordings/
 
+# Local HID diagnostic snapshots can include device state and identifiers.
+diagnostics/
+
 # User-created camera control presets.
 config/presets.yaml

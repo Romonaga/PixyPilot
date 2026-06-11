@@ -11,6 +11,13 @@ from pixypilot.domains.v4l2.native import (
 )
 
 
+DEPENDENCY_CONTROLS: dict[str, tuple[str, int]] = {
+    "focus_absolute": ("focus_automatic_continuous", 0),
+    "white_balance_temperature": ("white_balance_automatic", 0),
+    "exposure_time_absolute": ("auto_exposure", 1),
+}
+
+
 class V4L2Service:
     def __init__(
         self,
@@ -87,6 +94,20 @@ class V4L2Service:
         control = next((item for item in controls if item.name == control_name), None)
         if control is None:
             raise ValueError(f"Unknown control: {control_name}")
+
+        dependency = DEPENDENCY_CONTROLS.get(control_name)
+        if dependency is not None:
+            parent_name, parent_value = dependency
+            parent = next((item for item in controls if item.name == parent_name), None)
+            if parent is not None and parent.value != parent_value:
+                self._validate_control_value(parent, parent_value)
+                try:
+                    await self.control_writer.set_control(device_path, parent.control_id, parent_value)
+                except NativeV4L2Error as exc:
+                    raise ValueError(str(exc)) from exc
+                controls = await self.list_controls(device_path)
+                control = next((item for item in controls if item.name == control_name), control)
+
         self._validate_control_value(control, value)
         try:
             await self.control_writer.set_control(device_path, control.control_id, value)

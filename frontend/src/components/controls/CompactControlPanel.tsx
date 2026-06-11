@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { boolOptionLabels, controlDisplayLabel, dependencyHint } from "../../domains/controls/display";
+import { boolOptionLabels, controlDisplayLabel, dependencyAction, dependencyHint } from "../../domains/controls/display";
 import { effectValuesForControls, IMAGE_EFFECTS } from "../../domains/controls/effects";
 import { controlValueText } from "../../domains/controls/grouping";
 import type { ControlGroup } from "../../domains/controls/grouping";
@@ -118,6 +118,7 @@ export function CompactControlPanel({ group, controls, pixyHid, controlPresets }
             peerControls={orderedControls}
             disabled={controls.pendingControl === control.name || controls.pendingControl === "preset"}
             onSetValue={(value) => controls.setValue(control.name, value)}
+            onSetDependencyValue={(controlName, value) => controls.setValue(controlName, value)}
           />
         ))}
       </div>
@@ -145,13 +146,21 @@ type RowProps = {
 
 type CompactRowProps = RowProps & {
   peerControls: V4L2Control[];
+  onSetDependencyValue: (controlName: string, value: number) => Promise<void>;
 };
 
-function CompactControlRow({ control, peerControls, disabled, onSetValue }: CompactRowProps) {
+function CompactControlRow({ control, peerControls, disabled, onSetValue, onSetDependencyValue }: CompactRowProps) {
+  const [draftValue, setDraftValue] = useState(control.value);
   const isInactive = control.flags.includes("inactive");
   const unavailable = disabled || isInactive;
   const hasPresets = control.kind === "bool" || (control.kind === "menu" && control.menu.length > 0 && control.menu.length <= 4);
   const hint = dependencyHint(control, peerControls);
+  const action = dependencyAction(control, peerControls);
+  const hasRange = !hasPresets && control.kind !== "menu";
+
+  useEffect(() => {
+    setDraftValue(control.value);
+  }, [control.value]);
 
   return (
     <div className={`reference-control-row ${hasPresets ? "has-presets" : ""} ${isInactive ? "is-inactive" : ""}`}>
@@ -160,14 +169,38 @@ function CompactControlRow({ control, peerControls, disabled, onSetValue }: Comp
         {hint && <small>{hint}</small>}
       </div>
       <div className="reference-control-input">
-        <CompactInput control={control} disabled={unavailable} onSetValue={onSetValue} />
+        <CompactInput
+          control={control}
+          disabled={unavailable}
+          draftValue={draftValue}
+          onDraftValue={setDraftValue}
+          onSetValue={onSetValue}
+        />
       </div>
-      {!hasPresets && <output>{controlValueText(control)}</output>}
+      {!hasPresets && (
+        <div className="reference-control-output">
+          <output>{hasRange ? draftValue : controlValueText(control)}</output>
+          {action && (
+            <button
+              className="dependency-unlock-button"
+              disabled={disabled}
+              onClick={() => void onSetDependencyValue(action.parentName, action.value)}
+            >
+              {action.label}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function CompactInput({ control, disabled, onSetValue }: RowProps) {
+type InputProps = RowProps & {
+  draftValue: number;
+  onDraftValue: (value: number) => void;
+};
+
+function CompactInput({ control, disabled, draftValue, onDraftValue, onSetValue }: InputProps) {
   if (control.kind === "bool") {
     return (
       <div className="reference-segmented two-up">
@@ -219,15 +252,23 @@ function CompactInput({ control, disabled, onSetValue }: RowProps) {
     );
   }
 
-  return <CompactRangeInput control={control} disabled={disabled} onSetValue={onSetValue} />;
+  return (
+    <CompactRangeInput
+      control={control}
+      disabled={disabled}
+      draftValue={draftValue}
+      onDraftValue={onDraftValue}
+      onSetValue={onSetValue}
+    />
+  );
 }
 
-function CompactRangeInput({ control, disabled, onSetValue }: RowProps) {
-  const [draftValue, setDraftValue] = useState(control.value);
-
-  useEffect(() => {
-    setDraftValue(control.value);
-  }, [control.value]);
+function CompactRangeInput({ control, disabled, draftValue, onDraftValue, onSetValue }: InputProps) {
+  const commitDraftValue = () => {
+    if (!disabled && draftValue !== control.value) {
+      void onSetValue(draftValue);
+    }
+  };
 
   return (
     <input
@@ -238,11 +279,12 @@ function CompactRangeInput({ control, disabled, onSetValue }: RowProps) {
       step={control.step && control.step > 0 ? control.step : 1}
       value={draftValue}
       disabled={disabled}
-      onChange={(event) => setDraftValue(Number(event.target.value))}
-      onBlur={() => void onSetValue(draftValue)}
+      onChange={(event) => onDraftValue(Number(event.target.value))}
+      onPointerUp={commitDraftValue}
+      onBlur={commitDraftValue}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
-          void onSetValue(draftValue);
+          commitDraftValue();
         }
       }}
     />

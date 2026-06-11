@@ -82,9 +82,26 @@ export type PixyHidStatus = {
 };
 
 export type TrackingMode = "off" | "tracking" | "privacy";
+export type TargetTrackingMode = "off" | "face" | "half_body" | "full_body";
 export type AudioMode = "noise_cancel" | "live" | "original";
 export type MirrorMode = "off" | "h" | "v" | "hv";
 export type FocusMeteringMode = "center" | "human_face" | "selected_area";
+export type PixyHidQueryName =
+  | "tracking_state"
+  | "target_tracking_state"
+  | "tracking_capability"
+  | "tracking_probe_0100"
+  | "tracking_probe_0102"
+  | "tracking_probe_0103"
+  | "tracking_probe_0104"
+  | "device_info"
+  | "audio_state"
+  | "gesture_state"
+  | "auto_privacy_state"
+  | "focus_metering_state"
+  | "mirror_horizontal_state"
+  | "mirror_vertical_state"
+  | "auto_rotate_state";
 export type FocusMeteringPoint = {
   x: number;
   y: number;
@@ -102,6 +119,93 @@ export type PixyHidCommandResult = {
   command: string;
   value: string | number | boolean;
   path: string;
+};
+
+export type PixyHidRawQueryResult = {
+  name: PixyHidQueryName;
+  request_hex: string;
+  response_hex: string | null;
+  value_index: number | null;
+  raw_value: number | null;
+  raw_bits: number[];
+  ascii_value: string | null;
+  ascii_preview: string | null;
+  path: string;
+};
+
+export type PixyHidDeviceState = {
+  tracking_mode: TrackingMode | null;
+  tracking_raw_value: number | null;
+  tracking_raw_bits: number[];
+  target_tracking_mode: TargetTrackingMode | null;
+  target_tracking_raw_value: number | null;
+  target_tracking_x: number | null;
+  target_tracking_y: number | null;
+  target_tracking_scale: number | null;
+  audio_mode: AudioMode | null;
+  audio_raw_value: number | null;
+  gesture_enabled: boolean | null;
+  gesture_raw_value: number | null;
+  queries: Partial<Record<PixyHidQueryName, PixyHidRawQueryResult>>;
+  path: string;
+};
+
+export type PixyHidDiagnosticSnapshot = {
+  captured_at: string;
+  path: string;
+  queries: PixyHidRawQueryResult[];
+  file_path: string | null;
+};
+
+export type UvcExtensionValue = {
+  query: string;
+  ok: boolean;
+  size: number | null;
+  hex_value: string | null;
+  int_value: number | null;
+  ascii_preview: string | null;
+  error: string | null;
+};
+
+export type UvcExtensionSelectorProbe = {
+  unit_id: number;
+  selector: number;
+  length: number | null;
+  info: number | null;
+  info_flags: string[];
+  supports_get: boolean;
+  supports_set: boolean;
+  current: UvcExtensionValue | null;
+  minimum: UvcExtensionValue | null;
+  maximum: UvcExtensionValue | null;
+  resolution: UvcExtensionValue | null;
+  default: UvcExtensionValue | null;
+  changed_since_previous: boolean;
+  changed_fields: string[];
+  errors: string[];
+};
+
+export type UvcExtensionSnapshot = {
+  captured_at: string;
+  device_path: string;
+  unit_id: number;
+  selectors: UvcExtensionSelectorProbe[];
+  previous_file_path: string | null;
+  changed_selectors: number[];
+  file_path: string | null;
+};
+
+export type PcapImportRecord = {
+  id: string;
+  original_filename: string;
+  stored_filename: string;
+  file_path: string;
+  size_bytes: number;
+  sha256: string;
+  uploaded_at: string;
+  action: string | null;
+  notes: string | null;
+  source: string;
 };
 
 export type AudioStatus = {
@@ -146,5 +250,31 @@ export type AppSettings = {
   };
   config: {
     path: string;
+  };
+};
+
+export type AppSettingsUpdate = {
+  safety?: {
+    start_in_privacy?: boolean;
+  };
+  server?: {
+    host?: string;
+    port?: number;
+    reload?: boolean;
+  };
+  frontend?: {
+    dist?: string;
+    dev_server?: {
+      host?: string;
+      port?: number;
+    };
+  };
+  storage?: {
+    presets?: string;
+    recordings?: string;
+  };
+  hid?: {
+    path?: string | null;
+    report_gap_ms?: number;
   };
 };

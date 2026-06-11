@@ -85,4 +85,47 @@ describe("useControls", () => {
     expect(mockedFetchControls).toHaveBeenCalledTimes(2);
     expect(result.current.controls.find((item) => item.name === "exposure_time_absolute")?.flags).toEqual([]);
   });
+
+  it("refreshes after changing a compact menu control like power line frequency", async () => {
+    const initialControls = [
+      control({
+        name: "power_line_frequency",
+        label: "Power Line Frequency",
+        kind: "menu",
+        value: 2,
+        value_label: "60 Hz",
+        menu: [
+          { value: 0, label: "Disabled" },
+          { value: 1, label: "50 Hz" },
+          { value: 2, label: "60 Hz" }
+        ]
+      })
+    ];
+    const refreshedControls = [
+      control({
+        name: "power_line_frequency",
+        label: "Power Line Frequency",
+        kind: "menu",
+        value: 1,
+        value_label: "50 Hz",
+        menu: initialControls[0].menu
+      })
+    ];
+
+    mockedFetchControls.mockResolvedValueOnce(initialControls).mockResolvedValueOnce(refreshedControls);
+    mockedSetControlValue.mockResolvedValue(refreshedControls[0]);
+
+    const { result } = renderHook(() => useControls("video0"));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.setValue("power_line_frequency", 1);
+    });
+
+    expect(mockedSetControlValue).toHaveBeenCalledWith("video0", "power_line_frequency", 1);
+    expect(mockedFetchControls).toHaveBeenCalledTimes(2);
+    expect(result.current.controls[0].value).toBe(1);
+    expect(result.current.controls[0].value_label).toBe("50 Hz");
+  });
 });

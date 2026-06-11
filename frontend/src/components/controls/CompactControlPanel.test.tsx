@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Aperture, Focus, SlidersHorizontal } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -44,6 +44,11 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     error: null,
     lastCommand: null,
     trackingMode: null,
+    deviceTrackingState: "unknown",
+    deviceTrackingRawValue: null,
+    deviceTrackingRawBits: [],
+    targetTrackingMode: null,
+    targetTrackingRawValue: null,
     gestureEnabled: null,
     autoRotateEnabled: null,
     mirrorMode: null,
@@ -54,6 +59,7 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     refresh: vi.fn(),
     refreshStatus: vi.fn(),
     setTrackingMode: vi.fn(),
+    setTargetTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
     setMirrorMode: vi.fn(),
@@ -61,7 +67,10 @@ function pixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResult {
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
+    sendPtzRelative: vi.fn(),
+    sendPtzAbsolute: vi.fn(),
     sendPtzVector: vi.fn(),
+    recenterPtz: vi.fn(),
     savePtzPreset: vi.fn(),
     loadPtzPreset: vi.fn(),
     ...overrides
@@ -121,6 +130,48 @@ describe("CompactControlPanel", () => {
     expect(setFocusMeteringMode).toHaveBeenCalledWith("human_face");
   });
 
+  it("commits focus absolute when the range slider is released", () => {
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const group: ControlGroup = {
+      id: "focus",
+      title: "Focus Control",
+      accent: "magenta",
+      icon: Focus,
+      controls: [
+        control({ name: "focus_automatic_continuous", label: "Focus Mode", value: 0 }),
+        control({ name: "focus_absolute", label: "Focus Position", kind: "int", value: 512, min: 0, max: 1023, step: 1 })
+      ]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue,
+      setValues: vi.fn()
+    };
+
+    render(
+      <CompactControlPanel
+        group={group}
+        controls={controls}
+        pixyHid={pixyHid()}
+        controlPresets={controlPresets()}
+      />
+    );
+
+    const slider = screen.getByRole("slider");
+    fireEvent.change(slider, { target: { value: "300" } });
+
+    expect(screen.getByText("300")).toBeInTheDocument();
+
+    fireEvent.pointerUp(slider);
+
+    expect(setValue).toHaveBeenCalledWith("focus_absolute", 300);
+  });
+
   it("uses captured vendor labels for custom image controls", () => {
     const group: ControlGroup = {
       id: "image",
@@ -167,6 +218,54 @@ describe("CompactControlPanel", () => {
     expect(screen.getByRole("button", { name: "Lock" })).toBeInTheDocument();
   });
 
+  it("sends power line frequency menu changes from the compact buttons", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
+    const group: ControlGroup = {
+      id: "image",
+      title: "Image Control",
+      accent: "lime",
+      icon: SlidersHorizontal,
+      controls: [
+        control({
+          name: "power_line_frequency",
+          label: "Power Line Frequency",
+          kind: "menu",
+          value: 2,
+          value_label: "60 Hz",
+          menu: [
+            { value: 0, label: "Disabled" },
+            { value: 1, label: "50 Hz" },
+            { value: 2, label: "60 Hz" }
+          ]
+        })
+      ]
+    };
+    const controls: UseControlsResult = {
+      controls: group.controls,
+      groups: [group],
+      isLoading: false,
+      error: null,
+      pendingControl: null,
+      refresh: vi.fn(),
+      setValue,
+      setValues: vi.fn()
+    };
+
+    render(
+      <CompactControlPanel
+        group={group}
+        controls={controls}
+        pixyHid={pixyHid()}
+        controlPresets={controlPresets()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "50 Hz" }));
+
+    expect(setValue).toHaveBeenCalledWith("power_line_frequency", 1);
+  });
+
   it("labels gain as ISO in exposure control", () => {
     const group: ControlGroup = {
       id: "exposure",
@@ -198,7 +297,9 @@ describe("CompactControlPanel", () => {
     expect(screen.getByText("ISO")).toBeInTheDocument();
   });
 
-  it("shows the AE mode dependency when exposure is locked", () => {
+  it("shows the AE mode dependency and can unlock exposure", async () => {
+    const user = userEvent.setup();
+    const setValue = vi.fn().mockResolvedValue(undefined);
     const group: ControlGroup = {
       id: "exposure",
       title: "Exposure Control",
@@ -235,7 +336,7 @@ describe("CompactControlPanel", () => {
       error: null,
       pendingControl: null,
       refresh: vi.fn(),
-      setValue: vi.fn(),
+      setValue,
       setValues: vi.fn()
     };
 
@@ -251,6 +352,10 @@ describe("CompactControlPanel", () => {
     expect(screen.getByText("AE Mode")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
     expect(screen.getByText("AE Mode: Auto. Set to Manual.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Manual AE" }));
+
+    expect(setValue).toHaveBeenCalledWith("auto_exposure", 1);
   });
 
   it("saves active values as a named preset", async () => {

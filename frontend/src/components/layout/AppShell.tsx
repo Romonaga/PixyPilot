@@ -13,6 +13,8 @@ import { ControlGroupPanel } from "../controls/ControlGroupPanel";
 import { CommandLogPanel } from "../panels/CommandLogPanel";
 import { DeviceRail } from "../panels/DeviceRail";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
+import { HidDiagnosticsPanel } from "../panels/HidDiagnosticsPanel";
+import { PcapImportPanel } from "../panels/PcapImportPanel";
 import { RuntimeConfigPanel } from "../panels/RuntimeConfigPanel";
 import { SmartPixyPanel } from "../panels/SmartPixyPanel";
 import { VideoMonitor } from "../panels/VideoMonitor";
@@ -102,6 +104,9 @@ export function AppShell({
               <strong>{controls.isLoading ? "Scanning" : "Ready"}</strong>
             </div>
           </div>
+          <HidDiagnosticsPanel />
+          <ExperimentalPanel deviceName={devices.selectedDeviceName} />
+          <PcapImportPanel />
           <CommandLogPanel
             controls={controls}
             videoFormats={videoFormats}
@@ -112,7 +117,6 @@ export function AppShell({
           />
           <SmartPixyPanel pixyHid={pixyHid} audio={audio} privacySafety={privacySafety} />
           <RuntimeConfigPanel privacySafety={privacySafety} />
-          <ExperimentalPanel />
         </aside>
       </section>
     </main>

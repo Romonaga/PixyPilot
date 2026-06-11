@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from pixypilot.domains.audio.models import AudioCommandResult, AudioMuteRequest, AudioStatus
@@ -12,6 +12,8 @@ from pixypilot.domains.control_presets.models import (
 from pixypilot.domains.control_presets.service import ControlPresetService, get_control_preset_service
 from pixypilot.domains.devices.models import Device
 from pixypilot.domains.hotplug.service import HotplugService, get_hotplug_service
+from pixypilot.domains.pcap_import.models import PcapImportRecord
+from pixypilot.domains.pcap_import.service import PcapImportService, get_pcap_import_service
 from pixypilot.domains.pixy_hid.models import (
     AudioModeRequest,
     AutoPrivacyRequest,
@@ -19,15 +21,24 @@ from pixypilot.domains.pixy_hid.models import (
     GestureRequest,
     MirrorRequest,
     PixyHidCommandResult,
+    PixyHidDeviceState,
+    PixyHidDiagnosticSnapshot,
+    PixyHidQueryName,
+    PixyHidRawQueryResult,
     PixyHidStatus,
+    PtzAbsoluteRequest,
     PtzDirectionRequest,
     PtzPresetSlotRequest,
+    PtzRelativeRequest,
     PtzVectorRequest,
+    TargetTrackingRequest,
     TrackingModeRequest,
 )
 from pixypilot.domains.pixy_hid.service import PixyHidService, get_pixy_hid_service
-from pixypilot.domains.settings.models import AppSettings
+from pixypilot.domains.settings.models import AppSettings, AppSettingsUpdate
 from pixypilot.domains.settings.service import SettingsService, get_settings_service
+from pixypilot.domains.uvc_extension.models import UvcExtensionSelectorProbe, UvcExtensionSnapshot
+from pixypilot.domains.uvc_extension.service import UvcExtensionService, get_uvc_extension_service
 from pixypilot.domains.v4l2.models import (
     ControlSetRequest,
     V4L2Control,
@@ -76,6 +87,17 @@ async def get_settings(
         return await service.get_settings()
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.patch("/settings", response_model=AppSettings)
+async def update_settings(
+    request: AppSettingsUpdate,
+    service: SettingsService = Depends(get_settings_service),
+) -> AppSettings:
+    try:
+        return await service.update_settings(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/control-presets", response_model=list[ControlPreset])
@@ -172,6 +194,61 @@ async def set_format(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/devices/{device_name}/uvc-extension/selectors", response_model=list[UvcExtensionSelectorProbe])
+async def probe_uvc_extension_selectors(
+    device_name: str,
+    v4l2_service: V4L2Service = Depends(get_v4l2_service),
+    uvc_service: UvcExtensionService = Depends(get_uvc_extension_service),
+) -> list[UvcExtensionSelectorProbe]:
+    try:
+        device_path = v4l2_service.device_path_from_name(device_name)
+        return await uvc_service.probe_selectors(device_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/devices/{device_name}/uvc-extension/capture", response_model=UvcExtensionSnapshot)
+async def capture_uvc_extension_snapshot(
+    device_name: str,
+    save: bool = Query(default=False),
+    v4l2_service: V4L2Service = Depends(get_v4l2_service),
+    uvc_service: UvcExtensionService = Depends(get_uvc_extension_service),
+) -> UvcExtensionSnapshot:
+    try:
+        device_path = v4l2_service.device_path_from_name(device_name)
+        return await uvc_service.capture_snapshot(device_path, save=save)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/pcap-imports", response_model=list[PcapImportRecord])
+async def list_pcap_imports(
+    service: PcapImportService = Depends(get_pcap_import_service),
+) -> list[PcapImportRecord]:
+    return await service.list_captures()
+
+
+@router.post("/pcap-imports", response_model=PcapImportRecord)
+async def upload_pcap_import(
+    request: Request,
+    filename: str = Query(..., min_length=1),
+    action: str | None = Query(default=None),
+    notes: str | None = Query(default=None),
+    source: str = Query(default="windows"),
+    service: PcapImportService = Depends(get_pcap_import_service),
+) -> PcapImportRecord:
+    try:
+        return await service.save_capture(
+            filename=filename,
+            chunks=request.stream(),
+            action=action,
+            notes=notes,
+            source=source,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.get("/devices/{device_name}/stream")
 async def stream_video(
     device_name: str,
@@ -263,6 +340,56 @@ async def pixy_hid_status(
     return await service.status()
 
 
+@router.get("/pixy-hid/state", response_model=PixyHidDeviceState)
+async def pixy_hid_state(
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidDeviceState:
+    try:
+        return await service.query_state()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.get("/pixy-hid/query/{query_name}", response_model=PixyHidRawQueryResult)
+async def pixy_hid_query(
+    query_name: PixyHidQueryName,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidRawQueryResult:
+    try:
+        return await service.query_raw(query_name)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.get("/pixy-hid/queries", response_model=list[PixyHidRawQueryResult])
+async def pixy_hid_queries(
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> list[PixyHidRawQueryResult]:
+    try:
+        return await service.query_raw_all()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.post("/pixy-hid/diagnostics/capture", response_model=PixyHidDiagnosticSnapshot)
+async def capture_pixy_hid_diagnostics(
+    save: bool = Query(default=False),
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidDiagnosticSnapshot:
+    try:
+        return await service.capture_diagnostics(save=save)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.patch("/pixy-hid/tracking", response_model=PixyHidCommandResult)
 async def set_pixy_tracking(
     request: TrackingModeRequest,
@@ -270,6 +397,19 @@ async def set_pixy_tracking(
 ) -> PixyHidCommandResult:
     try:
         return await service.set_tracking(request.mode)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/target-tracking", response_model=PixyHidCommandResult)
+async def set_pixy_target_tracking(
+    request: TargetTrackingRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.set_target_tracking(request.mode, request.x, request.y, request.scale)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:
@@ -361,6 +501,44 @@ async def send_pixy_ptz_direction(
 ) -> PixyHidCommandResult:
     try:
         return await service.send_ptz_direction(request.direction)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-relative", response_model=PixyHidCommandResult)
+async def send_pixy_ptz_relative(
+    request: PtzRelativeRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.send_ptz_relative(request.direction, request.degrees)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-absolute", response_model=PixyHidCommandResult)
+async def send_pixy_ptz_absolute(
+    request: PtzAbsoluteRequest,
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.send_ptz_absolute(request.pan, request.tilt)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.patch("/pixy-hid/ptz-recenter", response_model=PixyHidCommandResult)
+async def recenter_pixy_ptz(
+    service: PixyHidService = Depends(get_pixy_hid_service),
+) -> PixyHidCommandResult:
+    try:
+        return await service.recenter_ptz()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:

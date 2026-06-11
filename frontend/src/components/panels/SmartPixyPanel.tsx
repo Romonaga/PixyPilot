@@ -4,7 +4,7 @@ import { ScanFace, Shield, Sparkles, Volume2 } from "lucide-react";
 import type { UseAudioResult } from "../../hooks/useAudio";
 import type { UsePixyHidResult } from "../../hooks/usePixyHid";
 import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
-import type { AudioMode, TrackingMode } from "../../types/api";
+import type { AudioMode, TargetTrackingMode, TrackingMode } from "../../types/api";
 
 type Props = {
   pixyHid: UsePixyHidResult;
@@ -31,8 +31,13 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
   const disabled = !writable || pixyHid.pendingCommand !== null;
   const micMuted = audio.status?.muted === true;
   const micAvailable = audio.status?.available === true;
-  const privacyEnabled = pixyHid.trackingMode === "privacy";
-  const privacyStateKnown = pixyHid.trackingMode !== null;
+  const privacyEnabled = pixyHid.deviceTrackingState === "privacy" || pixyHid.trackingMode === "privacy";
+  const targetTrackingReady = pixyHid.status?.known_controls.includes("target_tracking") ?? false;
+  const deviceTrackingText = deviceTrackingStateText(
+    pixyHid.deviceTrackingState,
+    pixyHid.deviceTrackingRawValue,
+    pixyHid.deviceTrackingRawBits
+  );
   const [autoPrivacyDraft, setAutoPrivacyDraft] = useState(String(pixyHid.autoPrivacySeconds ?? 0));
 
   useEffect(() => {
@@ -61,7 +66,15 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
       return;
     }
     if (mode === "off") {
-      void privacySafety.leavePrivacy();
+      if (targetTrackingReady) {
+        void pixyHid.setTargetTrackingMode("off");
+      } else {
+        void privacySafety.leavePrivacy();
+      }
+      return;
+    }
+    if (targetTrackingReady) {
+      void pixyHid.setTargetTrackingMode("face");
       return;
     }
     void pixyHid.setTrackingMode(mode);
@@ -96,6 +109,10 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
             <span>Control Mode</span>
           </div>
           <div className="privacy-control-body">
+            <div className={`device-mode-readback state-${pixyHid.deviceTrackingState}`}>
+              <span>Device reports</span>
+              <strong>{deviceTrackingText}</strong>
+            </div>
             <div className="privacy-mode-row">
               <span>Mode</span>
               <div className="segmented control-mode-command">
@@ -147,11 +164,30 @@ export function SmartPixyPanel({ pixyHid, audio, privacySafety }: Props) {
             </div>
             <small className="privacy-help">
               {privacyEnabled
-                ? "PixyPilot sent privacy in this session. Auto entry is only used after privacy is off."
-                : !privacyStateKnown
-                  ? "Camera state is unknown after refresh. Select Privacy to send privacy mode now."
-                  : "Timer is captured only: EMEET Studio writes this value, but tests did not trigger privacy."}
+                ? "Device readback or last command indicates privacy. Auto entry is only used after privacy is off."
+                : pixyHid.targetTrackingMode && pixyHid.targetTrackingMode !== "off"
+                  ? `Target tracking: ${targetTrackingLabel(pixyHid.targetTrackingMode)}. It visibly follows while a video stream is open.`
+                  : pixyHid.deviceTrackingState === "non_privacy"
+                    ? "Device confirms non-privacy. Standard vs Tracking is shown from the last command until a better readback is found."
+                    : "Device mode is unknown after refresh. Select Privacy to send privacy mode now."}
             </small>
+            {targetTrackingReady && (
+              <div className="privacy-mode-row">
+                <span>Target</span>
+                <div className="segmented target-tracking-command">
+                  {targetTrackingModes.map((mode) => (
+                    <button
+                      key={mode.value}
+                      className={pixyHid.targetTrackingMode === mode.value ? "is-selected" : ""}
+                      disabled={disabled || privacyEnabled}
+                      onClick={() => void pixyHid.setTargetTrackingMode(mode.value)}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -238,6 +274,17 @@ const controlModes: { value: TrackingMode; label: string }[] = [
   { value: "privacy", label: "Privacy" }
 ];
 
+const targetTrackingModes: { value: TargetTrackingMode; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "face", label: "Face" },
+  { value: "half_body", label: "Half" },
+  { value: "full_body", label: "Full" }
+];
+
+function targetTrackingLabel(mode: TargetTrackingMode) {
+  return targetTrackingModes.find((option) => option.value === mode)?.label ?? mode;
+}
+
 function privacySafetyText(privacySafety: UsePrivacySafetyResult) {
   if (!privacySafety.startupPrivacyEnabled) {
     return "Startup privacy disabled";
@@ -255,4 +302,15 @@ function privacySafetyText(privacySafety: UsePrivacySafetyResult) {
     return "Startup privacy failed; press Privacy to retry";
   }
   return "Loading startup privacy setting";
+}
+
+function deviceTrackingStateText(state: UsePixyHidResult["deviceTrackingState"], rawValue: number | null, rawBits: number[]) {
+  const raw = rawValue === null ? "" : ` raw ${rawValue}${rawBits.length ? ` bits ${rawBits.join(",")}` : ""}`;
+  if (state === "privacy") {
+    return `Privacy${raw}`;
+  }
+  if (state === "non_privacy") {
+    return `Non-privacy${raw}`;
+  }
+  return raw ? `Unknown${raw}` : "Unknown";
 }

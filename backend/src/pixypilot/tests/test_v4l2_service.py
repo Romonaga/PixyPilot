@@ -46,6 +46,16 @@ class StaticControlService(V4L2Service):
         return self.static_formats
 
 
+class DynamicControlService(StaticControlService):
+    async def list_controls(self, device_path: str) -> list[V4L2Control]:
+        if self.control_writer.calls:
+            return [
+                control.model_copy(update={"value": 0}) if control.name == "focus_automatic_continuous" else control
+                for control in self.static_controls
+            ]
+        return self.static_controls
+
+
 def make_control(**overrides: object) -> V4L2Control:
     data = {
         "name": "brightness",
@@ -129,6 +139,38 @@ async def test_set_control_updates_menu_value_label_without_refreshing_controls(
     assert writer.calls == [("/dev/video0", "0x00980918", 1)]
     assert updated.value == 1
     assert updated.value_label == "50 Hz"
+
+
+async def test_set_focus_absolute_switches_autofocus_to_manual_first() -> None:
+    writer = FakeControlWriter()
+    controls = [
+        make_control(
+            name="focus_automatic_continuous",
+            control_id="0x009a090c",
+            kind="bool",
+            value=1,
+            min=0,
+            max=1,
+            step=1,
+        ),
+        make_control(
+            name="focus_absolute",
+            control_id="0x009a090a",
+            value=512,
+            min=0,
+            max=1023,
+            step=1,
+        ),
+    ]
+    service = DynamicControlService(controls, writer)
+
+    updated = await service.set_control("/dev/video0", "focus_absolute", 300)
+
+    assert writer.calls == [
+        ("/dev/video0", "0x009a090c", 0),
+        ("/dev/video0", "0x009a090a", 300),
+    ]
+    assert updated.value == 300
 
 
 async def test_set_format_uses_native_writer_after_validating_format() -> None:

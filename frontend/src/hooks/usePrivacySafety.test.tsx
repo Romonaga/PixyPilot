@@ -1,17 +1,19 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchSettings } from "../lib/apiClient";
+import { fetchSettings, updateSettings } from "../lib/apiClient";
 import type { AppSettings } from "../types/api";
 import type { UseAudioResult } from "./useAudio";
 import type { UsePixyHidResult } from "./usePixyHid";
 import { resetPrivacySafetyForTests, usePrivacySafety } from "./usePrivacySafety";
 
 vi.mock("../lib/apiClient", () => ({
-  fetchSettings: vi.fn()
+  fetchSettings: vi.fn(),
+  updateSettings: vi.fn()
 }));
 
 const mockedFetchSettings = vi.mocked(fetchSettings);
+const mockedUpdateSettings = vi.mocked(updateSettings);
 
 function makeSettings(startInPrivacy: boolean): AppSettings {
   return {
@@ -47,6 +49,11 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     error: null,
     lastCommand: null,
     trackingMode: null,
+    deviceTrackingState: "unknown",
+    deviceTrackingRawValue: null,
+    deviceTrackingRawBits: [],
+    targetTrackingMode: null,
+    targetTrackingRawValue: null,
     gestureEnabled: null,
     autoRotateEnabled: null,
     mirrorMode: null,
@@ -57,6 +64,7 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     refresh: vi.fn(),
     refreshStatus: vi.fn(),
     setTrackingMode: vi.fn().mockResolvedValue(undefined),
+    setTargetTrackingMode: vi.fn(),
     setGestureEnabled: vi.fn(),
     setAutoRotateEnabled: vi.fn(),
     setMirrorMode: vi.fn(),
@@ -64,7 +72,10 @@ function makePixyHid(overrides: Partial<UsePixyHidResult> = {}): UsePixyHidResul
     setAudioMode: vi.fn(),
     setAutoPrivacySeconds: vi.fn(),
     sendPtzDirection: vi.fn(),
+    sendPtzRelative: vi.fn(),
+    sendPtzAbsolute: vi.fn(),
     sendPtzVector: vi.fn(),
+    recenterPtz: vi.fn(),
     savePtzPreset: vi.fn(),
     loadPtzPreset: vi.fn(),
     ...overrides
@@ -94,6 +105,7 @@ describe("usePrivacySafety", () => {
   beforeEach(() => {
     resetPrivacySafetyForTests();
     mockedFetchSettings.mockReset();
+    mockedUpdateSettings.mockReset();
   });
 
   it("sends camera privacy and mic mute when entering privacy", async () => {
@@ -176,5 +188,24 @@ describe("usePrivacySafety", () => {
 
     expect(pixyHid.setTrackingMode).toHaveBeenCalledWith("off");
     expect(audio.setMuted).not.toHaveBeenCalled();
+  });
+
+  it("saves runtime settings and updates the current settings state", async () => {
+    mockedFetchSettings.mockResolvedValue(makeSettings(false));
+    mockedUpdateSettings.mockResolvedValue(makeSettings(true));
+    const pixyHid = makePixyHid();
+    const audio = makeAudio();
+
+    const { result } = renderHook(() => usePrivacySafety(pixyHid, audio));
+
+    await waitFor(() => expect(result.current.settingsLoaded).toBe(true));
+
+    await act(async () => {
+      await result.current.saveSettings({ safety: { start_in_privacy: true } });
+    });
+
+    expect(mockedUpdateSettings).toHaveBeenCalledWith({ safety: { start_in_privacy: true } });
+    expect(result.current.settings?.safety.start_in_privacy).toBe(true);
+    expect(result.current.startupPrivacyEnabled).toBe(true);
   });
 });

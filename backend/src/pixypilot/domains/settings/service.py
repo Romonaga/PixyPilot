@@ -1,8 +1,12 @@
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 from pixypilot import config
 from pixypilot.domains.settings.models import (
     AppSettings,
+    AppSettingsUpdate,
     ConfigSettings,
     FrontendSettings,
     HidSettings,
@@ -51,6 +55,48 @@ class SettingsService:
             config=ConfigSettings(path=str(config.config_file_path(self.settings_path))),
         )
 
+    async def update_settings(self, update: AppSettingsUpdate) -> AppSettings:
+        path = config.config_file_path(self.settings_path)
+        patch = update.model_dump(exclude_unset=True, exclude_none=False)
+        if not patch:
+            return await self.get_settings()
+
+        current = self._read_raw_config(path)
+        merged = _deep_update(current, patch)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(yaml.safe_dump(merged, sort_keys=False), encoding="utf-8")
+        config.reset_config_cache_for_tests()
+        return await self.get_settings()
+
+    def _read_raw_config(self, path: Path) -> dict[str, Any]:
+        if not path.exists():
+            return {}
+        raw_config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if raw_config is None:
+            return {}
+        if not isinstance(raw_config, dict):
+            raise ValueError("PixyPilot config must be a YAML mapping")
+        return _string_keys(raw_config)
+
 
 def get_settings_service() -> SettingsService:
     return SettingsService()
+
+
+def _deep_update(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(current)
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_update(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _string_keys(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _string_keys(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_string_keys(item) for item in value]
+    return value

@@ -3,6 +3,7 @@ import type {
   AudioStatus,
   AudioMode,
   AppSettings,
+  AppSettingsUpdate,
   ControlPreset,
   ControlPresetCreateRequest,
   ControlPresetDeleteResult,
@@ -10,12 +11,20 @@ import type {
   FocusMeteringPoint,
   FocusMeteringMode,
   MirrorMode,
+  PcapImportRecord,
   PixyHidCommandResult,
+  PixyHidDeviceState,
+  PixyHidDiagnosticSnapshot,
+  PixyHidQueryName,
+  PixyHidRawQueryResult,
   PixyHidStatus,
   PtzDirection,
   PtzPresetSlot,
   PtzVector,
+  TargetTrackingMode,
   TrackingMode,
+  UvcExtensionSelectorProbe,
+  UvcExtensionSnapshot,
   V4L2Control,
   VideoFormatOption,
   VideoRecordingStatus,
@@ -47,6 +56,13 @@ export async function fetchDevices(): Promise<Device[]> {
 
 export async function fetchSettings(): Promise<AppSettings> {
   return requestJson<AppSettings>("/api/settings");
+}
+
+export async function updateSettings(update: AppSettingsUpdate): Promise<AppSettings> {
+  return requestJson<AppSettings>("/api/settings", {
+    method: "PATCH",
+    body: JSON.stringify(update)
+  });
 }
 
 export async function fetchControlPresets(): Promise<ControlPreset[]> {
@@ -98,6 +114,54 @@ export async function setVideoFormat(
   });
 }
 
+export async function fetchUvcExtensionSelectors(deviceName: string): Promise<UvcExtensionSelectorProbe[]> {
+  return requestJson<UvcExtensionSelectorProbe[]>(
+    `/api/devices/${encodeURIComponent(deviceName)}/uvc-extension/selectors`
+  );
+}
+
+export async function captureUvcExtensionSnapshot(deviceName: string, save = false): Promise<UvcExtensionSnapshot> {
+  return requestJson<UvcExtensionSnapshot>(
+    `/api/devices/${encodeURIComponent(deviceName)}/uvc-extension/capture?save=${save ? "true" : "false"}`,
+    { method: "POST" }
+  );
+}
+
+export async function fetchPcapImports(): Promise<PcapImportRecord[]> {
+  return requestJson<PcapImportRecord[]>("/api/pcap-imports");
+}
+
+export async function uploadPcapImport(
+  file: File,
+  metadata: { action?: string; notes?: string; source?: string } = {}
+): Promise<PcapImportRecord> {
+  const params = new URLSearchParams({
+    filename: file.name,
+    source: metadata.source ?? "windows"
+  });
+  if (metadata.action) {
+    params.set("action", metadata.action);
+  }
+  if (metadata.notes) {
+    params.set("notes", metadata.notes);
+  }
+
+  const response = await fetch(`${API_BASE}/api/pcap-imports?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/vnd.tcpdump.pcap"
+    },
+    body: file
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(typeof body.detail === "string" ? body.detail : response.statusText);
+  }
+
+  return response.json() as Promise<PcapImportRecord>;
+}
+
 export function videoStreamUrl(
   deviceName: string,
   format: Pick<VideoFormatOption, "pixel_format" | "width" | "height" | "fps">,
@@ -143,10 +207,38 @@ export async function fetchPixyHidStatus(): Promise<PixyHidStatus> {
   return requestJson<PixyHidStatus>("/api/pixy-hid/status");
 }
 
+export async function fetchPixyHidState(): Promise<PixyHidDeviceState> {
+  return requestJson<PixyHidDeviceState>("/api/pixy-hid/state");
+}
+
+export async function fetchPixyHidQueries(): Promise<PixyHidRawQueryResult[]> {
+  return requestJson<PixyHidRawQueryResult[]>("/api/pixy-hid/queries");
+}
+
+export async function fetchPixyHidQuery(queryName: PixyHidQueryName): Promise<PixyHidRawQueryResult> {
+  return requestJson<PixyHidRawQueryResult>(`/api/pixy-hid/query/${encodeURIComponent(queryName)}`);
+}
+
+export async function capturePixyHidDiagnostics(save = false): Promise<PixyHidDiagnosticSnapshot> {
+  return requestJson<PixyHidDiagnosticSnapshot>(`/api/pixy-hid/diagnostics/capture?save=${save ? "true" : "false"}`, {
+    method: "POST"
+  });
+}
+
 export async function setPixyTracking(mode: TrackingMode): Promise<PixyHidCommandResult> {
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/tracking", {
     method: "PATCH",
     body: JSON.stringify({ mode })
+  });
+}
+
+export async function setPixyTargetTracking(
+  mode: TargetTrackingMode,
+  options: { x?: number; y?: number; scale?: number } = {}
+): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/target-tracking", {
+    method: "PATCH",
+    body: JSON.stringify({ mode, ...options })
   });
 }
 
@@ -202,6 +294,26 @@ export async function sendPixyPtzDirection(direction: PtzDirection): Promise<Pix
   return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-direction", {
     method: "PATCH",
     body: JSON.stringify({ direction })
+  });
+}
+
+export async function sendPixyPtzRelative(direction: PtzDirection, degrees: number): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-relative", {
+    method: "PATCH",
+    body: JSON.stringify({ direction, degrees })
+  });
+}
+
+export async function sendPixyPtzAbsolute(pan: number, tilt: number): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-absolute", {
+    method: "PATCH",
+    body: JSON.stringify({ pan, tilt })
+  });
+}
+
+export async function recenterPixyPtz(): Promise<PixyHidCommandResult> {
+  return requestJson<PixyHidCommandResult>("/api/pixy-hid/ptz-recenter", {
+    method: "PATCH"
   });
 }
 

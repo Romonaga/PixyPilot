@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  fetchPixyHidState,
   fetchPixyHidStatus,
   setPixyAudio,
   setPixyAutoPrivacy,
@@ -9,9 +10,13 @@ import {
   setPixyFocusMetering,
   setPixyMirror,
   loadPixyPtzPreset,
+  recenterPixyPtz,
   sendPixyPtzDirection,
+  sendPixyPtzAbsolute,
+  sendPixyPtzRelative,
   sendPixyPtzVector,
   savePixyPtzPreset,
+  setPixyTargetTracking,
   setPixyTracking
 } from "../lib/apiClient";
 import type {
@@ -23,8 +28,14 @@ import type {
   PtzDirection,
   PtzPresetSlot,
   PtzVector,
+  TargetTrackingMode,
   TrackingMode
 } from "../types/api";
+
+export type DeviceTrackingState = "privacy" | "non_privacy" | "unknown";
+
+const NON_PRIVACY_READBACK_RETRIES = 4;
+const NON_PRIVACY_READBACK_RETRY_MS = 250;
 
 export type UsePixyHidResult = {
   status: PixyHidStatus | null;
@@ -33,6 +44,11 @@ export type UsePixyHidResult = {
   error: string | null;
   lastCommand: string | null;
   trackingMode: TrackingMode | null;
+  deviceTrackingState: DeviceTrackingState;
+  deviceTrackingRawValue: number | null;
+  deviceTrackingRawBits: number[];
+  targetTrackingMode: TargetTrackingMode | null;
+  targetTrackingRawValue: number | null;
   gestureEnabled: boolean | null;
   autoRotateEnabled: boolean | null;
   mirrorMode: MirrorMode | null;
@@ -43,6 +59,7 @@ export type UsePixyHidResult = {
   refresh: () => Promise<void>;
   refreshStatus: (options?: { showLoading?: boolean }) => Promise<void>;
   setTrackingMode: (mode: TrackingMode) => Promise<void>;
+  setTargetTrackingMode: (mode: TargetTrackingMode) => Promise<void>;
   setGestureEnabled: (enabled: boolean) => Promise<void>;
   setAutoRotateEnabled: (enabled: boolean) => Promise<void>;
   setMirrorMode: (mode: MirrorMode) => Promise<void>;
@@ -50,7 +67,10 @@ export type UsePixyHidResult = {
   setAudioMode: (mode: AudioMode) => Promise<void>;
   setAutoPrivacySeconds: (seconds: number) => Promise<void>;
   sendPtzDirection: (direction: PtzDirection) => Promise<void>;
+  sendPtzRelative: (direction: PtzDirection, degrees: number) => Promise<void>;
+  sendPtzAbsolute: (pan: number, tilt: number) => Promise<void>;
   sendPtzVector: (vector: PtzVector) => Promise<void>;
+  recenterPtz: () => Promise<void>;
   savePtzPreset: (slot: PtzPresetSlot) => Promise<void>;
   loadPtzPreset: (slot: PtzPresetSlot) => Promise<void>;
 };
@@ -62,6 +82,11 @@ export function usePixyHid(): UsePixyHidResult {
   const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [trackingMode, setTrackingModeState] = useState<TrackingMode | null>(null);
+  const [deviceTrackingState, setDeviceTrackingState] = useState<DeviceTrackingState>("unknown");
+  const [deviceTrackingRawValue, setDeviceTrackingRawValue] = useState<number | null>(null);
+  const [deviceTrackingRawBits, setDeviceTrackingRawBits] = useState<number[]>([]);
+  const [targetTrackingMode, setTargetTrackingModeState] = useState<TargetTrackingMode | null>(null);
+  const [targetTrackingRawValue, setTargetTrackingRawValue] = useState<number | null>(null);
   const [gestureEnabled, setGestureEnabledState] = useState<boolean | null>(null);
   const [autoRotateEnabled, setAutoRotateEnabledState] = useState<boolean | null>(null);
   const [mirrorMode, setMirrorModeState] = useState<MirrorMode | null>(null);
@@ -72,6 +97,11 @@ export function usePixyHid(): UsePixyHidResult {
 
   const clearAssertedState = useCallback(() => {
     setTrackingModeState(null);
+    setDeviceTrackingState("unknown");
+    setDeviceTrackingRawValue(null);
+    setDeviceTrackingRawBits([]);
+    setTargetTrackingModeState(null);
+    setTargetTrackingRawValue(null);
     setGestureEnabledState(null);
     setAutoRotateEnabledState(null);
     setMirrorModeState(null);
@@ -79,6 +109,42 @@ export function usePixyHid(): UsePixyHidResult {
     setFocusMeteringPointState(null);
     setAudioModeState(null);
     setAutoPrivacySecondsState(null);
+  }, []);
+
+  const refreshDeviceState = useCallback(async (options: { expectNonPrivacy?: boolean } = {}) => {
+    try {
+      const attempts = options.expectNonPrivacy ? NON_PRIVACY_READBACK_RETRIES : 1;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const deviceState = await fetchPixyHidState();
+        const rawValue = deviceState.tracking_raw_value;
+        if (options.expectNonPrivacy && rawValue === 2 && attempt < attempts - 1) {
+          await delay(NON_PRIVACY_READBACK_RETRY_MS);
+          continue;
+        }
+        setDeviceTrackingRawValue(rawValue);
+        setDeviceTrackingRawBits(deviceState.tracking_raw_bits);
+        setTargetTrackingModeState(deviceState.target_tracking_mode);
+        setTargetTrackingRawValue(deviceState.target_tracking_raw_value);
+        if (rawValue === 2) {
+          setDeviceTrackingState("privacy");
+          setTrackingModeState("privacy");
+          return;
+        }
+        if (rawValue === 3) {
+          setDeviceTrackingState("non_privacy");
+          setTrackingModeState((current) => (current === "privacy" ? null : current));
+          return;
+        }
+        setDeviceTrackingState("unknown");
+        return;
+      }
+    } catch {
+      setDeviceTrackingState("unknown");
+      setDeviceTrackingRawValue(null);
+      setDeviceTrackingRawBits([]);
+      setTargetTrackingModeState(null);
+      setTargetTrackingRawValue(null);
+    }
   }, []);
 
   const refreshStatusInternal = useCallback(async (options: { clearState?: boolean; showLoading?: boolean } = {}) => {
@@ -90,13 +156,23 @@ export function usePixyHid(): UsePixyHidResult {
       clearAssertedState();
     }
     try {
-      setStatus(await fetchPixyHidStatus());
+      const nextStatus = await fetchPixyHidStatus();
+      setStatus(nextStatus);
+      if (nextStatus.writable) {
+        await refreshDeviceState();
+      } else {
+        setDeviceTrackingState("unknown");
+        setDeviceTrackingRawValue(null);
+        setDeviceTrackingRawBits([]);
+        setTargetTrackingModeState(null);
+        setTargetTrackingRawValue(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to inspect Pixy HID");
     } finally {
       setIsLoading(false);
     }
-  }, [clearAssertedState]);
+  }, [clearAssertedState, refreshDeviceState]);
 
   const refreshStatus = useCallback(async (options: { showLoading?: boolean } = {}) => {
     await refreshStatusInternal({ clearState: false, showLoading: options.showLoading });
@@ -131,8 +207,9 @@ export function usePixyHid(): UsePixyHidResult {
       runCommand(`tracking:${mode}`, async () => {
         await setPixyTracking(mode);
         setTrackingModeState(mode);
+        await refreshDeviceState({ expectNonPrivacy: mode !== "privacy" });
       }),
-    [runCommand]
+    [refreshDeviceState, runCommand]
   );
 
   const setGestureEnabled = useCallback(
@@ -142,6 +219,17 @@ export function usePixyHid(): UsePixyHidResult {
         setGestureEnabledState(enabled);
       }),
     [runCommand]
+  );
+
+  const setTargetTrackingMode = useCallback(
+    async (mode: TargetTrackingMode) =>
+      runCommand(`target-tracking:${mode}`, async () => {
+        await setPixyTargetTracking(mode);
+        setTrackingModeState(mode === "off" ? "off" : "tracking");
+        setTargetTrackingModeState(mode);
+        await refreshDeviceState({ expectNonPrivacy: mode !== "off" });
+      }),
+    [refreshDeviceState, runCommand]
   );
 
   const setAutoRotateEnabled = useCallback(
@@ -198,10 +286,34 @@ export function usePixyHid(): UsePixyHidResult {
     [runCommand]
   );
 
+  const sendPtzRelative = useCallback(
+    async (direction: PtzDirection, degrees: number) =>
+      runCommand(`ptz-relative:${direction}:${degrees}`, async () => {
+        await sendPixyPtzRelative(direction, degrees);
+      }),
+    [runCommand]
+  );
+
+  const sendPtzAbsolute = useCallback(
+    async (pan: number, tilt: number) =>
+      runCommand(`ptz-absolute:${pan},${tilt}`, async () => {
+        await sendPixyPtzAbsolute(pan, tilt);
+      }),
+    [runCommand]
+  );
+
   const sendPtzVector = useCallback(
     async (vector: PtzVector) =>
       runCommand(`ptz-vector:${vector.x},${vector.y},${vector.z ?? 0}`, async () => {
         await sendPixyPtzVector(vector);
+      }),
+    [runCommand]
+  );
+
+  const recenterPtz = useCallback(
+    async () =>
+      runCommand("ptz-recenter", async () => {
+        await recenterPixyPtz();
       }),
     [runCommand]
   );
@@ -229,6 +341,11 @@ export function usePixyHid(): UsePixyHidResult {
     error,
     lastCommand,
     trackingMode,
+    deviceTrackingState,
+    deviceTrackingRawValue,
+    deviceTrackingRawBits,
+    targetTrackingMode,
+    targetTrackingRawValue,
     gestureEnabled,
     autoRotateEnabled,
     mirrorMode,
@@ -239,6 +356,7 @@ export function usePixyHid(): UsePixyHidResult {
     refresh,
     refreshStatus,
     setTrackingMode,
+    setTargetTrackingMode,
     setGestureEnabled,
     setAutoRotateEnabled,
     setMirrorMode,
@@ -246,8 +364,15 @@ export function usePixyHid(): UsePixyHidResult {
     setAudioMode,
     setAutoPrivacySeconds,
     sendPtzDirection,
+    sendPtzRelative,
+    sendPtzAbsolute,
     sendPtzVector,
+    recenterPtz,
     savePtzPreset,
     loadPtzPreset
   };
+}
+
+function delay(milliseconds: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }

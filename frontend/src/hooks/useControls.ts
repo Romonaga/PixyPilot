@@ -5,6 +5,7 @@ import { groupControls } from "../domains/controls/grouping";
 import type { V4L2Control } from "../types/api";
 
 const ACTIVE_STATE_PARENT_CONTROLS = new Set(["auto_exposure", "white_balance_automatic", "focus_automatic_continuous"]);
+const REFRESH_AFTER_WRITE_KINDS = new Set(["bool", "menu"]);
 
 export type UseControlsResult = {
   controls: V4L2Control[];
@@ -51,12 +52,21 @@ export function useControls(deviceName: string | null): UseControlsResult {
       setPendingControl(controlName);
       setError(null);
       const previousControls = controls;
+      const targetControl = controls.find((control) => control.name === controlName);
       setControls((current) =>
-        current.map((control) => (control.name === controlName ? { ...control, value } : control))
+        current.map((control) =>
+          control.name === controlName
+            ? {
+                ...control,
+                value,
+                value_label: control.menu.find((option) => option.value === value)?.label ?? control.value_label
+              }
+            : control
+        )
       );
       try {
         const updated = await setControlValue(deviceName, controlName, value);
-        if (ACTIVE_STATE_PARENT_CONTROLS.has(controlName)) {
+        if (ACTIVE_STATE_PARENT_CONTROLS.has(controlName) || REFRESH_AFTER_WRITE_KINDS.has(targetControl?.kind ?? "")) {
           setControls(await fetchControls(deviceName));
         } else {
           setControls((current) =>
