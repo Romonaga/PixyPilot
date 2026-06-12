@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { UsePrivacySafetyResult } from "../../hooks/usePrivacySafety";
 import type { AppSettings } from "../../types/api";
-import { RuntimeConfigPanel } from "./RuntimeConfigPanel";
+import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
 
 function settings(): AppSettings {
   return {
@@ -41,12 +41,12 @@ function privacySafety(overrides: Partial<UsePrivacySafetyResult> = {}): UsePriv
   };
 }
 
-describe("RuntimeConfigPanel", () => {
+describe("RuntimeSettingsPanel", () => {
   it("edits the Vite dev server port through runtime settings", async () => {
     const user = userEvent.setup();
     const saveSettings = vi.fn().mockResolvedValue(settings());
 
-    render(<RuntimeConfigPanel privacySafety={privacySafety({ saveSettings })} />);
+    render(<RuntimeSettingsPanel privacySafety={privacySafety({ saveSettings })} />);
 
     await user.click(screen.getByRole("button", { name: "Edit Vite port" }));
     const input = screen.getByDisplayValue("5173");
@@ -59,7 +59,7 @@ describe("RuntimeConfigPanel", () => {
   });
 
   it("shows restart scope for bind and Vite settings", () => {
-    render(<RuntimeConfigPanel privacySafety={privacySafety()} />);
+    render(<RuntimeSettingsPanel privacySafety={privacySafety()} />);
 
     expect(screen.getAllByText("dev restart").length).toBeGreaterThan(0);
     expect(screen.getAllByText("restart").length).toBeGreaterThan(0);

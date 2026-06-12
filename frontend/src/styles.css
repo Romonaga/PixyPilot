@@ -117,7 +117,7 @@ h2 {
 
 .view-switch {
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   min-height: 38px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -519,8 +519,78 @@ h2 {
   gap: 18px;
 }
 
+.diagnostics-intro {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .diagnostics-grid .command-log-panel {
   grid-column: 1 / -1;
+}
+
+.settings-console {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+.settings-summary-panel {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(82, 229, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(12, 16, 22, 0.88);
+  padding: 14px;
+}
+
+.settings-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-summary-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 74px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+}
+
+.settings-summary-item svg {
+  grid-row: span 2;
+}
+
+.settings-summary-item span {
+  color: #91a2a3;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.settings-summary-item strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #eef5f4;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-summary-item.tone-good svg {
+  color: #83ff9c;
+}
+
+.settings-summary-item.tone-warn svg {
+  color: #ffd45e;
+}
+
+.settings-summary-item.tone-info svg {
+  color: #52e5ff;
 }
 
 .video-monitor {

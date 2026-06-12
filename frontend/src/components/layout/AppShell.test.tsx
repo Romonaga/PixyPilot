@@ -227,12 +227,21 @@ describe("AppShell", () => {
     expect(screen.queryByRole("heading", { name: "HID Diagnostics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Future Deck" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Windows Capture Inbox" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Runtime Config" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Diagnostics" }));
 
     expect(screen.getByRole("heading", { name: "HID Diagnostics" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Future Deck" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Windows Capture Inbox" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Runtime Config" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Live Monitor" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Runtime Config" })).toBeInTheDocument();
+    expect(screen.getAllByText("Single address").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("heading", { name: "HID Diagnostics" })).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { RefreshCw, Radar, SlidersHorizontal, FlaskConical } from "lucide-react";
+import { RefreshCw, Radar, SlidersHorizontal, FlaskConical, Settings } from "lucide-react";
 import { useState } from "react";
 
 import { countActiveControls } from "../../domains/controls/grouping";
@@ -14,6 +14,7 @@ import { DeviceRail } from "../panels/DeviceRail";
 import { StatusPill } from "../ui/StatusPill";
 import { ControlDeck } from "./ControlDeck";
 import { DiagnosticsDeck } from "./DiagnosticsDeck";
+import { SettingsDeck } from "../settings/SettingsDeck";
 
 type Props = {
   devices: UseDevicesResult;
@@ -37,7 +38,7 @@ export function AppShell({
   controlPresets
 }: Props) {
   const activeControls = countActiveControls(controls.controls);
-  const [view, setView] = useState<"control" | "diagnostics">("control");
+  const [view, setView] = useState<"control" | "diagnostics" | "settings">("control");
 
   return (
     <main className="app-shell">
@@ -69,6 +70,14 @@ export function AppShell({
               <FlaskConical size={15} />
               Diagnostics
             </button>
+            <button
+              className={view === "settings" ? "is-selected" : ""}
+              onClick={() => setView("settings")}
+              aria-pressed={view === "settings"}
+            >
+              <Settings size={15} />
+              Settings
+            </button>
           </div>
           <StatusPill
             tone={devices.selectedDevice ? "good" : "warn"}
@@ -81,7 +90,7 @@ export function AppShell({
         </div>
       </header>
 
-      <section className={`command-grid ${view === "diagnostics" ? "is-diagnostics" : "is-control"}`}>
+      <section className={`command-grid view-${view}`}>
         <DeviceRail devices={devices} controls={controls} videoFormats={videoFormats} pixyHid={pixyHid} />
 
         <div className="main-console">
@@ -99,7 +108,7 @@ export function AppShell({
               privacySafety={privacySafety}
               controlPresets={controlPresets}
             />
-          ) : (
+          ) : view === "diagnostics" ? (
             <DiagnosticsDeck
               deviceName={devices.selectedDeviceName}
               controls={controls}
@@ -109,6 +118,8 @@ export function AppShell({
               audio={audio}
               privacySafety={privacySafety}
             />
+          ) : (
+            <SettingsDeck privacySafety={privacySafety} />
           )}
         </div>
       </section>

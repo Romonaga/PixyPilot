@@ -10,7 +10,6 @@ import { CommandLogPanel } from "../panels/CommandLogPanel";
 import { ExperimentalPanel } from "../panels/ExperimentalPanel";
 import { HidDiagnosticsPanel } from "../panels/HidDiagnosticsPanel";
 import { PcapImportPanel } from "../panels/PcapImportPanel";
-import { RuntimeConfigPanel } from "../panels/RuntimeConfigPanel";
 
 type Props = {
   deviceName: string | null;
@@ -35,7 +34,6 @@ export function DiagnosticsDeck({
     <div className="diagnostics-console">
       <div className="diagnostics-intro">
         <SignalPanel isLoading={controls.isLoading} />
-        <RuntimeConfigPanel privacySafety={privacySafety} />
       </div>
       <div className="diagnostics-grid">
         <HidDiagnosticsPanel />
